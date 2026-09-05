@@ -1,0 +1,42 @@
+# Environment & secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Upstream checkouts pulled at bring-up (OpenMAIC, Tutor config, etc.)
+services/
+.tutor/
+.tutor.venv/
+
+# Build output & dependencies
+node_modules/
+.pnp
+dist/
+build/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Docker volumes (if mounted into the repo)
+.pgdata/
+omniroute-data/

@@ -1,0 +1,61 @@
+# ==========================================================================
+# AuthenIQ — operator compose for the AI services this repo directly runs.
+#
+# The LMS core (Tutor / Open edX) runs from Tutor's own compose project
+# (`tutor local`); OpenMAIC runs from its upstream repo. This file covers the
+# glue services AuthenIQ owns: the OmniRoute model gateway and the OpenMAIC
+# persistence Postgres. Profiles are opt-in and additive.
+#
+#   docker compose --profile gateway up -d    # OmniRoute (model gateway)
+#   docker compose --profile openmaic up -d   # OpenMAIC persistence Postgres
+# ==========================================================================
+
+name: authentiq
+
+services:
+  # ------------------------------------------------------------------
+  # OmniRoute — self-hosted OpenAI-compatible model gateway (port 20128).
+  # OpenMAIC, OpenClaw, and OpenClaude all point here; the operator
+  # connects provider accounts in the dashboard.
+  # ------------------------------------------------------------------
+  omniroute:
+    image: diegosouzapw/omniroute:latest
+    container_name: authentiq-omniroute
+    profiles: ["gateway"]
+    restart: unless-stopped
+    environment:
+      OMNIROUTE_SERVER_HOST: 0.0.0.0
+      OMNIROUTE_PORT: ${OMNIROUTE_PORT:-20128}
+      REQUIRE_API_KEY: ${REQUIRE_API_KEY:-true}
+    ports:
+      - "127.0.0.1:${OMNIROUTE_PORT:-20128}:${OMNIROUTE_PORT:-20128}"
+    volumes:
+      - omniroute-data:/app/data
+
+  # ------------------------------------------------------------------
+  # OpenMAIC persistence Postgres — server-backed classroom sessions.
+  # Consumed by the OpenMAIC app (deployed from its upstream repo with
+  # DATABASE_URL pointing at this service).
+  # ------------------------------------------------------------------
+  openmaic-postgres:
+    image: postgres:16-alpine
+    container_name: authentiq-openmaic-postgres
+    profiles: ["openmaic"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${OPENMAIC_DB_NAME:-openmaic}
+      POSTGRES_USER: ${OPENMAIC_DB_USER:-openmaic}
+      POSTGRES_PASSWORD: ${OPENMAIC_DB_PASSWORD:-change-me-openmaic-db}
+    ports:
+      - "127.0.0.1:${OPENMAIC_DB_PORT:-5433}:5432"
+    volumes:
+      - openmaic-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${OPENMAIC_DB_USER:-openmaic} -d ${OPENMAIC_DB_NAME:-openmaic}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  omniroute-data:
+  openmaic-postgres-data:

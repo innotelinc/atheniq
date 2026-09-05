@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Policy · Structure · Compose
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Commit message policy
+        run: bash scripts/check-commit-messages.sh
+
+      - name: Repository structure
+        run: |
+          test -f README.md
+          test -f LICENSE
+          test -f docs/stack.md
+          test -f .env.example
+          test -f web/landing/index.html
+          echo "structure: ok"
+
+      - name: Validate compose (default)
+        run: docker compose config --quiet
+
+      - name: Validate compose (all profiles)
+        run: docker compose --profile gateway --profile openmaic config --quiet
+
+      - name: Landing page sanity
+        run: |
+          grep -qi "AuthenIQ" web/landing/index.html
+          echo "landing: ok"
