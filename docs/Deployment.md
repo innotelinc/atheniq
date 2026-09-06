@@ -182,13 +182,14 @@ currently returns 500 — request a `*.learn.innotel.us` wildcard once that is
 fixed. Run [`scripts/provision-edge.sh`](../scripts/provision-edge.sh) to
 re-apply (idempotent). Public HTTPS verified for all four hosts.
 
-> Scheme note: Tutor runs with `ENABLE_HTTPS=false` (its own caddy is plain
-> HTTP on `:18080`; NPM terminates TLS). Open edX therefore emits `http://`
-> absolute URLs (e.g. the authn login at `http://apps.learn.innotel.us/authn/login`).
-> SSO itself is unaffected (Authentik redirect URIs are `https://` and are
-> matched exactly), but a browser pass should confirm no mixed-content
-> breakage; if any, flip Tutor to `ENABLE_HTTPS=true` with the wildcard certs
-> imported into caddy before pointing the edge at `:18443`.
+> Scheme note: Tutor runs with `ENABLE_HTTPS=true` and `ENABLE_WEB_PROXY=false`
+> (its own caddy stays plain HTTP on `:18080`; NPM terminates TLS). This makes
+> Open edX emit `https://` absolute URLs — required, since the browser would
+> otherwise block the MFEs' API calls as mixed content (this broke the catalog
+> MFE at `https://apps.learn.innotel.us/catalog/` until flipped). To re-apply
+> after a Tutor reinstall: `tutor config save --set ENABLE_HTTPS=true` then
+> `docker compose -p tutor_local -f docker-compose.yml -f
+> docker-compose.prod.yml restart lms cms mfe caddy`.
 
 ## Operations
 
