@@ -1,0 +1,20 @@
+[Unit]
+Description=AthenIQ -> Signara certificate bridge (auto-sign new Open edX course certificates)
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# Runs one pass over certificates not yet signed, then exits. The bridge needs
+# the LMS MySQL container (docker) and Signara reachable. It resolves the LMS
+# MySQL root password via `sudo -u tutor`; if that is unavailable, set
+# LMS_DB_PASSWORD in the Environment line below.
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 /usr/src/projects/complete/atheniq/scripts/cert-bridge.py --once
+# Example override for hosts where `sudo -u tutor` is not available:
+# Environment=LMS_DB_PASSWORD=change-me
+# If the bridge user cannot sudo, run this unit as the tutor-capable user:
+# User=root
+
+[Install]
+WantedBy=multi-user.target

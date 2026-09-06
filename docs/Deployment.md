@@ -494,6 +494,19 @@ python3 scripts/cert-bridge.py --watch --interval 120
 python3 scripts/cert-bridge.py --dry-run   # preview without calling Signara
 ```
 
+**Scheduled service (this host):** a systemd timer runs the bridge every
+2 minutes so signing is fully automatic — no manual passes needed:
+
+```bash
+sudo cp deploy/systemd/atheniq-cert-bridge.service deploy/systemd/atheniq-cert-bridge.timer /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now atheniq-cert-bridge.timer
+journalctl -u atheniq-cert-bridge.service -n 20   # watch runs
+```
+
+The unit runs `cert-bridge.py --once` (oneshot) each tick and exits; it needs
+`docker` access and either `sudo -u tutor` (default) or `LMS_DB_PASSWORD` set
+in the unit's `Environment=`.
+
 Prerequisites (all in `.env`, documented in `.env.example`):
 `SIGNARA_API_URL`, `SIGNARA_API_KEY` (a Signara API key scoped to
 `documents.*` + `signing.send/read`), and `CERT_SIGNER_NAME/EMAIL/TITLE`.
@@ -501,13 +514,23 @@ The LMS MySQL root password is resolved via Tutor (`sudo -u tutor`); set
 `LMS_DB_PASSWORD` to override. The bridge authenticates to Signara as a
 **machine client** (`X-API-Key`) — no browser session required.
 
-Verified live (2026-09): the TEST101 certificate for `darnel` was signed
-through Signara (request `COMPLETED`, signer `SIGNED`), the signed artifact
-retrieves from Signara/MinIO as a valid PDF containing the learner, course,
-grade, certificate UUID, and signatory, and the certificate appears on the
-Signara portal document list. Cleanup note: a soft-deleted duplicate document
-may remain from early test runs (idempotency was added right after); completed
-requests cannot be cancelled by design.
+Verified live (2026-09):
+- The TEST101 certificate for `darnel` was signed through Signara (request
+  `COMPLETED`, signer `SIGNED`); the signed artifact retrieves from
+  Signara/MinIO as a valid PDF containing the learner, course, grade,
+  certificate UUID, and signatory, and appears on the Signara portal list.
+- **Fully automatic pipeline verified end-to-end with a real submission:**
+  learner `student.two` answered the graded problem correctly via the live
+  `problem_check` endpoint → the LMS recomputed the course grade
+  (`percent: 1.0, letter_grade: Pass, passed: True`) → `COURSE_GRADE_NOW_PASSED`
+  → the cert worker auto-issued a `downloadable` certificate (`56b3a767…`,
+  webview shows "Student Two") → the **scheduled** systemd bridge picked it up
+  on the next 2-minute tick and signed it in Signara (doc `188f8dc0…`, SIGNED)
+  with no manual step.
+
+Cleanup note: a soft-deleted duplicate document may remain from early test runs
+(idempotency was added right after); completed requests cannot be cancelled by
+design.
 
 ### 9.8 Automatic certificate issuance on passing (course-completion trigger)
 
@@ -537,14 +560,63 @@ course, an active certificate definition with signatories, a passing
 certificate-record `name`) so the webview and signed PDF show the recipient
 (see §9.6 step 4).
 
-Verified live end-to-end: a fresh learner (`student.one`) with a persisted
-passing grade (the exact state `CourseGradeFactory._update` writes) fired
-`COURSE_GRADE_NOW_PASSED` → the LMS worker logged
+Verified live end-to-end, twice:
+- **Signal-level** — a fresh learner (`student.one`) with a persisted passing
+grade (the exact state `CourseGradeFactory._update` writes) fired
+`COURSE_GRADE_NOW_PASSED` → the worker logged
 `Generated certificate with status downloadable ... for 6 : course-v1:Innotel+TEST101+2026_T1`
-→ a new `downloadable` certificate (`c5b4408f…`) appeared with recipient
-**Student One** on the webview → the cert bridge (`scripts/cert-bridge.py`)
-picked it up on the next pass and pushed it through Signara (request
-`COMPLETED`, signer `SIGNED`, signed PDF contains `Student One`).
+→ a `downloadable` certificate (`c5b4408f…`) appeared with recipient
+**Student One** on the webview → the bridge pushed it through Signara
+(`COMPLETED`, `SIGNED`, signed PDF contains `Student One`), and the learner's
+dashboard shows the "certificate is ready" link.
+- **Real submission** — learner `student.two` answered the course's graded
+  problem via the live `problem_check` endpoint (HTTP, authenticated session);
+  the LMS recomputed the grade (`passed: True`), auto-issued certificate
+  `56b3a767…`, and the **scheduled** systemd bridge signed it in Signara on
+  the next tick with no manual step (see §9.7).
+
+### 9.9 Studio authoring outline crash — course structure must be chapter → sequential → vertical
+
+**Status (2026-09):** fixed on TEST101. The authoring MFE course outline crashed
+with `Cannot read properties of undefined (reading 'children')` when a
+**vertical was placed directly under a chapter** (no sequential in between).
+The outline reducer maps `subsection.childInfo.children` for every section
+(`course_structure.child_info.children`), but `create_xblock_info` deliberately
+omits `child_info` for verticals, so the MFE read `.children` of `undefined`.
+
+The outline API (`/api/contentstore/v1/course_index/{course_id}`) is the
+source of truth — check it before debugging the browser:
+
+```bash
+# as a staff user (signed session) — every level must carry child_info
+curl -b "studio_session_id=$COOKIE" \
+  https://studio.<domain>/api/contentstore/v1/course_index/course-v1:Innotel+TEST101+2026_T1
+```
+
+Fix: insert a sequential between the chapter and the vertical (CMS shell,
+`xmodule.modulestore`):
+
+```python
+with store.bulk_operations(ck):
+    course = store.get_course(ck)
+    chapter = course.get_children()[0]
+    seq = store.create_item(1, ck, "sequential", fields={"display_name": "Introduction"})
+    chapter.children = list(chapter.children) + [seq.location]
+    store.update_item(chapter, 1)
+    seq.children = [v.location for v in chapter.get_children() if v.category == "vertical"]
+    store.update_item(seq, 1)
+    chapter.children = [seq.location]
+    store.update_item(chapter, 1)
+    store.publish(course.location, 1)
+```
+
+Also added to TEST101: a **graded problem** (`problem_check`-style
+multiple-choice, weight 1.0) under the unit, and the course grading policy was
+simplified to a single graded category (`Final Exam`, weight 1.0,
+`GRADE_CUTOFFS: {Pass: 0.5}`) so one correct answer = passing — this is what
+makes the real-submission auto-issue test in §9.8/§9.7 possible. For a real
+course, restore the intended multi-assignment policy; only the structure
+(chapter → sequential → vertical) is required for the outline to render.
 
 ## Operations
 
