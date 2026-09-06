@@ -537,6 +537,13 @@ Cleanup note: a soft-deleted duplicate document may remain from early test runs
 (idempotency was added right after); completed requests cannot be cancelled by
 design.
 
+Re-verified live after the PARTIAL auto-resume + `--status` change (2026-09):
+`python3 scripts/cert-bridge.py --status` on the group-1 host reports **4/4
+ledger rows SIGNED, 0 PARTIAL, 0 awaiting first sync**, and a `--dry-run`
+pass finds nothing pending; Signara's own DB shows the matching **COMPLETED**
+signing requests; the `atheniq-cert-bridge.timer` is active on its 2-minute
+cadence (last run seconds ago).
+
 ### 9.8 Automatic certificate issuance on passing (course-completion trigger)
 
 **Status (2026-09):** live. Open edX ships the completion trigger natively:
