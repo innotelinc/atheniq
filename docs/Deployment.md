@@ -294,6 +294,81 @@ Verify: a fresh login yields an access token whose `_scope` contains
 BY auth_time DESC LIMIT 1`), and `GET .../application/o/userinfo/` with that
 token returns 200.
 
+### 9.4 Studio (CMS) login: redirect-uri mismatch + missing CMS TPA machinery
+
+**Symptom:** clicking Studio login redirects through Authentik but returns
+`invalid_request / Mismatching redirect URI`; `/auth/complete/oidc/` on the CMS
+was a 404; after wiring routes it 500'd on user creation / "Your account is
+disabled"; and Studio's own `/login` 500'd with `Can't fetch setting of a
+disabled backend/provider`.
+
+**Root causes (four, all fixed in code + plugin):**
+
+1. **Redirect-uri scheme mismatch** — the Tutor Open edX plugin's CMS settings
+   template (`partials/common_cms.py`) hardcodes
+   `SOCIAL_AUTH_REDIRECT_IS_HTTPS = False`, so the CMS builds the redirect_uri
+   from the **request's scheme**. The CMS receives plain HTTP from the edge
+   (TLS terminated at NPM/Caddy), so it sends
+   `http://studio.innotel.us/auth/complete/oidc/` → does not match the
+   registered `https://...` URI → `invalid_request`. The LMS is unaffected
+   because its settings leave the flag unset (defaults to HTTPS).
+2. **CMS never had the TPA urls.** Stock Open edX ships the TPA urlconf
+   (`common.djangoapps.third_party_auth.urls`, which provides
+   `/auth/login/<backend>/` and `/auth/complete/<backend>/`) in the **LMS
+   only**; the CMS urlconf lacks it, so Studio's callback 404'd.
+3. **CMS never had the TPA machinery.** `third_party_auth` is not in the CMS
+   `INSTALLED_APPS`, `SOCIAL_AUTH_PIPELINE` is not defined there (LMS-only in
+   `lms/envs/common.py`), and CMS lacks `TPA_PROVIDER_BURST_THROTTLE` /
+   `TPA_PROVIDER_SUSTAINED_THROTTLE` / `PROFILE_MICROFRONTEND_URL`. Without the
+   TPA pipeline, social-auth's raw `create_user` crashes on Open edX profile
+   fields (`Column 'last_name' cannot be null`); with the pipeline but no
+   client key/secret the provider looks disabled.
+4. **Do NOT use `ConfigurationModelStrategy` in the CMS.** Studio's own login
+   flows through the internal `edx-oauth2` backend (LMS OAuth), and that
+   strategy requires an `OAuth2ProviderConfig` row for **every** OAuth backend
+   — none exists for `edx-oauth2`, so `/login` 500s. The CMS OIDC provider
+   credentials are injected directly in settings instead.
+
+**Fixes:**
+
+1. The Cerulean SSO plugin now ships the full CMS block in
+   [`contrib/tutor-ceruleansso`](../contrib/tutor-ceruleansso):
+   `SOCIAL_AUTH_REDIRECT_IS_HTTPS = True`, `third_party_auth` in
+   `INSTALLED_APPS` + its `ExceptionMiddleware`, the Open edX
+   `SOCIAL_AUTH_PIPELINE`, both TPA throttle settings, and
+   `PROFILE_MICROFRONTEND_URL`. Re-render with `tutor config save` after any
+   Tutor reinstall.
+2. **One-time CMS urlconf patch** (not expressible via a settings plugin —
+   re-apply if the CMS container is recreated): append to
+   `/openedx/edx-platform/cms/urls.py`:
+
+   ```python
+   if settings.FEATURES.get("ENABLE_THIRD_PARTY_AUTH"):
+       urlpatterns += [
+           path("", include("common.djangoapps.third_party_auth.urls")),
+           path("api/third_party_auth/",
+                include("common.djangoapps.third_party_auth.api.urls")),
+       ]
+   ```
+
+   then `docker restart tutor_local-cms-1`. (The API include needs the two TPA
+   throttle settings from fix 1.)
+3. **Client credentials** are injected into the rendered CMS settings
+   (`SOCIAL_AUTH_OIDC_KEY`/`SECRET` = `atheniq-lms` / the provider secret from
+   Cerulean). On the LMS these come from the TPA `ProviderConfig` row via
+   `ConfigurationModelStrategy`; the CMS uses direct settings injection
+   instead (see cause 4).
+4. **First Studio login for an existing edx account** requires the account to
+   have a usable password hash — TPA registration on the LMS sets one
+   (`pbkdf2_sha256`); an account created via raw SQL with password `!` will be
+   rejected with `403 "Your account is disabled"` by the
+   `set_logged_in_cookies` pipeline step.
+
+Verify (full browser flow): Studio login → `/auth/login/oidc/?next=/home` →
+Authentik authorize (HTTPS `redirect_uri`) → login → callback
+(`/auth/complete/oidc/`) → `/home` → `/authoring/home` with `edx-jwt-cookie-*`
+and `edxloggedin` cookies set.
+
 ## Operations
 
 - **Backups:** Tutor volumes and the OpenMAIC/Convex Postgres databases are the
