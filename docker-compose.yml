@@ -1,16 +1,16 @@
 # ==========================================================================
-# AuthenIQ — operator compose for the AI services this repo directly runs.
+# AthenIQ — operator compose for the AI services this repo directly runs.
 #
 # The LMS core (Tutor / Open edX) runs from Tutor's own compose project
 # (`tutor local`); OpenMAIC runs from its upstream repo. This file covers the
-# glue services AuthenIQ owns: the OmniRoute model gateway and the OpenMAIC
+# glue services AthenIQ owns: the OmniRoute model gateway and the OpenMAIC
 # persistence Postgres. Profiles are opt-in and additive.
 #
 #   docker compose --profile gateway up -d    # OmniRoute (model gateway)
 #   docker compose --profile openmaic up -d   # OpenMAIC persistence Postgres
 # ==========================================================================
 
-name: authentiq
+name: atheniq
 
 services:
   # ------------------------------------------------------------------
@@ -18,19 +18,6 @@ services:
   # OpenMAIC, OpenClaw, and OpenClaude all point here; the operator
   # connects provider accounts in the dashboard.
   # ------------------------------------------------------------------
-  omniroute:
-    image: diegosouzapw/omniroute:latest
-    container_name: authentiq-omniroute
-    profiles: ["gateway"]
-    restart: unless-stopped
-    environment:
-      OMNIROUTE_SERVER_HOST: 0.0.0.0
-      OMNIROUTE_PORT: ${OMNIROUTE_PORT:-20128}
-      REQUIRE_API_KEY: ${REQUIRE_API_KEY:-true}
-    ports:
-      - "127.0.0.1:${OMNIROUTE_PORT:-20128}:${OMNIROUTE_PORT:-20128}"
-    volumes:
-      - omniroute-data:/app/data
 
   # ------------------------------------------------------------------
   # OpenMAIC persistence Postgres — server-backed classroom sessions.
@@ -39,7 +26,7 @@ services:
   # ------------------------------------------------------------------
   openmaic-postgres:
     image: postgres:16-alpine
-    container_name: authentiq-openmaic-postgres
+    container_name: atheniq-openmaic-postgres
     profiles: ["openmaic"]
     restart: unless-stopped
     environment:
@@ -57,5 +44,4 @@ services:
       retries: 5
 
 volumes:
-  omniroute-data:
   openmaic-postgres-data:

@@ -1,4 +1,4 @@
-# Contributing to AuthenIQ
+# Contributing to AthenIQ
 
 Thanks for contributing! Please read the platform docs first —
 [docs/stack.md](docs/stack.md) and [docs/Architecture.md](docs/Architecture.md) —

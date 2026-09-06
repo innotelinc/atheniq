@@ -1,13 +1,13 @@
-"""Cerulean (Authentik) OIDC single sign-on for Open edX (AuthenIQ)."""
+"""Cerulean (Authentik) OIDC single sign-on for Open edX (AthenIQ)."""
 from tutor import hooks as _tutor_hooks
 
 _SSO_SETTINGS = """
-# ── Cerulean SSO (Authentik OIDC, AuthenIQ) ──────────────────────────
+# ── Cerulean SSO (Authentik OIDC, AthenIQ) ──────────────────────────
 FEATURES["ENABLE_THIRD_PARTY_AUTH"] = True
 AUTHENTICATION_BACKENDS = list(AUTHENTICATION_BACKENDS) + [
     "social_core.backends.open_id_connect.OpenIdConnectAuth",
 ]
-SOCIAL_AUTH_OIDC_OIDC_ENDPOINT = "https://auth.cerulean.innotel.us/application/o/authentiq-lms"
+SOCIAL_AUTH_OIDC_OIDC_ENDPOINT = "https://auth.cerulean.innotel.us/application/o/atheniq-lms"
 """
 
 for _patch_name in (

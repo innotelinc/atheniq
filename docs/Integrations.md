@@ -1,7 +1,7 @@
-# AuthenIQ — Integrations
+# AthenIQ — Integrations
 
-AuthenIQ integrates upstream open-source projects rather than re-implementing
-them. Each section states what the project is, why AuthenIQ uses it, and how it
+AthenIQ integrates upstream open-source projects rather than re-implementing
+them. Each section states what the project is, why AthenIQ uses it, and how it
 is configured. Environment variables are defined in [.env.example](../.env.example);
 secrets come from Infisical at production bring-up.
 
@@ -9,7 +9,7 @@ secrets come from Infisical at production bring-up.
 
 **Upstream:** https://github.com/overhangio/tutor · AGPL-3.0
 
-Tutor is the Dockerized distribution of Open edX (LMS + Studio/CMS). AuthenIQ
+Tutor is the Dockerized distribution of Open edX (LMS + Studio/CMS). AthenIQ
 uses it as the authoritative course engine: catalog, enrollment, courseware,
 assessments, grading, and learner records.
 
@@ -18,7 +18,7 @@ assessments, grading, and learner records.
 - Tutor owns its compose project; this repository configures and operates it.
 - Integration points:
   - **Authentik OIDC** — configure Tutor's LMS OAuth/OIDC settings against the
-    Authentik application (`auth.<domain>/application/o/authentiq-lms/`).
+    Authentik application (`auth.<domain>/application/o/atheniq-lms/`).
   - **Domain/TLS** — set `LMS_HOST`, `CMS_HOST`, and the email/nginx settings so
     Cerulean-provisioned NGINX Proxy Manager hosts terminate TLS and forward.
   - **Storage** — point uploaded courseware at ONYX S3-compatible storage via
@@ -36,7 +36,7 @@ assessments, grading, and learner records.
 
 OpenMAIC ("Open Multi-Agent Interactive Classroom") turns a topic or uploaded
 document into an interactive lesson: slides, quizzes, HTML simulations,
-project-based learning, and AI teachers/classmates. AuthenIQ embeds OpenMAIC
+project-based learning, and AI teachers/classmates. AthenIQ embeds OpenMAIC
 classrooms in courses and links them from Open edX units.
 
 - Clone the upstream repo into `./services/OpenMAIC` at bring-up
@@ -63,7 +63,7 @@ classrooms in courses and links them from Open edX units.
 
 **Upstream:** https://github.com/get-convex/convex-backend (self-hosted README)
 
-Convex provides reactive database/state functions. AuthenIQ uses a self-hosted
+Convex provides reactive database/state functions. AthenIQ uses a self-hosted
 backend as the realtime substrate for live classrooms and study groups:
 presence, chat, live quizzes, and moment-by-moment progress.
 
@@ -102,7 +102,7 @@ lesson media without leaving the platform.
 
 - **OmniRoute** — https://github.com/diegosouzapw/OmniRoute. Self-hosted,
   OpenAI-compatible model gateway. One endpoint pools the provider accounts the
-  operator connects. AuthenIQ runs it from this repo:
+  operator connects. AthenIQ runs it from this repo:
 
   ```bash
   docker compose --profile gateway up -d
@@ -110,7 +110,7 @@ lesson media without leaving the platform.
   ```
 
 - **OpenClaw** — https://github.com/openclaw/openclaw. Assistant gateway for
-  sessions, tools, events, and channels. AuthenIQ uses OpenClaw with the
+  sessions, tools, events, and channels. AthenIQ uses OpenClaw with the
   **OpenMAIC skill** so instructors can request classrooms from Slack,
   Telegram, Discord, or other channels.
 - **OpenClaude** — https://github.com/Gitlawb/openclaude. CLI agent for
@@ -125,9 +125,9 @@ gateway, none in the learners' path.
 
 Every surface consumes the same Authentik tenant:
 
-- OIDC applications for `authentiq-lms` (Tutor), `authentiq-classroom`
+- OIDC applications for `atheniq-lms` (Tutor), `atheniq-classroom`
   (OpenMAIC), and the agent/studio consoles.
-- Groups: `authentiq-admins`, `instructors`, `learners`, `paid_users`
+- Groups: `atheniq-admins`, `instructors`, `learners`, `paid_users`
   (Magnate-managed).
 - Disable a user in Authentik → immediate loss of access everywhere.
 
@@ -136,14 +136,14 @@ Every surface consumes the same Authentik tenant:
 Completion → certificate flow:
 
 1. Open edX emits a course-completion event.
-2. AuthenIQ builds a completion record: learner identity (from Authentik),
+2. AthenIQ builds a completion record: learner identity (from Authentik),
    course, final score, completion date, issuer.
 3. The record is submitted to Signara, which runs its signature workflow and
    returns the signed course certificate.
 4. The signed artifact is stored (ONYX) and linked from the learner record in
    the LMS; the learner can verify it through Signara's audit trail.
 
-AuthenIQ never signs certificates itself — it only produces completion
+AthenIQ never signs certificates itself — it only produces completion
 evidence. Signara remains the sole DocumentOps surface of the stack.
 
 ## Cerulean — DNS, hosts, TLS (TrustOps)

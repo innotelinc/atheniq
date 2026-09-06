@@ -39,5 +39,5 @@ jobs:
 
       - name: Landing page sanity
         run: |
-          grep -qi "AuthenIQ" web/landing/index.html
+          grep -qi "AthenIQ" web/landing/index.html
           echo "landing: ok"

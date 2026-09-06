@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# provision-edge.sh — make AuthenIQ's Open edX surfaces reachable publicly.
+# provision-edge.sh — make AthenIQ's Open edX surfaces reachable publicly.
 #
 # Idempotent. Does three things:
 #   1. DNS: adds CNAME records (learn/studio/apps.learn/meilisearch.learn ->

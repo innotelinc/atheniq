@@ -1,6 +1,6 @@
-# AuthenIQ — Architecture
+# AthenIQ — Architecture
 
-AuthenIQ is the **LearningOps** platform of the Innotel Platform Stack: an
+AthenIQ is the **LearningOps** platform of the Innotel Platform Stack: an
 open learning platform whose LMS core, generative classrooms, realtime layer,
 media studio, and agent layer are assembled from self-hosted open-source
 projects and bound together by the stack's platform services (Authentik,
@@ -67,7 +67,7 @@ Platform services consumed throughout:
 ### Identity
 Learner → Authentik (OIDC) → Tutor LMS and OpenMAIC exchange the same
 session/group claims. Enrollment groups (`learners`, `instructors`,
-`authentiq-admins`) live in Authentik; disabling a user removes them from every
+`atheniq-admins`) live in Authentik; disabling a user removes them from every
 surface at once.
 
 ### Enrollment → delivery
@@ -82,7 +82,7 @@ OpenMAIC lessons and agent-layer requests call the OmniRoute endpoint
 operator has connected — no per-surface model keys, no cloud dependency.
 
 ### Completion → certificate
-Course completion in Open edX emits a completion event → AuthenIQ prepares a
+Course completion in Open edX emits a completion event → AthenIQ prepares a
 completion record (learner, course, score, date, issuer) → Signara signs the
 course certificate through its signature workflows → the signed artifact is
 stored and returned to the learner record.
@@ -103,7 +103,7 @@ Studio courseware.
 4. **Network boundary** — Convex, the model gateway, and Postgres stay on
    private/internal addresses; only canonical subdomains are proxied.
 5. **Certificate boundary** — certificates are *signed* through Signara's
-   audited signature workflows, never by AuthenIQ itself; AuthenIQ only emits
+   audited signature workflows, never by AthenIQ itself; AthenIQ only emits
    completion evidence.
 6. **Commit boundary** — the attribution guard runs locally and in CI.
 
