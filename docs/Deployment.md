@@ -415,6 +415,39 @@ with the studio session cookies set; `curl` with `Accept: */*` against the
 legacy URL returns 302 to the MFE (not 500) and `Accept: application/json`
 still returns the JSON payload.
 
+### 9.6 TEST101 certificates enabled (LMS side, pre-Signara)
+
+**Status (2026-09):** `course-v1:Innotel+TEST101+2026_T1` issues real Open edX
+webview certificates. The Signara signing leg (completion → signed artifact)
+is still to come per [docs/Integrations.md](Integrations.md#signara--signed-course-certificates-documentops).
+
+One-time setup applied on this deployment (re-apply after a course rerun or
+recreate):
+
+1. **Global feature** — `FEATURES["CERTIFICATES_HTML_VIEW"]` must be `True`
+   (default in this Tutor release; check `settings.FEATURES`).
+2. **Course block** (CMS shell, then publish):
+   `cert_html_view_enabled = True`, a certificate definition under
+   `course.certificates["certificates"]` (with `is_active: True`, `course_title`,
+   `signatories`), and `certificates_show_before_end = True` (the course has no
+   end date, so without this the cert is never "viewable").
+3. **CourseOverview refresh** (LMS shell):
+   `CourseOverview.update_select_courses([course_key], force_update=True)` —
+   the denormalized overview lags the modulestore publish and its
+   `certificates_display_behavior` / `certificates_show_before_end` / `self_paced`
+   values gate cert visibility (`should_certificate_be_visible`).
+4. **Issue a certificate** (LMS shell):
+   `CourseEnrollment.get_or_create(user, course_id, mode="honor")` then
+   `generate_course_certificate(user, course_key, status="downloadable",
+   enrollment_mode="honor", course_grade="0.92", generation_mode="batch")`
+   (bypasses the async eligibility queue; writes the `GeneratedCertificate` row
+   directly).
+
+Verified live: the public webview
+`https://learn.<domain>/certificates/<verify_uuid>` renders the full certificate
+(awarded-to name, course title, "Certificate of Completion", signatory,
+issue date) and the learner's dashboard shows the "certificate is ready" link.
+
 ## Operations
 
 - **Backups:** Tutor volumes and the OpenMAIC/Convex Postgres databases are the
