@@ -436,12 +436,22 @@ recreate):
    the denormalized overview lags the modulestore publish and its
    `certificates_display_behavior` / `certificates_show_before_end` / `self_paced`
    values gate cert visibility (`should_certificate_be_visible`).
-4. **Issue a certificate** (LMS shell):
+4. **Set the learner's display name** — the certificate webview renders the
+   name from the `GeneratedCertificate.name` / `auth_userprofile.name` fields,
+   and the bridge falls back to the **username** when both are empty (which
+   produces a certificate with no recipient name). Ensure the learner's real
+   name is set before issuing, e.g.:
+   `UPDATE auth_userprofile SET name='<Full Name>' WHERE user_id=<id>;`
+   (the bridge prefers profile name → certificate-record name → username;
+   see §9.7).
+5. **Issue a certificate** (LMS shell):
    `CourseEnrollment.get_or_create(user, course_id, mode="honor")` then
    `generate_course_certificate(user, course_key, status="downloadable",
    enrollment_mode="honor", course_grade="0.92", generation_mode="batch")`
    (bypasses the async eligibility queue; writes the `GeneratedCertificate` row
-   directly).
+   directly). If the certificate was already issued with an empty name, update
+   both the profile and the record:
+   `UPDATE certificates_generatedcertificate SET name='<Full Name>' WHERE id=<cert_id>;`
 
 Verified live: the public webview
 `https://learn.<domain>/certificates/<verify_uuid>` renders the full certificate
@@ -461,7 +471,11 @@ How it works, per run:
 
 1. Reads new completions from the LMS MySQL (`certificates_generatedcertificate`
    where `status = 'downloadable'`) joined to the learner and course overview.
-2. Renders a certificate PDF (pure Python, no dependencies).
+2. Renders a certificate PDF (pure Python, no dependencies). The learner's
+   name comes from `auth_userprofile.name`, then the name recorded on the
+   certificate itself (`certificates_generatedcertificate.name`), then the
+   username as a last resort — so a certificate never ships with a blank
+   recipient name again.
 3. Uploads it to Signara, creates a sequential signing request with the
    issuer/signatory (`CERT_SIGNER_*`) as the signer, and signs it via the
    signer's public token.
