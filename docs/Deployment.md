@@ -369,6 +369,52 @@ Authentik authorize (HTTPS `redirect_uri`) → login → callback
 (`/auth/complete/oidc/`) → `/home` → `/authoring/home` with `edx-jwt-cookie-*`
 and `edxloggedin` cookies set.
 
+### 9.5 Studio legacy course-settings pages 500 for non-HTML clients
+
+**Symptom:** after SSO completes, opening the legacy
+`https://studio.<domain>/settings/details/<course>` link (e.g. Studio's
+"View About Page") 500s with `Internal Server Error` whose traceback ends in
+`AttributeError: 'NoneType' object has no attribute 'set_cookie'` from the CSRF
+middleware — even though the authenticated user has course access.
+
+**Root cause:** `cms/djangoapps/contentstore/views/course.py`
+`settings_handler()` only returns a response when the request `Accept` header
+contains `text/html` (GET → renders/redirects to the authoring MFE) or
+`application/json` (GET/PUT → `JsonResponse`). Any other Accept (e.g. `*/*`,
+which browser/SPA `fetch()` sends by default, or no Accept at all) falls
+through the `if/elif` and returns `None`; Django's CSRF middleware then raises
+on the None response. This is an upstream edx-platform bug on the Ulmo+ (new
+React Studio) code path — browsers doing a plain top-level navigation are fine
+(`text/html` → 302 to the authoring MFE at `apps.learn.<domain>/authoring/...`),
+but the post-login landing or SPA re-fetch of the legacy URL hits the `*/*`
+path and 500s.
+
+**Fix (one-time, in-container — re-apply if the CMS container is recreated):**
+insert a fallthrough guard before the end of `settings_handler()` in
+`/openedx/edx-platform/cms/djangoapps/contentstore/views/course.py` (after the
+`elif 'application/json' ...` block closes, still inside the
+`with modulestore().bulk_operations(course_key):` block):
+
+```python
+        # Fallthrough guard: requests whose Accept header is neither
+        # text/html nor application/json (e.g. Accept: */*) used to return
+        # None here, which 500s in the CSRF middleware. Serve the same
+        # browser view a normal navigation would get instead.
+        if request.method == 'GET':
+            if use_new_schedule_details_page(course_key):
+                return redirect(get_schedule_details_url(course_key))
+            settings_context = get_course_settings(request, course_key, course_block)
+            return render_to_response('settings.html', settings_context)
+```
+
+then `docker restart tutor_local-cms-1`.
+
+Verify: the full Studio flow for the course settings link lands on the authoring
+MFE `200 Course Authoring` page (`apps.learn.<domain>/authoring/course/<course>/settings/details`)
+with the studio session cookies set; `curl` with `Accept: */*` against the
+legacy URL returns 302 to the MFE (not 500) and `Accept: application/json`
+still returns the JSON payload.
+
 ## Operations
 
 - **Backups:** Tutor volumes and the OpenMAIC/Convex Postgres databases are the
