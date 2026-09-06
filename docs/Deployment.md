@@ -191,6 +191,79 @@ re-apply (idempotent). Public HTTPS verified for all four hosts.
 > `docker compose -p tutor_local -f docker-compose.yml -f
 > docker-compose.prod.yml restart lms cms mfe caddy`.
 
+## Stage 9 — Known fixes applied on this deployment (2026-09)
+
+These were diagnosed live and must be re-applied after a Tutor reinstall or
+volume wipe, or SSO and catalog search will break again.
+
+### 9.1 Authentik provider needs a signing key
+
+**Symptom:** SSO login completes at Authentik but the LMS callback 500s with
+`KeyError: 'keys'`; `GET /application/o/<slug>/jwks/` returns `{}` instead of
+`{"keys": [...]}`.
+
+**Cause:** the `atheniq-lms` OIDC provider row had a NULL `signing_key`, so
+Authentik issues no keys and python-social-core cannot validate the ID token.
+
+**Fix (one-time, via Authentik DB — do not leave NULL):**
+
+```sql
+UPDATE authentik_providers_oauth2_oauth2provider
+SET signing_key_id = (
+  SELECT kp_uuid FROM authentik_crypto_certificatekeypair
+  WHERE name = 'authentik Self-signed Certificate' LIMIT 1
+)
+WHERE client_id = 'atheniq-lms';
+```
+
+Verify: `curl -sk https://auth.<domain>/application/o/atheniq-lms/jwks/` returns
+`{"keys":[...]}`. Prefer setting the signing key in the Authentik UI for new
+providers.
+
+### 9.2 Course catalog search: index + filterable attributes
+
+**Symptoms:** catalog MFE at `apps.learn.<domain>/catalog/` loads but shows zero
+courses even though `/api/courses/v1/courses/` lists them; the search API
+`POST /search/unstable/v0/course_list_search/` returns `total:1, results:[]`.
+
+**Causes (three):**
+1. The course was never indexed into Meilisearch (created via modulestore shell
+   bypasses the Studio reindex signal).
+2. The course document lacked `enrollment_start`, which the search view
+   requires (`enrollment_start <= now` is a hard filter when
+   `SEARCH_SKIP_ENROLLMENT_START_DATE_FILTERING` is off) — Meilisearch drops
+   docs missing a filtered attribute.
+3. `search.meilisearch.INDEX_FILTERABLES` for `course_info` declares
+   `enrollment_end` but **not** `enrollment_start`, so even with the field
+   present Meilisearch rejects the filter on a non-filterable attribute.
+
+**Fixes:**
+
+```bash
+# 1. index all courses (as the cms container, tutor user)
+docker exec tutor_local-cms-1 sh -c 'cd /openedx/edx-platform && \
+  ./manage.py cms reindex_course --all --setup'
+
+# 2. give the course an enrollment window (draft-preferred branch), then reindex
+#    e.g. via cms shell: course.enrollment_start = now - 30d; store.update_item
+
+# 3. declare the attribute filterable in the live Meilisearch index
+MEILI_KEY=$(sudo -u tutor -H bash -c '~/tutor-venv/bin/tutor config printvalue MEILISEARCH_MASTER_KEY')
+docker exec tutor_local-meilisearch-1 sh -c "curl -s -X PUT \
+  -H 'Authorization: Bearer $MEILI_KEY' -H 'Content-Type: application/json' \
+  'http://localhost:7700/indexes/tutor_course_info/settings/filterable-attributes' \
+  -d '[\"language\",\"modes\",\"org\",\"catalog_visibility\",\"enrollment_end\",\"enrollment_start\"]'"
+```
+
+Also patch the container so reindexing won't clobber it:
+`/openedx/venv/lib/python3.12/site-packages/search/meilisearch.py` — add
+`"enrollment_start",` to the `course_info` entry of `INDEX_FILTERABLES`.
+(Upstream edx-search bug; tracked so a future upgrade removes this step.)
+
+Verify with a real session (CSRF + Referer required):
+`POST https://learn.<domain>/search/unstable/v0/course_list_search/` with
+`page_size=9&page_index=0` → `results[0].data.content.display_name`.
+
 ## Operations
 
 - **Backups:** Tutor volumes and the OpenMAIC/Convex Postgres databases are the
