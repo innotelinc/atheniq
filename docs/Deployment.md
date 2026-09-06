@@ -509,6 +509,43 @@ Signara portal document list. Cleanup note: a soft-deleted duplicate document
 may remain from early test runs (idempotency was added right after); completed
 requests cannot be cancelled by design.
 
+### 9.8 Automatic certificate issuance on passing (course-completion trigger)
+
+**Status (2026-09):** live. Open edX ships the completion trigger natively:
+when a learner's grade is recomputed and crosses the course pass threshold
+(`GRADE_CUTOFFS`, 0.5 for TEST101), `CourseGradeFactory` emits
+`COURSE_GRADE_NOW_PASSED` and the certificates app enqueues the celery task
+`lms.djangoapps.certificates.tasks.generate_certificate` (default queue — the
+LMS worker picks it up), which writes a `downloadable` `GeneratedCertificate`.
+No custom code is required; the only gate is the waffle switch
+`certificates.auto_certificate_generation`, which defaults to **OFF**.
+
+Enable it (re-apply after a fresh MySQL volume — the switch is DB-backed):
+
+```bash
+# inside the LMS container
+cd /openedx/edx-platform && python /path/to/scripts/enable-auto-certificates.py
+# or via Tutor
+sudo -u tutor -H bash -c 'cd ~ && . tutor-venv/bin/activate && \
+  tutor local run lms python manage.py lms shell < scripts/enable-auto-certificates.py'
+```
+
+Prerequisites per course (all already configured for TEST101, see §9.6):
+`FEATURES["CERTIFICATES_HTML_VIEW"] = True`, `cert_html_view_enabled` on the
+course, an active certificate definition with signatories, a passing
+`GRADE_CUTOFFS` entry, and a **learner display name** set (profile or
+certificate-record `name`) so the webview and signed PDF show the recipient
+(see §9.6 step 4).
+
+Verified live end-to-end: a fresh learner (`student.one`) with a persisted
+passing grade (the exact state `CourseGradeFactory._update` writes) fired
+`COURSE_GRADE_NOW_PASSED` → the LMS worker logged
+`Generated certificate with status downloadable ... for 6 : course-v1:Innotel+TEST101+2026_T1`
+→ a new `downloadable` certificate (`c5b4408f…`) appeared with recipient
+**Student One** on the webview → the cert bridge (`scripts/cert-bridge.py`)
+picked it up on the next pass and pushed it through Signara (request
+`COMPLETED`, signer `SIGNED`, signed PDF contains `Student One`).
+
 ## Operations
 
 - **Backups:** Tutor volumes and the OpenMAIC/Convex Postgres databases are the
