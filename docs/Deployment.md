@@ -610,13 +610,17 @@ with store.bulk_operations(ck):
     store.publish(course.location, 1)
 ```
 
-Also added to TEST101: a **graded problem** (`problem_check`-style
-multiple-choice, weight 1.0) under the unit, and the course grading policy was
-simplified to a single graded category (`Final Exam`, weight 1.0,
-`GRADE_CUTOFFS: {Pass: 0.5}`) so one correct answer = passing — this is what
-makes the real-submission auto-issue test in §9.8/§9.7 possible. For a real
-course, restore the intended multi-assignment policy; only the structure
-(chapter → sequential → vertical) is required for the outline to render.
+Also added to TEST101: **graded problems** (`problem_check`-style
+multiple-choice) under each unit, and the course grading policy is the
+realistic multi-assignment set (`Homework` 0.2 / `Lab` 0.2 / `Midterm Exam`
+0.25 / `Final Exam` 0.35, `GRADE_CUTOFFS: {Pass: 0.5}`) — the same shape a
+real course uses. The current catalog: section *Welcome* → **Final Exam**
+(1 problem), **Homework 1** (2 problems), **Lab 1** (1 problem), **Midterm
+Exam** (1 problem). A learner who answers them all correctly passes (~0.9) and
+auto-issues a certificate; the auto-issue chain was re-verified with this
+policy (learner `student.three`, grade 0.9, cert `c5cfe2b5…`, signed by the
+scheduled bridge). Only the structure (chapter → sequential → vertical) is
+required for the outline to render — the policy can be anything.
 
 ## Operations
 
