@@ -1,5 +1,5 @@
 # ==========================================================================
-# AuthenIQ — operator workflow
+# AthenIQ — operator workflow
 # Usage: make <target>   (see `make help`)
 # ==========================================================================
 
@@ -11,7 +11,7 @@ SHELL := /bin/bash
         check:commits check:compose tutor:quickstart
 
 help: ## Show this help message
-	@echo "AuthenIQ — operator workflow"
+	@echo "AthenIQ — operator workflow"
 	@echo "Usage: make <target>"
 	@grep -E '^[a-zA-Z_:%-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
 
@@ -22,13 +22,13 @@ setup: ## Preflight, install guard hooks, generate .env secrets
 
 ## ---- Compose (this repo's AI services) -----------------------------------
 
-up: ## Start all AuthenIQ-managed services (gateway + openmaic profiles)
+up: ## Start all AthenIQ-managed services (gateway + openmaic profiles)
 	docker compose --profile gateway --profile openmaic up -d
 
-down: ## Stop AuthenIQ-managed services (keeps volumes)
+down: ## Stop AthenIQ-managed services (keeps volumes)
 	docker compose down
 
-logs: ## Tail logs from AuthenIQ-managed services
+logs: ## Tail logs from AthenIQ-managed services
 	docker compose --profile gateway --profile openmaic logs -f
 
 ps: ## List service status
