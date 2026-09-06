@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==========================================================================
-# AuthenIQ — one-shot bootstrap: preflight, guard hooks, .env secrets, and a
+# AthenIQ — one-shot bootstrap: preflight, guard hooks, .env secrets, and a
 # bring-up checklist. Idempotent; safe to re-run.
 # ==========================================================================
 set -Eeuo pipefail
@@ -12,7 +12,7 @@ die()  { printf '\033[31merror: %s\033[0m\n' "$*" >&2; exit 1; }
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_DIR"
 
-say "AuthenIQ bootstrap"
+say "AthenIQ bootstrap"
 say "================="
 
 # ---- 1. Preflight ----------------------------------------------------------

@@ -1,11 +1,11 @@
-# 🎓 AuthenIQ — Platform Stack Role
+# 🎓 AthenIQ — Platform Stack Role
 
 **Classification: LearningOps**
 
 Open learning platform: courses, enrollment, delivery, and AI classrooms — the
 university / workforce-development / training surface of the ecosystem.
 
-This page declares AuthenIQ's role in the
+This page declares AthenIQ's role in the
 [**Innotel Platform Stack**](https://github.com/innotelinc/innotel-platform-stack) —
 the canonical single-responsibility architecture. The stack is defined in exactly one
 place; this page links each product to it and states what this platform owns, consumes,
@@ -45,7 +45,7 @@ provides, and explicitly does not own.
 
 ## External building blocks
 
-AuthenIQ assembles upstream open-source projects rather than re-implementing
+AthenIQ assembles upstream open-source projects rather than re-implementing
 them. They are integrated, not forked responsibilities:
 
 - **Tutor** (OverhangIO) — Dockerized Open edX LMS/CMS distribution
@@ -71,4 +71,4 @@ See [docs/Deployment.md](Deployment.md).
 
 ---
 
-*AuthenIQ · LearningOps · [Innotel Platform Stack](https://github.com/innotelinc/innotel-platform-stack)*
+*AthenIQ · LearningOps · [Innotel Platform Stack](https://github.com/innotelinc/innotel-platform-stack)*

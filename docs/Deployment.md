@@ -1,6 +1,6 @@
-# AuthenIQ — Deployment
+# AthenIQ — Deployment
 
-This runbook brings up the AuthenIQ learning platform on one self-hosted host.
+This runbook brings up the AthenIQ learning platform on one self-hosted host.
 It is an operator-run flow: nothing in CI connects to or deploys any server.
 
 ## Prerequisites
@@ -18,8 +18,8 @@ It is an operator-run flow: nothing in CI connects to or deploys any server.
 ## Stage 0 — bootstrap this repo
 
 ```bash
-git clone https://github.com/innotelinc/authentiq.git
-cd authentiq
+git clone https://github.com/innotelinc/atheniq.git
+cd atheniq
 ./setup.sh
 ```
 
@@ -52,18 +52,18 @@ Create OIDC applications in the Authentik admin for each public surface:
 
 | Surface | Redirect / provider hints |
 | --- | --- |
-| `authentiq-lms` | Tutor LMS + Studio OAuth callback |
-| `authentiq-classroom` | OpenMAIC sign-in callback |
-| `authentiq-studio` | Media studio (optional) |
+| `atheniq-lms` | Tutor LMS + Studio OAuth callback |
+| `atheniq-classroom` | OpenMAIC sign-in callback |
+| `atheniq-studio` | Media studio (optional) |
 
-**Realized (2026-09):** `authentiq-lms` is live on Cerulean's Authentik
-(`auth.cerulean.innotel.us`, client id `authentiq-lms`). Open edX is enabled via
+**Realized (2026-09):** `atheniq-lms` is live on Cerulean's Authentik
+(`auth.cerulean.innotel.us`, client id `atheniq-lms`). Open edX is enabled via
 the Tutor plugin in [`contrib/tutor-ceruleansso`](../contrib/tutor-ceruleansso)
 (installed as `tutor-ceruleansso` in the tutor venv): it sets
 `FEATURES["ENABLE_THIRD_PARTY_AUTH"]`, registers python-social-auth's
 `OpenIdConnectAuth` backend (`oidc`), and points
 `SOCIAL_AUTH_OIDC_OIDC_ENDPOINT` at
-`https://auth.cerulean.innotel.us/application/o/authentiq-lms`. The TPA
+`https://auth.cerulean.innotel.us/application/o/atheniq-lms`. The TPA
 `ProviderConfig` row (site = default, backend `oidc`) holds the client id/secret;
 Authentik redirect URIs are `https://learn.innotel.us/auth/complete/oidc/` and
 `https://studio.innotel.us/auth/complete/oidc/` (strict). LMS verified:
@@ -72,7 +72,7 @@ container reaches Authentik discovery over the edge. Full browser sign-in needs
 the `learn`/`studio.innotel.us` NPM edge hosts + DNS (see [Cerulean DNS and TLS](#cerulean-dns-and-tls)).
 
 Use the Authentik authorization/`userinfo` endpoints in `.env` (`OIDC_*`) and
-apply the same group claims (`learners`, `instructors`, `authentiq-admins`,
+apply the same group claims (`learners`, `instructors`, `atheniq-admins`,
 `paid_users`) as the rest of the stack. See
 [docs/Integrations.md](Integrations.md#authentik--identity-identityops).
 
@@ -141,7 +141,7 @@ docker compose --profile gateway up -d     # OmniRoute on 127.0.0.1:20128
 ## Stage 7 — Signed certificates (Signara)
 
 1. In the Signara portal, create the signature workflow/template for course
-   certificates and an API token for AuthenIQ.
+   certificates and an API token for AthenIQ.
 2. Set `SIGNARA_API_URL` and `SIGNARA_API_KEY` in `.env`.
 3. Completion events in Open edX flow to Signara and return signed certificates
    as described in [docs/Integrations.md](Integrations.md#signara--signed-course-certificates-documentops).
@@ -211,5 +211,5 @@ re-apply (idempotent). Public HTTPS verified for all four hosts.
   reproduction steps.
 - The stack security boundaries (identity, secrets, trust, network,
   certificates, commits) from [docs/Architecture.md](Architecture.md#security-boundaries)
-  apply to every deployment. In particular, AuthenIQ never signs certificates
+  apply to every deployment. In particular, AthenIQ never signs certificates
   itself — Signara does — and no `.env`, key, or token is ever committed.

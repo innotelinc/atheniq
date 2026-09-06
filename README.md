@@ -1,32 +1,32 @@
 <div align="center">
 
-# 🎓 AuthenIQ — Learn What's Real.
+# 🎓 AthenIQ — Learn What's Real.
 
 **Open-source learning platform (LMS) for universities, workforce development & training — self-hosted, Authentik-native, AI-classroom ready.**
 
-AuthenIQ is an open learning platform built on **Tutor (Open edX)** and
+AthenIQ is an open learning platform built on **Tutor (Open edX)** and
 **OpenMAIC**, the multi-agent interactive classroom. One stack for course
 authoring, enrollment, delivery, and AI-assisted learning — with every course
 completion eligible for a **certificate signed through Signara** and trusted
 through the Innotel Platform Stack.
 
-[![CI](https://github.com/innotelinc/authentiq/actions/workflows/ci.yml/badge.svg)](https://github.com/innotelinc/authentiq/actions/workflows/ci.yml)
+[![CI](https://github.com/innotelinc/atheniq/actions/workflows/ci.yml/badge.svg)](https://github.com/innotelinc/atheniq/actions/workflows/ci.yml)
 [![License: AGPL-3.0-or-later](https://img.shields.io/badge/license-AGPL--3.0-or-later-brightgreen.svg)](LICENSE)
 
 </div>
 
-> **About AuthenIQ** — the self-hosted LMS for real institutions: the battle-tested
+> **About AthenIQ** — the self-hosted LMS for real institutions: the battle-tested
 > Open edX course engine (via [Tutor](https://github.com/overhangio/tutor)) meets
 > [OpenMAIC](https://github.com/THU-MAIC/OpenMAIC)'s generative multi-agent
 > classrooms, with **Authentik** as the identity provider and **Signara**
 > certifying course certificates. **Landing page:**
-> [innotelinc.github.io/authentiq](https://innotelinc.github.io/authentiq)
+> [innotelinc.github.io/atheniq](https://innotelinc.github.io/atheniq)
 
 ---
 
-## Why AuthenIQ
+## Why AthenIQ
 
-| Problem | AuthenIQ answer |
+| Problem | AthenIQ answer |
 | --- | --- |
 | Proprietary LMS lock-in and per-seat fees | Open source, self-hosted, unlimited learners |
 | Dull, static courseware | OpenMAIC classrooms: AI teachers, classmates, quizzes, simulations |
@@ -62,8 +62,8 @@ through the Innotel Platform Stack.
 ## 🚀 Quick start
 
 ```bash
-git clone https://github.com/innotelinc/authentiq.git
-cd authentiq
+git clone https://github.com/innotelinc/atheniq.git
+cd atheniq
 ./setup.sh        # installs guard hooks, generates .env secrets, prints the checklist
 ```
 
@@ -74,7 +74,7 @@ python3 -m pip install tutor
 tutor local quickstart        # interactive first boot of LMS + Studio
 ```
 
-Tutor owns its own containers; AuthenIQ configures it for this ecosystem
+Tutor owns its own containers; AthenIQ configures it for this ecosystem
 (domain, Authentik OIDC, theme). See [docs/Deployment.md](docs/Deployment.md).
 
 ### 2. AI classroom — OpenMAIC (with server-backed persistence)
@@ -119,7 +119,7 @@ self-hosted backend are in [docs/Deployment.md](docs/Deployment.md) and
 
 | Document | Purpose |
 | --- | --- |
-| [docs/stack.md](docs/stack.md) | AuthenIQ's role in the Innotel Platform Stack (LearningOps) |
+| [docs/stack.md](docs/stack.md) | AthenIQ's role in the Innotel Platform Stack (LearningOps) |
 | [docs/Architecture.md](docs/Architecture.md) | System design, components, data flows |
 | [docs/Integrations.md](docs/Integrations.md) | Tutor, OpenMAIC, Convex, Open Generative AI, OpenClaw/OmniRoute, Authentik, Signara |
 | [docs/Deployment.md](docs/Deployment.md) | Bring-up runbook, Cerulean DNS/TLS, production notes |
@@ -127,7 +127,7 @@ self-hosted backend are in [docs/Deployment.md](docs/Deployment.md) and
 ## Repository layout
 
 ```
-authentiq/
+atheniq/
 ├── docs/                      # Architecture, Integrations, Deployment, stack role
 ├── web/landing/               # Static GitHub Pages landing page
 ├── .github/workflows/         # CI, attribution guard, Pages publish
@@ -151,13 +151,13 @@ make check:commits
 ## Hosted landing page
 
 The project landing page is published through GitHub Pages at
-[https://innotelinc.github.io/authentiq/](https://innotelinc.github.io/authentiq/),
+[https://innotelinc.github.io/atheniq/](https://innotelinc.github.io/atheniq/),
 maintained in [web/landing/index.html](web/landing/index.html) and deployed by
 [.github/workflows/pages.yml](.github/workflows/pages.yml).
 
 ## Community & contribution
 
-- Report issues: https://github.com/innotelinc/authentiq/issues
+- Report issues: https://github.com/innotelinc/atheniq/issues
 - Contributing: [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## Security
@@ -167,11 +167,11 @@ disclosure notes in [docs/Deployment.md](docs/Deployment.md#security).
 
 ---
 
-*AuthenIQ — Learn What's Real. © 2026*
+*AthenIQ — Learn What's Real. © 2026*
 
 ## 🏛️ Platform stack
 
-AuthenIQ is the ecosystem's **LearningOps** platform — courses, delivery, and
+AthenIQ is the ecosystem's **LearningOps** platform — courses, delivery, and
 AI classrooms in the [**Innotel Platform Stack**](https://github.com/innotelinc/innotel-platform-stack) —
 the canonical single-responsibility architecture where Authentik owns identity,
 Infisical owns secrets, Cerulean owns trust, ONYX owns storage, Magnate owns
