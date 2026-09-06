@@ -481,8 +481,12 @@ How it works, per run:
    signer's public token.
 4. Records each submission in the LMS DB ledger table `atheniq_cert_sync`
    (created automatically) so re-runs are idempotent — a certificate is only
-   ever signed once. Rows left unledgered after a Signara-side failure are
-   retried on the next pass.
+   ever signed once. Upload failures stay unledgered and are retried on the
+   next pass; **PARTIAL rows** (document uploaded but the signing request or
+   signature call failed) are **auto-resumed** on every pass — the bridge
+   re-fetches the request, signs it when still pending (409 "already signed"
+   is treated as done), and marks the ledger SIGNED, so a transient Signara
+   error never parks a certificate permanently.
 
 Run it on the group-1 (Primary) host next to Tutor and Signara:
 
@@ -492,6 +496,7 @@ python3 scripts/cert-bridge.py --once
 # keep watching for new completions (cron or systemd)
 python3 scripts/cert-bridge.py --watch --interval 120
 python3 scripts/cert-bridge.py --dry-run   # preview without calling Signara
+python3 scripts/cert-bridge.py --status    # ledger health (MySQL only, no Signara calls)
 ```
 
 **Scheduled service (this host):** a systemd timer runs the bridge every
