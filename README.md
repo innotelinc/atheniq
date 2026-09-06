@@ -53,9 +53,10 @@ through the Innotel Platform Stack.
   integrations (Slack, Telegram, Discord and more), an OpenMAIC skill, and a
   CLI agent for authoring and operations — all models routed through one
   OpenAI-compatible gateway.
-- **Signed certificates (Signara)** — course completion triggers a certificate
-  request into Signara's signature workflows, producing audit-trailed,
-  verifiable certificates.
+- **Signed certificates (Signara, live)** — the cert bridge
+  (`scripts/cert-bridge.py`) watches Open edX for issued certificates and
+  pushes each completion into Signara's signing workflow, producing
+  audit-trailed, verifiable signed certificates.
 - **The whole Innotel stack behind it** — Authentik (identity), Infisical
   (secrets), Cerulean (DNS + TLS), ONYX (storage), Magnate (revenue).
 

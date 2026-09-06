@@ -415,11 +415,11 @@ with the studio session cookies set; `curl` with `Accept: */*` against the
 legacy URL returns 302 to the MFE (not 500) and `Accept: application/json`
 still returns the JSON payload.
 
-### 9.6 TEST101 certificates enabled (LMS side, pre-Signara)
+### 9.6 TEST101 certificates enabled (LMS side)
 
 **Status (2026-09):** `course-v1:Innotel+TEST101+2026_T1` issues real Open edX
-webview certificates. The Signara signing leg (completion → signed artifact)
-is still to come per [docs/Integrations.md](Integrations.md#signara--signed-course-certificates-documentops).
+webview certificates, and the **Signara signing leg is live** via
+[`scripts/cert-bridge.py`](../scripts/cert-bridge.py) — see §9.7 below.
 
 One-time setup applied on this deployment (re-apply after a course rerun or
 recreate):
@@ -447,6 +447,53 @@ Verified live: the public webview
 `https://learn.<domain>/certificates/<verify_uuid>` renders the full certificate
 (awarded-to name, course title, "Certificate of Completion", signatory,
 issue date) and the learner's dashboard shows the "certificate is ready" link.
+
+### 9.7 Signara signing leg (cert bridge)
+
+**Status (2026-09):** live. The bridge
+([`scripts/cert-bridge.py`](../scripts/cert-bridge.py)) watches the LMS for
+`downloadable` certificates and pushes each completion through Signara's
+signing workflow, so every Open edX certificate also exists as a **signed
+Signara document** with its audit/evidence trail (see
+[docs/Integrations.md](Integrations.md#signara--signed-course-certificates-documentops)).
+
+How it works, per run:
+
+1. Reads new completions from the LMS MySQL (`certificates_generatedcertificate`
+   where `status = 'downloadable'`) joined to the learner and course overview.
+2. Renders a certificate PDF (pure Python, no dependencies).
+3. Uploads it to Signara, creates a sequential signing request with the
+   issuer/signatory (`CERT_SIGNER_*`) as the signer, and signs it via the
+   signer's public token.
+4. Records each submission in the LMS DB ledger table `atheniq_cert_sync`
+   (created automatically) so re-runs are idempotent — a certificate is only
+   ever signed once. Rows left unledgered after a Signara-side failure are
+   retried on the next pass.
+
+Run it on the group-1 (Primary) host next to Tutor and Signara:
+
+```bash
+# one pass over everything not yet signed (safe to re-run)
+python3 scripts/cert-bridge.py --once
+# keep watching for new completions (cron or systemd)
+python3 scripts/cert-bridge.py --watch --interval 120
+python3 scripts/cert-bridge.py --dry-run   # preview without calling Signara
+```
+
+Prerequisites (all in `.env`, documented in `.env.example`):
+`SIGNARA_API_URL`, `SIGNARA_API_KEY` (a Signara API key scoped to
+`documents.*` + `signing.send/read`), and `CERT_SIGNER_NAME/EMAIL/TITLE`.
+The LMS MySQL root password is resolved via Tutor (`sudo -u tutor`); set
+`LMS_DB_PASSWORD` to override. The bridge authenticates to Signara as a
+**machine client** (`X-API-Key`) — no browser session required.
+
+Verified live (2026-09): the TEST101 certificate for `darnel` was signed
+through Signara (request `COMPLETED`, signer `SIGNED`), the signed artifact
+retrieves from Signara/MinIO as a valid PDF containing the learner, course,
+grade, certificate UUID, and signatory, and the certificate appears on the
+Signara portal document list. Cleanup note: a soft-deleted duplicate document
+may remain from early test runs (idempotency was added right after); completed
+requests cannot be cancelled by design.
 
 ## Operations
 
