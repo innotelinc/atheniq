@@ -133,15 +133,24 @@ Every surface consumes the same Authentik tenant:
 
 ## Signara — signed course certificates (DocumentOps)
 
-Completion → certificate flow:
+Completion → certificate flow (**implemented** by
+[`scripts/cert-bridge.py`](../scripts/cert-bridge.py) — see
+[docs/Deployment.md](Deployment.md#97-signara-signing-leg-cert-bridge)):
 
-1. Open edX emits a course-completion event.
-2. AthenIQ builds a completion record: learner identity (from Authentik),
-   course, final score, completion date, issuer.
-3. The record is submitted to Signara, which runs its signature workflow and
-   returns the signed course certificate.
-4. The signed artifact is stored (ONYX) and linked from the learner record in
-   the LMS; the learner can verify it through Signara's audit trail.
+1. Open edX issues a course certificate (a `downloadable`
+   `GeneratedCertificate` row) on course completion.
+2. The cert bridge reads the completion record from the LMS DB: learner
+   identity, course, final score, completion date, issuer.
+3. The record is submitted to Signara (`X-API-Key` machine auth), which runs
+   its signature workflow — document upload, signing request with the
+   issuer/signatory as signer, signature — and returns the signed course
+   certificate.
+4. The signed artifact is stored in Signara's document store (MinIO) with a
+   hash-bound evidence/audit trail the learner can verify in the Signara
+   portal; ONYX object-storage mirroring is a later hardening phase.
+
+The bridge keeps an idempotency ledger (`atheniq_cert_sync` in the LMS DB), so
+certificates are signed exactly once and re-runs are safe.
 
 AthenIQ never signs certificates itself — it only produces completion
 evidence. Signara remains the sole DocumentOps surface of the stack.
@@ -164,6 +173,7 @@ High-signal variables:
 | `OPENMAIC_*` / `PERSISTENCE_*` | OpenMAIC persistence Postgres + tokens |
 | `CONVEX_SELF_HOSTED_URL` / `CONVEX_SELF_HOSTED_ADMIN_KEY` | Self-hosted Convex endpoint + admin key |
 | `OPEN_GENERATIVE_AI_URL` | Media studio API base |
-| `SIGNARA_API_URL` / `SIGNARA_API_KEY` | Certificate signing submission |
+| `SIGNARA_API_URL` / `SIGNARA_API_KEY` | Certificate signing submission (machine auth via `X-API-Key`) |
+| `CERT_SIGNER_NAME` / `CERT_SIGNER_EMAIL` / `CERT_SIGNER_TITLE` | Issuer/signatory on certificate signing requests |
 | `CERULEAN_*` | DNS / NPM / TLS provisioning (TrustOps) |
 | `INFISICAL_*` | SecretOps bootstrap values |
