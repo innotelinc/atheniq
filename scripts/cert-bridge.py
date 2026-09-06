@@ -18,7 +18,13 @@ Usage:
     python3 scripts/cert-bridge.py --once            # one pass over new certs
     python3 scripts/cert-bridge.py --watch           # poll forever (default)
     python3 scripts/cert-bridge.py --dry-run         # show what would sync
+    python3 scripts/cert-bridge.py --status          # ledger health (MySQL only)
     python3 scripts/cert-bridge.py --interval 120    # watch interval seconds
+
+PARTIAL rows (the document was uploaded but the signing request or signature
+failed) are auto-resumed on every pass: the bridge re-fetches the request,
+signs it when pending, and marks the ledger SIGNED — so a transient Signara
+error never parks a certificate permanently.
 
 Configuration comes from the repo .env (SIGNARA_API_URL / SIGNARA_API_KEY,
 CERT_SIGNER_*). The LMS MySQL root password is resolved via Tutor
@@ -204,6 +210,129 @@ def ledger_insert(row):
 
 
 # --------------------------------------------------------------------------
+# ledger helpers — update rows and read PARTIAL work for resume
+# --------------------------------------------------------------------------
+
+
+PARTIAL_QUERY = (
+    "SELECT cert_id, course_id, learner, learner_email, grade, "
+    "signara_document_id, signara_request_id "
+    "FROM atheniq_cert_sync WHERE status = 'PARTIAL' ORDER BY cert_id"
+)
+
+
+def ledger_update(cert_id, doc_id, req_id, status):
+    """Upsert a ledger row's Signara outcome, preserving the original row's
+    course/learner columns (used when resuming PARTIAL submissions)."""
+    sql = (
+        "INSERT INTO atheniq_cert_sync (cert_id, course_id, learner, learner_email, grade, "
+        "signara_document_id, signara_request_id, status, submitted_at) VALUES ("
+        f"{cert_id}, '', '', '', '', {sh_quote(doc_id or '')}, {sh_quote(req_id or '')}, "
+        f"{sh_quote(status)}, NOW(6)) AS new "
+        "ON DUPLICATE KEY UPDATE signara_document_id = new.signara_document_id, "
+        "signara_request_id = new.signara_request_id, status = new.status, "
+        "submitted_at = NOW(6)"
+    )
+    mysql(sql)
+
+
+def ledger_partials():
+    rows = mysql(PARTIAL_QUERY)
+    partials = []
+    for line in rows.splitlines():
+        if not line.strip():
+            continue
+        f = line.split("\t")
+        if len(f) < 7:
+            continue
+        partials.append({
+            "id": int(f[0]), "course_id": f[1], "learner": f[2],
+            "learner_email": f[3], "grade": f[4],
+            "doc_id": f[5].strip(), "req_id": f[6].strip(),
+        })
+    return partials
+
+
+def resume_partials(signara, dry_run):
+    """Finish Signara legs that previously failed midway (upload landed, but
+    the request was never created, never got a signer token, or the signature
+    call failed). Returns how many rows reached SIGNED."""
+    mysql(LEDGER_DDL)
+    partials = ledger_partials()
+    if not partials:
+        return 0
+    if dry_run:
+        print(f"{len(partials)} PARTIAL submission(s) would be resumed:")
+        for c in partials:
+            print(f"  [{c['id']}] {c['learner'] or c['learner_email']} — {c['course_id']} "
+                  f"(doc {c['doc_id'][:8] or '-'}…, req {c['req_id'][:8] or '-'}…)")
+        return 0
+
+    resumed = 0
+    print(f"{len(partials)} PARTIAL submission(s) to resume.")
+    for c in partials:
+        doc_id, req_id = c["doc_id"], c["req_id"]
+        print(f"  [{c['id']}] {c['learner'] or c['learner_email']} — {c['course_id']} "
+              f"(doc {doc_id[:8] or '-'}…, req {req_id[:8] or '-'}…)")
+
+        if req_id:
+            st, rq = signara.get_request(req_id)
+            if st >= 300:
+                print(f"    !! request fetch failed ({st}): {str(rq)[:200]} — retrying next pass")
+                continue
+            request_status = (rq.get("status") or "").upper()
+            signer = (rq.get("signers") or [{}])[0]
+            if request_status == "COMPLETED" or (signer.get("status") or "").upper() == "SIGNED":
+                ledger_update(c["id"], doc_id, req_id, "SIGNED")
+                resumed += 1
+                print("    -> already signed; ledger marked SIGNED")
+                continue
+            token = signer.get("token")
+            if not token:
+                print("    !! no signer token on fetch — retrying next pass")
+                continue
+            st, sg = signara.sign(token, cfg("CERT_SIGNER_NAME"))
+            if st == 409:
+                ledger_update(c["id"], doc_id, req_id, "SIGNED")
+                resumed += 1
+                print("    -> 409 already signed; ledger marked SIGNED")
+            elif st < 300:
+                ledger_update(c["id"], doc_id, req_id, "SIGNED")
+                resumed += 1
+                print(f"    -> signed (http {st}); ledger marked SIGNED")
+            else:
+                print(f"    !! sign failed ({st}): {str(sg)[:200]} — retrying next pass")
+            continue
+
+        if doc_id:
+            title = f"{c['course_id']} - Certificate of Completion ({c['learner'] or c['id']})"
+            st, rq = signara.create_request(doc_id, title, "Auto-signed by the AthenIQ cert bridge (resume).")
+            if st >= 300:
+                print(f"    !! request re-create failed ({st}): {str(rq)[:200]} — retrying next pass")
+                continue
+            new_req_id = rq.get("id")
+            signer = (rq.get("signers") or [{}])[0]
+            token = signer.get("token")
+            if not token:
+                _, rq2 = signara.get_request(new_req_id)
+                signer = (rq2.get("signers") or [{}])[0]
+                token = signer.get("token")
+            if not token:
+                print(f"    !! no signer token for new request {new_req_id[:8]}… — retrying next pass")
+                continue
+            st, sg = signara.sign(token, cfg("CERT_SIGNER_NAME"))
+            status = "SIGNED" if st < 300 else "PARTIAL"
+            print(f"    -> request {new_req_id[:8]}… sign http {st}: {status}")
+            ledger_update(c["id"], doc_id, new_req_id, status)
+            if status == "SIGNED":
+                resumed += 1
+            continue
+
+        print("    !! nothing to resume (no document/request id) — retrying next pass")
+    return resumed
+
+
+# --------------------------------------------------------------------------
 # certificate PDF rendering (pure Python, Helvetica)
 # --------------------------------------------------------------------------
 
@@ -358,9 +487,11 @@ class Signara:
 
 
 def sync_once(signara, dry_run, verbose):
+    resumed = resume_partials(signara, dry_run)
     certs = pending_certs()
     if not certs:
-        print("No new downloadable certificates to sync.")
+        if not resumed:
+            print("No new downloadable certificates to sync.")
         return 0
     print(f"{len(certs)} certificate(s) awaiting Signara signing.")
     for cert in certs:
@@ -408,11 +539,36 @@ def sync_once(signara, dry_run, verbose):
     return 1
 
 
+def status_report():
+    """Print a ledger health summary (MySQL only — no Signara calls)."""
+    mysql(LEDGER_DDL)
+    pending = len(pending_certs())
+    rows = mysql("SELECT status, COUNT(*) FROM atheniq_cert_sync GROUP BY status ORDER BY status")
+    counts = {}
+    for line in rows.splitlines():
+        if not line.strip():
+            continue
+        f = line.split("\t")
+        if len(f) >= 2:
+            counts[f[0]] = int(f[1])
+    total = sum(counts.values())
+    print("AthenIQ cert bridge — ledger status")
+    print(f"  ledger rows           : {total}")
+    for st in ("SUBMITTED", "PARTIAL", "SIGNED"):
+        print(f"  {st:<12}: {counts.get(st, 0)}")
+    for other in sorted(set(counts) - {"SUBMITTED", "PARTIAL", "SIGNED"}):
+        print(f"  {other:<12}: {counts[other]}")
+    print(f"  awaiting first sync   : {pending}  (downloadable, unledgered)")
+    if counts.get("PARTIAL"):
+        print("  note: PARTIAL rows are auto-resumed on the next sync pass.")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--once", action="store_true", help="single pass, then exit")
     ap.add_argument("--watch", action="store_true", help="poll forever (default when neither flag given)")
     ap.add_argument("--dry-run", action="store_true", help="list pending certs without calling Signara")
+    ap.add_argument("--status", action="store_true", help="print ledger health and exit (no Signara calls)")
     ap.add_argument("--interval", type=int, default=120, help="watch poll interval in seconds (default 120)")
     ap.add_argument("--insecure", action="store_true", help="disable TLS verification (demo hosts)")
     args = ap.parse_args()
@@ -420,6 +576,10 @@ def main():
     env = load_dotenv(os.path.join(REPO, ".env"))
     for k, v in env.items():
         os.environ.setdefault(k, v)
+
+    if args.status:
+        status_report()
+        return
 
     base = cfg("SIGNARA_API_URL")
     key = cfg("SIGNARA_API_KEY")
