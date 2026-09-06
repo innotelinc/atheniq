@@ -264,6 +264,36 @@ Verify with a real session (CSRF + Referer required):
 `POST https://learn.<domain>/search/unstable/v0/course_list_search/` with
 `page_size=9&page_index=0` → `results[0].data.content.display_name`.
 
+### 9.3 Provider needs scope mappings (userinfo 403)
+
+**Symptom:** SSO completes at Authentik and the token exchange succeeds, but
+login still 500s: LMS log shows `403 Forbidden for url:
+.../application/o/userinfo/` while Authentik logs the token POST as 200 and
+the userinfo GET as 403. Authentik's `protected_resource_view` returns 403
+(`insufficient_scope`) because the issued access token has **no scopes**.
+
+**Cause:** the OIDC provider had no `ScopeMapping`s assigned, so Authentik's
+`__check_scopes` intersected the requested scopes (`openid profile email`)
+with an empty allowed set → access tokens were issued with empty scope.
+Healthy providers carry `openid, profile, email, groups`.
+
+**Fix (one-time, via Authentik DB):**
+
+```sql
+INSERT INTO authentik_core_provider_property_mappings (provider_id, propertymapping_id)
+SELECT 20, propertymapping_ptr_id FROM authentik_providers_oauth2_scopemapping
+WHERE scope_name IN ('openid','profile','email','groups')
+ON CONFLICT DO NOTHING;
+```
+
+(replace `20` with the provider's `provider_ptr_id`). Prefer assigning the
+standard scopes in the Authentik UI for new providers.
+
+Verify: a fresh login yields an access token whose `_scope` contains
+`openid` (`SELECT _scope FROM authentik_providers_oauth2_accesstoken ORDER
+BY auth_time DESC LIMIT 1`), and `GET .../application/o/userinfo/` with that
+token returns 200.
+
 ## Operations
 
 - **Backups:** Tutor volumes and the OpenMAIC/Convex Postgres databases are the
