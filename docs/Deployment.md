@@ -69,7 +69,7 @@ Authentik redirect URIs are `https://learn.innotel.us/auth/complete/oidc/` and
 `https://studio.innotel.us/auth/complete/oidc/` (strict). LMS verified:
 auth entry redirects to Authentik authorize and returns to the login flow; the
 container reaches Authentik discovery over the edge. Full browser sign-in needs
-the `learn`/`studio.innotel.us` NPM edge hosts + DNS (see Stage 5).
+the `learn`/`studio.innotel.us` NPM edge hosts + DNS (see [Cerulean DNS and TLS](#cerulean-dns-and-tls)).
 
 Use the Authentik authorization/`userinfo` endpoints in `.env` (`OIDC_*`) and
 apply the same group claims (`learners`, `instructors`, `authentiq-admins`,
@@ -169,6 +169,26 @@ Set the `CERULEAN_*` variables in `.env` (`CERULEAN_BASE_DOMAIN`,
 Cerulean provisioning. Docker/LAN addresses are never published to DNS; only
 the public WAN address is used for records and the LAN address for NPM
 upstreams.
+
+**Realized (2026-09):** `learn`, `studio`, `apps.learn`, and
+`meilisearch.learn` (`innotel.us`) are live. DNS records are CNAMEs to the
+`innotel.us.` apex (A `73.68.203.71`, the NPM edge) in the authoritative BIND
+zone, written via TSIG `nsupdate` (key `cerulean`, BIND at `192.168.1.80`).
+NPM hosts forward to `http://192.168.1.46:18080` (Tutor caddy): `learn` and
+`studio` attach the existing `*.innotel.us` wildcard (NPM cert 110);
+`apps.learn` and `meilisearch.learn` use single-name Let's Encrypt certs
+(HTTP-01) because NPM's own wildcard issuance (`rfc2136` DNS provider)
+currently returns 500 — request a `*.learn.innotel.us` wildcard once that is
+fixed. Run [`scripts/provision-edge.sh`](../scripts/provision-edge.sh) to
+re-apply (idempotent). Public HTTPS verified for all four hosts.
+
+> Scheme note: Tutor runs with `ENABLE_HTTPS=false` (its own caddy is plain
+> HTTP on `:18080`; NPM terminates TLS). Open edX therefore emits `http://`
+> absolute URLs (e.g. the authn login at `http://apps.learn.innotel.us/authn/login`).
+> SSO itself is unaffected (Authentik redirect URIs are `https://` and are
+> matched exactly), but a browser pass should confirm no mixed-content
+> breakage; if any, flip Tutor to `ENABLE_HTTPS=true` with the wildcard certs
+> imported into caddy before pointing the edge at `:18443`.
 
 ## Operations
 
