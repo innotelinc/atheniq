@@ -144,6 +144,7 @@ LEDGER_DDL = (
 CERT_QUERY = (
     "SELECT cc.id, cc.course_id, cc.verify_uuid, cc.grade, cc.created_date, "
     "       au.username, au.email, ap.name AS learner_name, "
+    "       cc.name AS cert_name, "
     "       co.display_name AS course_name, co.org "
     "FROM certificates_generatedcertificate cc "
     "JOIN auth_user au ON au.id = cc.user_id "
@@ -168,16 +169,26 @@ def pending_certs():
         certs.append({
             "id": int(f[0]), "course_id": f[1], "verify_uuid": f[2],
             "grade": f[3], "created_date": f[4], "username": f[5],
-            "email": f[6], "learner_name": f[7], "course_name": f[8],
-            "org": f[9],
+            "email": f[6], "learner_name": f[7], "cert_name": f[8],
+            "course_name": f[9], "org": f[10],
         })
     return certs
+
+
+def learner_display_name(cert):
+    """Best available display name: profile name, then the name recorded on the
+    certificate itself (set at award time), then the username as a last resort."""
+    for key in ("learner_name", "cert_name"):
+        val = (cert.get(key) or "").strip()
+        if val:
+            return val
+    return (cert.get("username") or "").strip()
 
 
 def ledger_insert(row):
     cert_id = row.get("cert_id") or row["id"]
     course_id = row.get("course_id") or ""
-    learner = row.get("learner") or row.get("username") or ""
+    learner = row.get("learner") or learner_display_name(row) or row.get("username") or ""
     email = row.get("learner_email") or row.get("email") or ""
     grade = row.get("grade") or ""
     sql = (
@@ -200,7 +211,7 @@ def ledger_insert(row):
 def render_cert_pdf(cert, signer_name, signer_title, out_path):
     org = cert["org"] or "Innotel"
     platform = "ATHENIQ LEARNING PLATFORM"
-    learner = (cert["learner_name"] or "").strip() or cert["username"]
+    learner = learner_display_name(cert)
     course = cert["course_name"] or cert["course_id"]
     grade = cert["grade"]
     try:
@@ -353,7 +364,7 @@ def sync_once(signara, dry_run, verbose):
         return 0
     print(f"{len(certs)} certificate(s) awaiting Signara signing.")
     for cert in certs:
-        learner = (cert["learner_name"] or "").strip() or cert["username"]
+        learner = learner_display_name(cert)
         title = f"{cert['course_name'] or cert['course_id']} - Certificate of Completion ({learner})"
         desc = (f"Open edX course completion certificate - {cert['course_id']} "
                 f"(grade {cert['grade']}), auto-synced by the AthenIQ cert bridge.")
