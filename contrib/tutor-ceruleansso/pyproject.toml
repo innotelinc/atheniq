@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tutor-ceruleansso"
+version = "0.1.0"
+description = "Cerulean (Authentik) OIDC single sign-on for Open edX (AuthenIQ)"
+
+[project.entry-points."tutor.plugin.v0"]
+ceruleansso = "ceruleansso.plugin"
+
+[tool.setuptools]
+packages = ["ceruleansso"]

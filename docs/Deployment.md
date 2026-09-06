@@ -56,6 +56,21 @@ Create OIDC applications in the Authentik admin for each public surface:
 | `authentiq-classroom` | OpenMAIC sign-in callback |
 | `authentiq-studio` | Media studio (optional) |
 
+**Realized (2026-09):** `authentiq-lms` is live on Cerulean's Authentik
+(`auth.cerulean.innotel.us`, client id `authentiq-lms`). Open edX is enabled via
+the Tutor plugin in [`contrib/tutor-ceruleansso`](../contrib/tutor-ceruleansso)
+(installed as `tutor-ceruleansso` in the tutor venv): it sets
+`FEATURES["ENABLE_THIRD_PARTY_AUTH"]`, registers python-social-auth's
+`OpenIdConnectAuth` backend (`oidc`), and points
+`SOCIAL_AUTH_OIDC_OIDC_ENDPOINT` at
+`https://auth.cerulean.innotel.us/application/o/authentiq-lms`. The TPA
+`ProviderConfig` row (site = default, backend `oidc`) holds the client id/secret;
+Authentik redirect URIs are `https://learn.innotel.us/auth/complete/oidc/` and
+`https://studio.innotel.us/auth/complete/oidc/` (strict). LMS verified:
+auth entry redirects to Authentik authorize and returns to the login flow; the
+container reaches Authentik discovery over the edge. Full browser sign-in needs
+the `learn`/`studio.innotel.us` NPM edge hosts + DNS (see Stage 5).
+
 Use the Authentik authorization/`userinfo` endpoints in `.env` (`OIDC_*`) and
 apply the same group claims (`learners`, `instructors`, `authentiq-admins`,
 `paid_users`) as the rest of the stack. See
