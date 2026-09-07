@@ -64,7 +64,7 @@ jobs:
             --exclude='./.gitignore' \
             -czf "dist/$ARCHIVE" \
             README.md CONTRIBUTING.md LICENSE Makefile docker-compose.yml \
-            docs scripts services web deploy contrib .env.example
+            docs scripts web deploy contrib .env.example
           (cd dist && sha256sum "$ARCHIVE" > "${ARCHIVE}.sha256")
           ls -lh dist/
           echo "bundle=$ARCHIVE" >> "$GITHUB_OUTPUT"
