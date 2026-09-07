@@ -1,0 +1,100 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# release.yml — AthenIQ release pipeline.
+#
+# Fires on every `v*` tag push (and on demand via workflow_dispatch):
+#   release — bundles the source + docs snapshot and cuts the GitHub Release
+#   with the bundle + checksums and generated release notes.
+#
+# AthenIQ has no first-party Docker image (services are compose-managed); the
+# artifact is the reproducible source bundle.
+# ═══════════════════════════════════════════════════════════════════════════
+
+name: AthenIQ release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version tag to build (default: use the pushed tag)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: atheniq-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Cut the AthenIQ release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve release version
+        id: tag
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+            if [[ ! "$VERSION" =~ ^v ]]; then
+              VERSION="v$VERSION"
+            fi
+          else
+            VERSION="${GITHUB_REF_NAME}"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "release: $VERSION"
+
+      - name: Build the source bundle
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.tag.outputs.version }}"
+          ARCHIVE="atheniq-${VERSION#v}.tar.gz"
+          mkdir -p dist
+          tar \
+            --exclude='./.git' \
+            --exclude='./.github' \
+            --exclude='./.gitignore' \
+            -czf "dist/$ARCHIVE" \
+            README.md CONTRIBUTING.md LICENSE Makefile docker-compose.yml \
+            docs scripts services web deploy contrib .env.example
+          (cd dist && sha256sum "$ARCHIVE" > "${ARCHIVE}.sha256")
+          ls -lh dist/
+          echo "bundle=$ARCHIVE" >> "$GITHUB_OUTPUT"
+
+      - name: Cut the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.tag.outputs.version }}
+        run: |
+          set -euo pipefail
+          VERSION="${VERSION}"
+          NOTES=$(printf '%s\n' \
+            "AthenIQ **${VERSION}** — the LearningOps platform of the Innotel Platform Stack: courses, delivery, and learning infrastructure." \
+            "" \
+            "This release bundles the repository source + docs snapshot used to deploy the LearningOps layer." \
+            "" \
+            "**Artifact**" \
+            "- atheniq-${VERSION#v}.tar.gz + sha256" \
+            "" \
+            "**See also**" \
+            "- [docs/stack.md](https://github.com/innotelinc/atheniq/blob/main/docs/stack.md) — the owns/consumes map" \
+            "- [docs/standard.md](https://github.com/innotelinc/innotel-platform-stack/blob/main/docs/standard.md) — the repo conformity standard" \
+            "- [scripts/conform-project.sh](https://github.com/innotelinc/innotel-platform-stack/blob/main/scripts/conform-project.sh) — the scaffold/audit tool")
+          ARCHIVE="atheniq-${VERSION#v}.tar.gz"
+          gh release create "$VERSION" \
+            "dist/$ARCHIVE" \
+            "dist/$ARCHIVE.sha256" \
+            --title "AthenIQ $VERSION" \
+            --notes "$NOTES" || \
+          gh release upload "$VERSION" \
+            "dist/$ARCHIVE" \
+            "dist/$ARCHIVE.sha256" --clobber
+          echo "::notice::released $VERSION"
