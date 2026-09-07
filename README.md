@@ -177,4 +177,11 @@ AI classrooms in the [**Innotel Platform Stack**](https://github.com/innotelinc/
 the canonical single-responsibility architecture where Authentik owns identity,
 Infisical owns secrets, Cerulean owns trust, ONYX owns storage, Magnate owns
 revenue, and every other platform is a business function that consumes them.
+
+---
+
+## License
+
+AthenIQ is licensed under the GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later). See [LICENSE](LICENSE) for the full text.
+
 See [docs/stack.md](docs/stack.md) for this platform's owns/consumes boundaries.
