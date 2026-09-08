@@ -29,6 +29,9 @@ services:
     container_name: atheniq-openmaic-postgres
     profiles: ["openmaic"]
     restart: unless-stopped
+    # Memory posture (docs/service-audit.md): single-purpose course DB; cap.
+    mem_limit: 1g
+    memswap_limit: 1g
     environment:
       POSTGRES_DB: ${OPENMAIC_DB_NAME:-openmaic}
       POSTGRES_USER: ${OPENMAIC_DB_USER:-openmaic}
