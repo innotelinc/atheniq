@@ -55,10 +55,10 @@ fi
 # ---- 4. Checklist ----------------------------------------------------------
 say "4/4 next steps"
 printf '%s\n' \
-  "  1. Tutor LMS core:        pip install tutor && make tutor:quickstart" \
+  "  1. Tutor LMS core:        pip install tutor && make tutor-quickstart" \
   "  2. AI classroom:          docs/Deployment.md — Stage 3 (OpenMAIC)" \
   "  3. Realtime:              docs/Deployment.md — Stage 4 (Convex, self-hosted)" \
-  "  4. Gateway + agents:      make gateway:up (OmniRoute on 127.0.0.1:20128)" \
+  "  4. Gateway + agents:      make gateway-up (OmniRoute on 127.0.0.1:20128)" \
   "  5. Signed certificates:   docs/Deployment.md — Stage 7 (Signara)" \
   "  Full runbook:             docs/Deployment.md"
 

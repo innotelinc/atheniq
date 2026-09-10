@@ -145,9 +145,9 @@ atheniq/
 ```bash
 make help        # every target, one view
 make setup       # hooks + .env + preflight
-make gateway:up  # OmniRoute model gateway
-make openmaic:up # OpenMAIC persistence Postgres
-make check:commits
+make gateway-up  # OmniRoute model gateway
+make openmaic-up # OpenMAIC persistence Postgres
+make check-commits
 ```
 
 ## Hosted landing page
