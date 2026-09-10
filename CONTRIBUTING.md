@@ -11,7 +11,7 @@ Stack.
 2. **Commit style:** Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`).
 3. **Pull requests:** one logical change per PR, CI green, commit-message policy clean.
 4. **Commit messages:** do not include generated-agent attribution or footer text;
-   `make check:commits` must pass.
+   `make check-commits` must pass.
 5. Never commit secrets, `.env`, or derived credentials.
 
 ## Setup
@@ -27,7 +27,7 @@ project owner in commit messages, PR text, and added file lines.
 ## Verification before opening a PR
 
 ```bash
-make check:commits
+make check-commits
 docker compose config --quiet
 docker compose --profile gateway --profile openmaic config --quiet
 ```

@@ -7,8 +7,8 @@
 SHELL := /bin/bash
 
 .PHONY: help setup up down logs ps \
-        gateway:up gateway:down openmaic:up openmaic:down \
-        check:commits check:compose tutor:quickstart
+        gateway-up gateway-down openmaic-up openmaic-down \
+        check-commits check-compose tutor-quickstart
 
 help: ## Show this help message
 	@echo "AthenIQ — operator workflow"
@@ -34,28 +34,28 @@ logs: ## Tail logs from AthenIQ-managed services
 ps: ## List service status
 	docker compose ps
 
-gateway:up: ## Start the OmniRoute model gateway
+gateway-up: ## Start the OmniRoute model gateway
 	docker compose --profile gateway up -d
 
-gateway:down: ## Stop the OmniRoute model gateway
+gateway-down: ## Stop the OmniRoute model gateway
 	docker compose --profile gateway down
 
-openmaic:up: ## Start the OpenMAIC persistence Postgres
+openmaic-up: ## Start the OpenMAIC persistence Postgres
 	docker compose --profile openmaic up -d
 
-openmaic:down: ## Stop the OpenMAIC persistence Postgres
+openmaic-down: ## Stop the OpenMAIC persistence Postgres
 	docker compose --profile openmaic down
 
 ## ---- Checks ---------------------------------------------------------------
 
-check:commits: ## Reject generated attribution text in reachable commit messages
+check-commits: ## Reject generated attribution text in reachable commit messages
 	bash scripts/check-commit-messages.sh
 
-check:compose: ## Validate every compose profile parses
+check-compose: ## Validate every compose profile parses
 	docker compose config --quiet
 	docker compose --profile gateway --profile openmaic config --quiet
 
 ## ---- LMS core (Tutor / Open edX) -----------------------------------------
 
-tutor:quickstart: ## First boot of the LMS (interactive Tutor bring-up)
+tutor-quickstart: ## First boot of the LMS (interactive Tutor bring-up)
 	tutor local quickstart
