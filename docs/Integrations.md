@@ -3,9 +3,10 @@
 AthenIQ integrates upstream open-source projects rather than re-implementing
 them. Each section states what the project is, why AthenIQ uses it, and how it
 is configured. Environment variables are defined in [.env.example](../.env.example);
-secrets come from Cerulean Vault at production bring-up (the legacy Infisical
-profile remains the current importer for this stack — see
-[docs/stack.md](stack.md)).
+secrets come from **Cerulean Vault** (HashiCorp Vault, KV v2, hosted by
+Cerulean) at production bring-up — `scripts/vault-migrate.py` moves this stack's
+plaintext values into `cerulean/atheniq`, and `.env` must then carry the resolved
+values (see [docs/stack.md](stack.md)).
 
 ## Tutor (Open edX) — the LMS core
 
@@ -180,4 +181,4 @@ High-signal variables:
 | `SIGNARA_API_URL` / `SIGNARA_API_KEY` | Certificate signing submission (machine auth via `X-API-Key`) |
 | `CERT_SIGNER_NAME` / `CERT_SIGNER_EMAIL` / `CERT_SIGNER_TITLE` | Issuer/signatory on certificate signing requests |
 | `CERULEAN_*` | DNS / NPM / TLS provisioning (TrustOps) |
-| `INFISICAL_*` | SecretOps bootstrap values |
+| `VAULT_*` | SecretOps bootstrap values (`VAULT_ADDR`, the path-scoped `VAULT_TOKEN_FILE`, `VAULT_PREFIX`, `VAULT_PATH`) |
