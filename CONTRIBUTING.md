@@ -29,7 +29,7 @@ project owner in commit messages, PR text, and added file lines.
 ```bash
 make check-commits
 docker compose config --quiet
-docker compose --profile gateway --profile openmaic config --quiet
+docker compose --profile openmaic config --quiet
 ```
 
 Docs changes must keep the [docs/stack.md](docs/stack.md) owns/consumes

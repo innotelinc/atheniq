@@ -35,7 +35,7 @@ jobs:
         run: docker compose config --quiet
 
       - name: Validate compose (all profiles)
-        run: docker compose --profile gateway --profile openmaic config --quiet
+        run: docker compose --profile openmaic config --quiet
 
       - name: Landing page sanity
         run: |

@@ -206,12 +206,12 @@
           <div>
             <div class="grid" style="gap:14px">
               <div class="card"><span class="icon" aria-hidden="true">🔑</span><h3>Identity</h3><p>Authentik is the single tenant of record — learners, instructors, and admins sign in once and reach every surface.</p></div>
-              <div class="card"><span class="icon" aria-hidden="true">🗝️</span><h3>Secrets · Trust · Storage · Revenue</h3><p>Infisical holds the keys, Cerulean provisions DNS and TLS, ONYX stores media, and Magnate gates paid courses and entitlements.</p></div>
+              <div class="card"><span class="icon" aria-hidden="true">🗝️</span><h3>Secrets · Trust · Storage · Revenue</h3><p>Cerulean Vault holds the keys, Cerulean provisions DNS and TLS, ONYX stores media, and Magnate gates paid courses and entitlements.</p></div>
               <div class="card"><span class="icon" aria-hidden="true">📜</span><h3>Credentials</h3><p>Signara is the only surface that signs — AthenIQ supplies completion evidence, never the signature itself.</p></div>
             </div>
           </div>
           <pre class="terminal"><span class="cmt"># how the platform composes</span>
-$ <span class="p">docker</span> compose --profile gateway up -d   <span class="cmt"># OmniRoute :20128</span>
+$ <span class="p">export</span> OMNIROUTE_BASE_URL=http://10.10.2.1:20128/v1  <span class="cmt"># platform gateway</span>
 $ <span class="p">tutor</span> local launch                       <span class="cmt"># LMS + Studio</span>
 $ <span class="p">cd</span> services/OpenMAIC && docker compose \
     --profile server-persistence up --build
@@ -232,7 +232,7 @@ $ <span class="p">cd</span> services/OpenMAIC && docker compose \
           <a class="surface" href="https://github.com/anil-matcha/open-generative-ai"><b>Open Generative AI</b><small>Course media studio (MuAPI)</small></a>
           <a class="surface" href="https://github.com/diegosouzapw/OmniRoute"><b>OmniRoute</b><small>OpenAI-compatible model gateway</small></a>
           <a class="surface" href="https://github.com/openclaw/openclaw"><b>OpenClaw · OpenClaude</b><small>Assistant gateway + agent CLI</small></a>
-          <a class="surface" href="https://github.com/innotelinc/innotel-platform-stack"><b>Innotel Platform Stack</b><small>Authentik · Infisical · Cerulean · ONYX · Magnate · Signara</small><span class="live">live</span></a>
+          <a class="surface" href="https://github.com/innotelinc/innotel-platform-stack"><b>Innotel Platform Stack</b><small>Authentik · Cerulean Vault · Cerulean · ONYX · Magnate · Signara</small><span class="live">live</span></a>
         </div>
       </div>
     </section>

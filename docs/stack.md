@@ -28,7 +28,7 @@ provides, and explicitly does not own.
 ## Consumes
 
 - Authentik — identity, SSO, MFA, groups (learners, instructors, admins)
-- Infisical — secrets, provider keys, OAuth secrets
+- Cerulean Vault — secrets, provider keys, OAuth secrets
 - Cerulean — DNS, certificates, TLS (TrustOps)
 - ONYX — storage and backups for courseware media
 - Magnate — paid courses, subscriptions, entitlements
@@ -37,7 +37,7 @@ provides, and explicitly does not own.
 ## Explicitly does NOT own
 
 - Identity (Authentik)
-- Secrets (Infisical)
+- Secrets (Cerulean Vault)
 - Certificates / DNS / TLS (Cerulean)
 - Storage (ONYX)
 - Billing (Magnate)
@@ -54,17 +54,22 @@ them. They are integrated, not forked responsibilities:
 - **Open Generative AI** (MuAPI studio) — course media generation
 - **OpenClaw · OpenClaude · OmniRoute** — the AI agent layer and model gateway
 
-## Secrets (Infisical)
+## Secrets (Cerulean Vault)
 
-Secrets for this platform live in **Infisical** (SecretOps): provider keys,
-OAuth secrets, and service credentials are imported into an Infisical workspace
-and the stack's `.env` is derived from it. Generate local development values
-with `./setup.sh`; production values are pulled from Infisical at bring-up.
-See [docs/Deployment.md](Deployment.md).
+The platform's SecretOps is **Cerulean Vault** — HashiCorp Vault, KV v2, hosted
+by Cerulean — with `vault://<mount>/<path>#<key>` references in `.env`.
+
+### Legacy: the Infisical profile
+
+This stack currently still imports its provider keys, OAuth secrets, and service
+credentials into an **Infisical** workspace and derives `.env` from it. Generate
+local development values with `./setup.sh`; production values are pulled from
+Infisical at bring-up until the `vault://` path lands. See
+[docs/Deployment.md](Deployment.md).
 
 ## Golden rules
 
-- **Authentik = Identity** · **Infisical = Secrets** · **Cerulean = Trust** ·
+- **Authentik = Identity** · **Cerulean Vault = Secrets** · **Cerulean = Trust** ·
   **ONYX = Storage** · **Magnate = Revenue** — everything else is a business function.
 - No platform duplicates another's responsibility.
 - No credit in commits, footers, or headers to anyone but the project owner.

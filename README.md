@@ -58,7 +58,7 @@ through the Innotel Platform Stack.
   (`scripts/cert-bridge.py`) watches Open edX for issued certificates and
   pushes each completion into Signara's signing workflow, producing
   audit-trailed, verifiable signed certificates.
-- **The whole Innotel stack behind it** — Authentik (identity), Infisical
+- **The whole Innotel stack behind it** — Authentik (identity), Cerulean Vault
   (secrets), Cerulean (DNS + TLS), ONYX (storage), Magnate (revenue).
 
 ## 🚀 Quick start
@@ -92,8 +92,9 @@ docker compose --profile server-persistence up --build
 
 ```bash
 cp .env.example .env
-docker compose --profile gateway up -d      # OmniRoute model gateway
 docker compose --profile openmaic up -d      # OpenMAIC Postgres persistence
+# No gateway here: the model gateway is the platform's OmniRoute (Group 2,
+# mesh 10.10.2.1, :20128) — point OMNIROUTE_BASE_URL at it in .env.
 ```
 
 Full bring-up order, Authentik/Cerulean/Signara wiring, and the Convex
@@ -110,7 +111,7 @@ self-hosted backend are in [docs/Deployment.md](docs/Deployment.md) and
 | Media generation | Open Generative AI (MuAPI studio) |
 | Agent layer | OpenClaw · OpenClaude · OmniRoute (OpenAI-compatible gateway) |
 | Identity | Authentik (OIDC / OAuth2 / SAML / SCIM / MFA) |
-| Secrets | Infisical (SecretOps — `.env` is derived) |
+| Secrets | Cerulean Vault (SecretOps) |
 | Trust / DNS / TLS | Cerulean (TrustOps) |
 | Storage | ONYX (StorageOps) |
 | Revenue | Magnate (RevenueOps — paid courses, entitlements) |
@@ -145,7 +146,6 @@ atheniq/
 ```bash
 make help        # every target, one view
 make setup       # hooks + .env + preflight
-make gateway-up  # OmniRoute model gateway
 make openmaic-up # OpenMAIC persistence Postgres
 make check-commits
 ```
@@ -176,7 +176,7 @@ disclosure notes in [docs/Deployment.md](docs/Deployment.md#security).
 AthenIQ is the ecosystem's **LearningOps** platform — courses, delivery, and
 AI classrooms in the [**Innotel Platform Stack**](https://github.com/innotelinc/innotel-platform-stack) —
 the canonical single-responsibility architecture where Authentik owns identity,
-Infisical owns secrets, Cerulean owns trust, ONYX owns storage, Magnate owns
+Cerulean Vault owns secrets, Cerulean owns trust, ONYX owns storage, Magnate owns
 revenue, and every other platform is a business function that consumes them.
 
 ---
