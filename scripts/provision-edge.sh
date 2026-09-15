@@ -11,18 +11,18 @@
 #      NPM (HTTP-01). NPM's own wildcard issuance (rfc2136) currently 500s, so
 #      no *.learn.innotel.us wildcard is requested here.
 #
-# Reads cerulean-dns-platform/.env for BIND TSIG + NPM credentials, or the
+# Reads the cerulean repo's .env for BIND TSIG + NPM credentials, or the
 # CERULEAN_ENV / NPM_API_URL / NPM_EMAIL / NPM_PASSWORD env vars.
 set -euo pipefail
 
-CERULEAN_ENV="${CERULEAN_ENV:-/usr/src/projects/complete/cerulean-dns-platform/.env}"
+CERULEAN_ENV="${CERULEAN_ENV:-/usr/src/projects/complete/1-primary/cerulean/.env}"
 [ -f "$CERULEAN_ENV" ] && set -a && . "$CERULEAN_ENV" && set +a
 
 BIND_SERVER="${BIND_SERVER:-192.168.1.80}"
 BIND_TSIG_NAME="${BIND_TSIG_NAME:-cerulean}"
 FORWARD_HOST="${FORWARD_HOST:-192.168.1.46}"
 FORWARD_PORT="${FORWARD_PORT:-18080}"
-NPM_API_URL="${NPM_API_URL:-http://192.168.1.71:81}"
+NPM_API_URL="${NPM_API_URL:-http://192.168.1.46:81}"
 WILDCARD_CERT_ID="${WILDCARD_CERT_ID:-110}"   # *.innotel.us already on the edge
 ACME_EMAIL="${ACME_EMAIL:-admin@innotel.us}"
 DOMAINS=(learn.innotel.us studio.innotel.us apps.learn.innotel.us meilisearch.learn.innotel.us)

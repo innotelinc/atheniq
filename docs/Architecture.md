@@ -4,7 +4,7 @@ AthenIQ is the **LearningOps** platform of the Innotel Platform Stack: an
 open learning platform whose LMS core, generative classrooms, realtime layer,
 media studio, and agent layer are assembled from self-hosted open-source
 projects and bound together by the stack's platform services (Authentik,
-Infisical, Cerulean, ONYX, Magnate, Signara).
+Cerulean Vault, Cerulean, ONYX, Magnate, Signara).
 
 ## System overview
 
@@ -41,7 +41,7 @@ Infisical, Cerulean, ONYX, Magnate, Signara).
 └───────────────────────────────────────────────┘
 
 Platform services consumed throughout:
-  Infisical (secrets) · Cerulean (DNS/TLS) · ONYX (storage) · Magnate (revenue)
+  Cerulean Vault (secrets) · Cerulean (DNS/TLS) · ONYX (storage) · Magnate (revenue)
 ```
 
 ## Components
@@ -57,7 +57,7 @@ Platform services consumed throughout:
 | OpenClaude | Agent CLI | CLI agent for authoring/operations tasks, pointed at the OmniRoute endpoint. |
 | Signara | Certificate signing | Receives completion records and returns signed course certificates. |
 | Authentik | Identity | OIDC/OAuth2/SAML/MFA/SCIM for every surface above. |
-| Infisical | Secrets | Provider keys and OAuth secrets; `.env` is derived, never committed. |
+| Cerulean Vault | Secrets | Provider keys and OAuth secrets; `.env` carries `vault://` references, never committed. |
 | Cerulean | Trust | DNS records, NGINX Proxy Manager hosts, and TLS certificates for every public host. |
 | ONYX | Storage | Object storage and backups for courseware media. |
 | Magnate | Revenue | Paid courses, subscriptions, and entitlements (group-gated access). |
@@ -96,8 +96,8 @@ Studio courseware.
 
 1. **Identity boundary** — passwords and groups exist only in Authentik; Tutor,
    OpenMAIC, Convex, and the agent layer bind via OIDC/OAuth2.
-2. **Secret boundary** — provider keys and OAuth secrets live in Infisical;
-   `.env` files are derived and gitignored.
+2. **Secret boundary** — provider keys and OAuth secrets live in Cerulean Vault;
+   `.env` files carry references and are gitignored.
 3. **Trust boundary** — every public host is fronted by NGINX Proxy Manager with
    Cerulean-issued TLS; nothing is published plaintext.
 4. **Network boundary** — Convex, the model gateway, and Postgres stay on

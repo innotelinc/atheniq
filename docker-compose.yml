@@ -3,22 +3,20 @@
 #
 # The LMS core (Tutor / Open edX) runs from Tutor's own compose project
 # (`tutor local`); OpenMAIC runs from its upstream repo. This file covers the
-# glue services AthenIQ owns: the OmniRoute model gateway and the OpenMAIC
-# persistence Postgres. Profiles are opt-in and additive.
+# glue services AthenIQ owns: the OpenMAIC persistence Postgres. Profiles are
+# opt-in and additive.
 #
-#   docker compose --profile gateway up -d    # OmniRoute (model gateway)
 #   docker compose --profile openmaic up -d   # OpenMAIC persistence Postgres
+#
+# AthenIQ runs no model gateway of its own. The platform runs ONE OmniRoute, in
+# Group 2 (`2-voice/`, mesh `10.10.2.1`, API and dashboard both on :20128); point
+# OMNIROUTE_BASE_URL at it. See .env.example and §10.4 of
+# ips/docs/convergence-onyx-olympus-distro-atlas.md.
 # ==========================================================================
 
 name: atheniq
 
 services:
-  # ------------------------------------------------------------------
-  # OmniRoute — self-hosted OpenAI-compatible model gateway (port 20128).
-  # OpenMAIC, OpenClaw, and OpenClaude all point here; the operator
-  # connects provider accounts in the dashboard.
-  # ------------------------------------------------------------------
-
   # ------------------------------------------------------------------
   # OpenMAIC persistence Postgres — server-backed classroom sessions.
   # Consumed by the OpenMAIC app (deployed from its upstream repo with

@@ -3,7 +3,9 @@
 AthenIQ integrates upstream open-source projects rather than re-implementing
 them. Each section states what the project is, why AthenIQ uses it, and how it
 is configured. Environment variables are defined in [.env.example](../.env.example);
-secrets come from Infisical at production bring-up.
+secrets come from Cerulean Vault at production bring-up (the legacy Infisical
+profile remains the current importer for this stack — see
+[docs/stack.md](stack.md)).
 
 ## Tutor (Open edX) — the LMS core
 
@@ -100,13 +102,15 @@ lesson media without leaving the platform.
 
 ## OpenClaw · OpenClaude · OmniRoute — agent layer
 
-- **OmniRoute** — https://github.com/diegosouzapw/OmniRoute. Self-hosted,
-  OpenAI-compatible model gateway. One endpoint pools the provider accounts the
-  operator connects. AthenIQ runs it from this repo:
+- **OmniRoute** — https://github.com/diegosouzapw/OmniRoute. The platform's
+  OpenAI-compatible model gateway: one endpoint pools the provider accounts the
+  operator connects. **AthenIQ runs none** — the single OmniRoute lives in Group 2
+  (`2-voice/`, mesh `10.10.2.1`), serving its API and dashboard on the one port,
+  `:20128`. There is no container to start here:
 
   ```bash
-  docker compose --profile gateway up -d
-  # http://127.0.0.1:20128/v1  (OMNIROUTE_BASE_URL), dashboard on :20128
+  # in .env
+  OMNIROUTE_BASE_URL=http://10.10.2.1:20128/v1
   ```
 
 - **OpenClaw** — https://github.com/openclaw/openclaw. Assistant gateway for

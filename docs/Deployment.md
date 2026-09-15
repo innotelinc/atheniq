@@ -10,7 +10,7 @@ It is an operator-run flow: nothing in CI connects to or deploys any server.
 - A domain you control with a zone managed by **Cerulean** (BIND) so records
   and TLS are provisioned automatically. Reference DNS: `*.learn.<domain>`
   style hosts under your zone (see [Cerulean DNS and TLS](#cerulean-dns-and-tls)).
-- **Authentik** tenant reachable for OIDC (IdentityOps) and **Infisical** for
+- **Authentik** tenant reachable for OIDC (IdentityOps) and **Cerulean Vault** for
   secrets (SecretOps), per the Innotel Platform Stack bring-up order.
 - Disk headroom: Open edX images + learner media + OpenMAIC models and builds
   are large — plan for tens of GB on first boot.
@@ -125,13 +125,13 @@ set `OPEN_GENERATIVE_AI_URL`. Keep it author-only (LAN or a proxied
 
 ## Stage 6 — Model gateway and agents
 
-```bash
-docker compose --profile gateway up -d     # OmniRoute on 127.0.0.1:20128
-```
+AthenIQ starts no gateway. The platform runs ONE OmniRoute, in Group 2
+(`2-voice/`, mesh `10.10.2.1`), and it serves its API and its dashboard from the
+same port, `:20128`.
 
-1. Open the OmniRoute dashboard at `http://127.0.0.1:20128` and connect the
+1. Open the OmniRoute dashboard at `http://10.10.2.1:20128` and connect the
    provider accounts the platform may use.
-2. Set `OMNIROUTE_BASE_URL=http://127.0.0.1:20128/v1`, `OMNIROUTE_API_KEY`, and
+2. Set `OMNIROUTE_BASE_URL=http://10.10.2.1:20128/v1`, `OMNIROUTE_API_KEY`, and
    `OMNIROUTE_MODEL` in `.env`.
 3. OpenMAIC reads the same endpoint, so classrooms and agents share the pool.
 4. For chat-driven classrooms, run **OpenClaw** with the OpenMAIC skill, and

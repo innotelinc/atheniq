@@ -7,7 +7,7 @@
 SHELL := /bin/bash
 
 .PHONY: help setup up down logs ps \
-        gateway-up gateway-down openmaic-up openmaic-down \
+        openmaic-up openmaic-down \
         check-commits check-compose tutor-quickstart
 
 help: ## Show this help message
@@ -22,23 +22,21 @@ setup: ## Preflight, install guard hooks, generate .env secrets
 
 ## ---- Compose (this repo's AI services) -----------------------------------
 
-up: ## Start all AthenIQ-managed services (gateway + openmaic profiles)
-	docker compose --profile gateway --profile openmaic up -d
+up: ## Start all AthenIQ-managed services (openmaic profile)
+	docker compose --profile openmaic up -d
 
 down: ## Stop AthenIQ-managed services (keeps volumes)
 	docker compose down
 
 logs: ## Tail logs from AthenIQ-managed services
-	docker compose --profile gateway --profile openmaic logs -f
+	docker compose --profile openmaic logs -f
 
 ps: ## List service status
 	docker compose ps
 
-gateway-up: ## Start the OmniRoute model gateway
-	docker compose --profile gateway up -d
-
-gateway-down: ## Stop the OmniRoute model gateway
-	docker compose --profile gateway down
+# No gateway-up/gateway-down: the model gateway is the platform's single
+# OmniRoute in Group 2 (`2-voice/`, mesh 10.10.2.1). Reach it at the
+# OMNIROUTE_BASE_URL in .env — AthenIQ runs none (see docker-compose.yml).
 
 openmaic-up: ## Start the OpenMAIC persistence Postgres
 	docker compose --profile openmaic up -d
@@ -53,7 +51,7 @@ check-commits: ## Reject generated attribution text in reachable commit messages
 
 check-compose: ## Validate every compose profile parses
 	docker compose config --quiet
-	docker compose --profile gateway --profile openmaic config --quiet
+	docker compose --profile openmaic config --quiet
 
 ## ---- LMS core (Tutor / Open edX) -----------------------------------------
 
