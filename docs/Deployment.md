@@ -99,23 +99,53 @@ docker compose --profile openmaic up -d
 
 ## Stage 4 — Realtime (Convex, self-hosted)
 
+Convex runs as a profile in this repo's [docker-compose.yml](../docker-compose.yml)
+(`convex` + `convex-dashboard`) — the same shape as Atlas's self-hosted Convex.
+This replaced a `curl` of the upstream compose file, so the services, ports,
+volumes, healthcheck and env passthrough are reviewed here instead of arriving
+from whatever upstream published that day.
+
+Both images default to `latest` and are pinnable — **independently**:
+`CONVEX_BACKEND_VERSION` and `CONVEX_DASHBOARD_VERSION` in `.env`. The two are
+not tagged the same way (the backend publishes commit-sha tags; the dashboard
+does not carry them), so a single shared version value pulls one image and 404s
+the other. `.env.example` carries a verified backend value.
+
 ```bash
-curl -fsSL -o convex-compose.yml \
-  https://raw.githubusercontent.com/get-convex/convex-backend/main/self-hosted/docker/docker-compose.yml
-docker compose -f convex-compose.yml up -d
-docker compose -f convex-compose.yml exec backend ./generate_admin_key.sh
+make convex-up     # backend :3210 (loopback) + dashboard :6791
+make convex-key    # mint the admin key from the RUNNING backend
 ```
 
-Copy the admin key into `.env`:
+`make convex-key` prints a key signed by the live instance — only the backend
+can mint a valid one, so it cannot be generated locally. Paste it into `.env`:
 
 ```env
 CONVEX_SELF_HOSTED_URL=http://127.0.0.1:3210
-CONVEX_SELF_HOSTED_ADMIN_KEY=<admin key>
+CONVEX_SELF_HOSTED_ADMIN_KEY=<admin key from make convex-key>
 ```
 
-Dashboard: `http://<host>:6791`. For production workloads, follow the upstream
-advanced guides to move the store to Postgres/MySQL and files to S3. Convex
-Auth is not supported self-hosted — keep app auth on Authentik OIDC.
+Both services bind **loopback only** (the architecture keeps realtime, the
+model gateway and Postgres off the public interface); the LMS reaches the
+backend over the private network.
+
+**File storage on ONYX (roadmap V2).** Convex stores files on its own volume
+until buckets are configured. To move classroom media to ONYX's S3-compatible
+endpoint, set `ONYX_S3_ENDPOINT`, `ONYX_S3_BUCKET_FILES`,
+`ONYX_S3_BUCKET_EXPORTS` and the `ONYX_S3_ACCESS_KEY`/`ONYX_S3_SECRET_KEY` pair
+in `.env` and re-run `make convex-up`; `ONYX_S3_FORCE_PATH_STYLE=true` is the
+default and is what ONYX expects. Leaving them blank is a supported state, not a
+misconfiguration.
+
+For production workloads, follow the upstream advanced guides to move the store
+to Postgres/MySQL. Convex Auth is not supported self-hosted — keep app auth on
+Authentik OIDC.
+
+**Verify:**
+
+```bash
+docker compose --profile convex ps                 # both healthy
+curl -fsS http://127.0.0.1:3210/version           # backend answers
+```
 
 ## Stage 5 — Course media studio (Open Generative AI, optional)
 

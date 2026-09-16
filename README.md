@@ -135,7 +135,7 @@ atheniq/
 ├── web/landing/               # Static GitHub Pages landing page
 ├── .github/workflows/         # CI, attribution guard, Pages publish
 ├── .githooks/                 # Local attribution guard (shared with CI)
-├── docker-compose.yml         # AI services: OmniRoute gateway, OpenMAIC Postgres
+├── docker-compose.yml         # AI + realtime services: OpenMAIC Postgres, Convex
 ├── scripts/                   # setup.sh, commit-message policy
 ├── .env.example               # Environment template (never commit .env)
 └── Makefile                   # Operator workflow
@@ -146,9 +146,23 @@ atheniq/
 ```bash
 make help        # every target, one view
 make setup       # hooks + .env + preflight
-make openmaic-up # OpenMAIC persistence Postgres
+make up          # openmaic + convex profiles
+make convex-key  # mint a Convex admin key from the running backend
 make check-commits
+make check-compose
 ```
+
+## Roadmap
+
+| Milestone | State | What it covers |
+| --- | --- | --- |
+| **V1 — Foundation** | done | Repo scaffold, stack role, landing page, deployment runbook. |
+| **V1.1 — Bring-up** | done | Tutor LMS at `learn.innotel.us` and Studio at `studio.innotel.us` on Cerulean-provisioned hosts, Authentik OIDC for both (provider signing key, scope mappings, CMS TPA + redirect URIs reconciled live), OpenMAIC persistence Postgres. |
+| **V1.2 — Credentials** | done | Completion → Signara signing end to end: certificates issue on a passing grade, the bridge signs them on a 2-minute cadence, the learner's dashboard links the signed PDF. |
+| **V2 — Scale** | in progress | Self-hosted Convex realtime classrooms (version-pinnable profile in this repo ✓), classroom media on ONYX, paid courses via Magnate entitlements, workforce tracks. |
+
+The same ladder is on the [landing page](web/landing/index.html#roadmap), and each
+stage's operator steps live in [docs/Deployment.md](docs/Deployment.md).
 
 ## Hosted landing page
 

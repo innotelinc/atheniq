@@ -7,7 +7,7 @@
 SHELL := /bin/bash
 
 .PHONY: help setup up down logs ps \
-        openmaic-up openmaic-down \
+        openmaic-up openmaic-down convex-up convex-down convex-key \
         check-commits check-compose tutor-quickstart
 
 help: ## Show this help message
@@ -22,14 +22,14 @@ setup: ## Preflight, install guard hooks, generate .env secrets
 
 ## ---- Compose (this repo's AI services) -----------------------------------
 
-up: ## Start all AthenIQ-managed services (openmaic profile)
-	docker compose --profile openmaic up -d
+up: ## Start all AthenIQ-managed services (openmaic + convex profiles)
+	docker compose --profile openmaic --profile convex up -d
 
 down: ## Stop AthenIQ-managed services (keeps volumes)
 	docker compose down
 
 logs: ## Tail logs from AthenIQ-managed services
-	docker compose --profile openmaic logs -f
+	docker compose --profile openmaic --profile convex logs -f
 
 ps: ## List service status
 	docker compose ps
@@ -44,6 +44,17 @@ openmaic-up: ## Start the OpenMAIC persistence Postgres
 openmaic-down: ## Stop the OpenMAIC persistence Postgres
 	docker compose --profile openmaic down
 
+## ---- Realtime (Convex) ----------------------------------------------------
+
+convex-up: ## Start the self-hosted Convex backend + dashboard
+	docker compose --profile convex up -d
+
+convex-down: ## Stop Convex (keeps its data volume)
+	docker compose --profile convex down
+
+convex-key: ## Mint a Convex admin key from the running backend (paste into .env)
+	@docker compose --profile convex exec -T convex ./generate_admin_key.sh
+
 ## ---- Checks ---------------------------------------------------------------
 
 check-commits: ## Reject generated attribution text in reachable commit messages
@@ -52,6 +63,7 @@ check-commits: ## Reject generated attribution text in reachable commit messages
 check-compose: ## Validate every compose profile parses
 	docker compose config --quiet
 	docker compose --profile openmaic config --quiet
+	docker compose --profile convex config --quiet
 
 ## ---- LMS core (Tutor / Open edX) -----------------------------------------
 
