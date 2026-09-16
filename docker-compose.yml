@@ -12,6 +12,15 @@
 # Group 2 (`2-voice/`, mesh `10.10.2.1`, API and dashboard both on :20128); point
 # OMNIROUTE_BASE_URL at it. See .env.example and §10.4 of
 # ips/docs/convergence-onyx-olympus-distro-atlas.md.
+#
+#   docker compose --profile convex up -d    # realtime classrooms
+#
+# Convex images default to `latest` (matching Atlas's self-hosted Convex) and
+# are pinnable per image: CONVEX_BACKEND_VERSION / CONVEX_DASHBOARD_VERSION.
+# They are separate knobs because the two images are tagged differently — the
+# backend ships commit-sha tags (`precompiled-YYYY-MM-DD` releases map to the
+# commit), and the dashboard does not carry those, so one shared pin would break
+# the dashboard. See .env.example for a verified backend value.
 # ==========================================================================
 
 name: atheniq
@@ -44,5 +53,79 @@ services:
       timeout: 5s
       retries: 5
 
+  # ------------------------------------------------------------------
+  # Convex — the self-hosted realtime backend (roadmap V2).
+  # Presence, chat, live quiz state and per-learner progress for AI
+  # classrooms and study groups; see docs/Architecture.md.
+  #
+  # Convex Auth is not supported self-hosted — identity stays on Authentik
+  # OIDC. Bound to loopback: the architecture keeps realtime, the gateway and
+  # Postgres off the public interface, and the LMS reaches this over the
+  # private network.
+  #
+  #   make convex-key    # mint the admin key into .env
+  # ------------------------------------------------------------------
+  convex:
+    image: ghcr.io/get-convex/convex-backend:${CONVEX_BACKEND_VERSION:-latest}
+    container_name: atheniq-convex
+    profiles: ["convex"]
+    stop_grace_period: 10s
+    stop_signal: SIGINT
+    restart: unless-stopped
+    # Memory posture (docs/service-audit.md): realtime state only, no media.
+    mem_limit: 2g
+    memswap_limit: 2g
+    ports:
+      - "127.0.0.1:${CONVEX_BACKEND_PORT:-3210}:3210"
+      - "127.0.0.1:${CONVEX_SITE_PORT:-3211}:3211"
+    volumes:
+      - convex-data:/convex/data
+    environment:
+      INSTANCE_NAME: ${INSTANCE_NAME:-atheniq-convex}
+      INSTANCE_SECRET: ${CONVEX_INSTANCE_SECRET:-}
+      CONVEX_CLOUD_ORIGIN: http://127.0.0.1:${CONVEX_BACKEND_PORT:-3210}
+      CONVEX_SITE_ORIGIN: http://127.0.0.1:${CONVEX_SITE_PORT:-3211}
+      DO_NOT_REQUIRE_SSL: "1"
+      DISABLE_BEACON: "1"
+      RUST_LOG: ${RUST_LOG:-info}
+      # ── File storage on ONYX (roadmap V2) ──────────────────────────
+      # Unset by default, which keeps Convex on its own data volume. Point
+      # these at ONYX's S3-compatible endpoint to move classroom media there:
+      #   S3_ENDPOINT_URL  e.g. http://10.10.3.1:9000
+      #   S3_STORAGE_FILES_BUCKET / S3_STORAGE_EXPORTS_BUCKET
+      # S3 is optional in Convex: with no bucket set it stores files locally.
+      AWS_ACCESS_KEY_ID: ${ONYX_S3_ACCESS_KEY:-}
+      AWS_SECRET_ACCESS_KEY: ${ONYX_S3_SECRET_KEY:-}
+      AWS_REGION: ${ONYX_S3_REGION:-us-east-1}
+      AWS_S3_FORCE_PATH_STYLE: ${ONYX_S3_FORCE_PATH_STYLE:-true}
+      S3_ENDPOINT_URL: ${ONYX_S3_ENDPOINT:-}
+      S3_STORAGE_FILES_BUCKET: ${ONYX_S3_BUCKET_FILES:-}
+      S3_STORAGE_EXPORTS_BUCKET: ${ONYX_S3_BUCKET_EXPORTS:-}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3210/version"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  # ------------------------------------------------------------------
+  # Convex dashboard — admin UI for the self-hosted backend.
+  # Generate admin keys with `make convex-key`.
+  # ------------------------------------------------------------------
+  convex-dashboard:
+    image: ghcr.io/get-convex/convex-dashboard:${CONVEX_DASHBOARD_VERSION:-latest}
+    container_name: atheniq-convex-dashboard
+    profiles: ["convex"]
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${CONVEX_DASHBOARD_PORT:-6791}:6791"
+    environment:
+      NEXT_PUBLIC_DEPLOYMENT_URL: http://127.0.0.1:${CONVEX_BACKEND_PORT:-3210}
+      NEXT_PUBLIC_LOAD_MONACO_INTERNALLY: ${NEXT_PUBLIC_LOAD_MONACO_INTERNALLY:-false}
+    depends_on:
+      convex:
+        condition: service_healthy
+
 volumes:
   openmaic-postgres-data:
+  convex-data:

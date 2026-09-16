@@ -114,6 +114,8 @@
     .mile .tag { flex: 0 0 130px; font-weight: 650; font-size: 14px; color: var(--p-text); }
     .mile .tag em { font-style: normal; color: var(--p-accent); display: block; font-size: 12px; font-weight: 500; }
     .mile p { margin: 0; color: var(--p-text-secondary); font-size: 14px; }
+    .mile p code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; color: var(--p-text); }
+    .mile p .accent { color: var(--p-accent); font-weight: 600; }
     .mile .state { margin-left: auto; flex: 0 0 auto; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; border-radius: 999px; padding: 2px 10px; }
     .mile .state.done { color: var(--p-success); border: 1px solid rgba(61, 220, 132, 0.3); }
     .mile .state.next { color: var(--p-gold); border: 1px solid rgba(245, 181, 68, 0.3); }
@@ -244,9 +246,9 @@ $ <span class="p">cd</span> services/OpenMAIC && docker compose \
         <p class="section-sub">The platform is being brought up for in-house university, workforce-development, and training use.</p>
         <div class="roadmap">
           <div class="mile"><span class="tag">V1 <em>Foundation</em></span><p>Repo scaffold, stack role, landing page, deployment runbook.</p><span class="state done">done</span></div>
-          <div class="mile"><span class="tag">V1.1 <em>Bring-up</em></span><p>Tutor LMS + Authentik OIDC on Cerulean-provisioned hosts; OpenMAIC classroom wired to the gateway.</p><span class="state next">next</span></div>
-          <div class="mile"><span class="tag">V1.2 <em>Credentials</em></span><p>Completion → Signara certificate flow live end to end.</p><span class="state later">later</span></div>
-          <div class="mile"><span class="tag">V2 <em>Scale</em></span><p>Convex realtime classrooms, ONYX media storage, Magnate paid courses, workforce tracks.</p><span class="state later">later</span></div>
+          <div class="mile"><span class="tag">V1.1 <em>Bring-up</em></span><p>Tutor LMS at <code>learn.innotel.us</code> with Studio at <code>studio.innotel.us</code>, Authentik OIDC sign-in for both, and the OpenMAIC classroom database in-repo. Provider signing key, scope mappings, CMS TPA machinery and redirect URIs all reconciled on the live deployment.</p><span class="state done">done</span></div>
+          <div class="mile"><span class="tag">V1.2 <em>Credentials</em></span><p>Completion → Signara signing is live end to end: certificates issue on a passing grade, the bridge signs them on a 2-minute cadence, and the learner's dashboard links the signed PDF.</p><span class="state done">done</span></div>
+          <div class="mile"><span class="tag">V2 <em>Scale</em></span><p>Realtime classrooms on self-hosted Convex (<span class="accent">in progress</span> — the backend and dashboard now ship as a version-pinnable profile in this repo), then classroom media on ONYX, paid courses through Magnate entitlements, and workforce tracks.</p><span class="state next">next</span></div>
         </div>
       </div>
     </section>
