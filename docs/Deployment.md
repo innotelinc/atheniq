@@ -156,13 +156,17 @@ set `OPEN_GENERATIVE_AI_URL`. Keep it author-only (LAN or a proxied
 ## Stage 6 — Model gateway and agents
 
 AthenIQ starts no gateway. The platform runs ONE OmniRoute, in Group 2
-(`2-voice/`, mesh `10.10.2.1`), and it serves its API and its dashboard from the
-same port, `:20128`.
+(`2-voice/`), on its own host — `192.168.1.46`. Its own port, `:20128`, is not a
+routable target: Cerulean SSO is the gateway's only gate, so that port answers on
+the gateway host's loopback and bridge alone. Everything else dials the proxy in
+front of it, `:20129`.
 
-1. Open the OmniRoute dashboard at `http://10.10.2.1:20128` and connect the
-   provider accounts the platform may use.
-2. Set `OMNIROUTE_BASE_URL=http://10.10.2.1:20128/v1`, `OMNIROUTE_API_KEY`, and
-   `OMNIROUTE_MODEL` in `.env`.
+1. Open the OmniRoute dashboard at `http://192.168.1.46:20129` (the proxy sends
+   you through Cerulean Authentik first) and connect the provider accounts the
+   platform may use.
+2. Set `OMNIROUTE_BASE_URL=http://192.168.1.46:20129/v1`, `OMNIROUTE_API_KEY`, and
+   `OMNIROUTE_MODEL` in `.env`. The proxy exempts `/v1` for API clients, so that
+   route needs no session; the dashboard behind it still requires one.
 3. OpenMAIC reads the same endpoint, so classrooms and agents share the pool.
 4. For chat-driven classrooms, run **OpenClaw** with the OpenMAIC skill, and
    point the **OpenClaude** CLI at the OmniRoute endpoint for authoring tasks
