@@ -106,12 +106,13 @@ lesson media without leaving the platform.
 - **OmniRoute** — https://github.com/diegosouzapw/OmniRoute. The platform's
   OpenAI-compatible model gateway: one endpoint pools the provider accounts the
   operator connects. **AthenIQ runs none** — the single OmniRoute lives in Group 2
-  (`2-voice/`, mesh `10.10.2.1`), serving its API and dashboard on the one port,
-  `:20128`. There is no container to start here:
+  (`2-voice/`), on the gateway host `192.168.1.46`, and the door to it is the SSO
+  proxy in front (`:20129`); the gateway's own `:20128` answers on that host's
+  loopback and bridge alone. There is no container to start here:
 
   ```bash
   # in .env
-  OMNIROUTE_BASE_URL=http://10.10.2.1:20128/v1
+  OMNIROUTE_BASE_URL=http://192.168.1.46:20129/v1
   ```
 
 - **OpenClaw** — https://github.com/openclaw/openclaw. Assistant gateway for
