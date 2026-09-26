@@ -1,0 +1,46 @@
+<problem display_name="Lab: Ticket Triage" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>An entire company cannot reach email. Which priority is appropriate?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>P1 — Critical</div></choice>
+<choice correct="false"><div>P3 — Medium</div></choice>
+<choice correct="false"><div>P4 — Low</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Priority combines urgency and impact. A company-wide outage of a core service is
+P1 and becomes the top of the queue.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Which ticket summary is usable?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="false"><div>"Computer broken"</div></choice>
+<choice correct="true"><div>"Outlook fails to open with error 0x8004010F after this morning's update; reproduced twice"</div></choice>
+<choice correct="false"><div>"Please help asap"</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>A good ticket names the symptom, the affected system, and the evidence. A vague
+summary forces the next technician to start from zero.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>An SLA "response time" measures:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>How soon a human first replies to the user.</div></choice>
+<choice correct="false"><div>How long until the issue is fully fixed.</div></choice>
+<choice correct="false"><div>The total number of tickets closed.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Response time is time to first reply; resolution time is time to a fix. Knowing the
+difference prevents over-promising to users.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+</problem>

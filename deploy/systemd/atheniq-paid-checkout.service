@@ -1,0 +1,16 @@
+[Unit]
+Description=AthenIQ paid-course Checkout entry point (redirect learners into Magnate)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+# Long-running: course pages link to this. Bind loopback and let the edge
+# (NPM/Cerulean) publish it; it must not hold a Stripe key or a price — the
+# price map is config/course-prices.json and Magnate owns the billing.
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 /usr/src/projects/complete/atheniq/scripts/paid-course-checkout.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

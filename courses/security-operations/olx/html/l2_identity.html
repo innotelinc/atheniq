@@ -1,0 +1,33 @@
+<h3>Identity &amp; Access Administration</h3>
+<p>Identity is the control plane of security. Almost every breach involves a misuse of
+identity — a stolen password, an over-privileged account, an account that should have
+been closed.</p>
+
+<h4>Core principles</h4>
+<ul>
+  <li><strong>Least privilege</strong> — the minimum access for the job, for the
+      shortest time.</li>
+  <li><strong>Role-based access control (RBAC)</strong> — grant access to roles, not
+      individuals.</li>
+  <li><strong>Separation of duties</strong> — no single person can both make and
+      approve a sensitive change.</li>
+  <li><strong>MFA everywhere</strong> — especially for administrators.</li>
+</ul>
+
+<h4>Joiner, mover, leaver</h4>
+<table>
+  <tr><th>Event</th><th>Action</th></tr>
+  <tr><td>Joiner</td><td>Create one identity; grant the role's baseline access</td></tr>
+  <tr><td>Mover</td><td>Remove old access before adding new access</td></tr>
+  <tr><td>Leaver</td><td>Disable immediately, then remove access and recover assets</td></tr>
+</table>
+
+<h4>Privileged access</h4>
+<p>Administrator accounts are the crown jewels. Use separate admin accounts, just-in-time
+elevation, and a privileged access management (PAM) tool that records sessions. Support
+never shares a privileged login, even for convenience.</p>
+
+<h4>Access reviews</h4>
+<p>On a schedule, every owner confirms who still needs access. Reviews find the accounts
+that rotation, transfers, and forgotten projects leave behind — the ones attackers
+like best.</p>

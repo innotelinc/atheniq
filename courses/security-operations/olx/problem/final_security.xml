@@ -1,0 +1,62 @@
+<problem display_name="Final Exam" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>In the incident-response lifecycle, what comes immediately after containment?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Eradication — remove the attacker's foothold.</div></choice>
+<choice correct="false"><div>Recovery — restore everything at once.</div></choice>
+<choice correct="false"><div>The lessons-learned review.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Containment stops the spread; eradication then removes malware, persistence, and
+compromised credentials before recovery begins.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>A support technician suspects a compromised workstation. The correct first action is:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Isolate it from the network and report through the incident channel.</div></choice>
+<choice correct="false"><div>Run a cleanup tool and keep the user working.</div></choice>
+<choice correct="false"><div>Delete suspicious files immediately.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Isolate and report. Cleaning or deleting destroys evidence and may leave persistence
+behind.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<choiceresponse>
+<p>Which artefacts should be preserved as evidence? Select all that apply.</p>
+<checkboxgroup>
+<choice correct="true"><div>Relevant log excerpts and timestamps</div></choice>
+<choice correct="true"><div>A memory image, where the team needs it</div></choice>
+<choice correct="false"><div>Nothing — evidence is not needed</div></choice>
+<choice correct="true"><div>A written timeline of who saw what, when</div></choice>
+</checkboxgroup>
+<solution>
+<div class="detailed-solution">
+<p>Logs, volatile memory, and a documented timeline are the backbone of an
+investigation. Preserve before you clean.</p>
+</div>
+</solution>
+</choiceresponse>
+
+<multiplechoiceresponse>
+<p>Which is the correct order for removing access when an employee leaves?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Disable the account immediately, then remove access and recover assets.</div></choice>
+<choice correct="false"><div>Leave it active for a month in case they call.</div></choice>
+<choice correct="false"><div>Delete their files first, then think about the account.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Disable first to stop any active session, then follow through on access and devices.
+Data retention is handled by policy, not by leaving the account open.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+</problem>

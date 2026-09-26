@@ -1,0 +1,77 @@
+<problem display_name="Final Exam" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>A user reports a slow computer. Which is the correct FIRST step?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Gather information and identify the problem before changing anything.</div></choice>
+<choice correct="false"><div>Reinstall the operating system.</div></choice>
+<choice correct="false"><div>Replace the hard drive.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Identify first. What changed, when, who is affected, and does it reproduce? Every
+later step depends on this.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>A workstation shows signs of ransomware. The correct response is to:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Isolate it and report through the incident channel.</div></choice>
+<choice correct="false"><div>Run a cleaner and keep working.</div></choice>
+<choice correct="false"><div>Delete the encrypted files.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Isolate to stop the spread, preserve evidence, and escalate. Cleaning or deleting
+destroys evidence and may leave persistence behind.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<choiceresponse>
+<p>Which practices make a service desk healthy? Select all that apply.</p>
+<checkboxgroup>
+<choice correct="true"><div>Writing knowledge-base articles for repeat problems</div></choice>
+<choice correct="true"><div>Working tickets by impact and urgency</div></choice>
+<choice correct="true"><div>Keeping users informed of progress</div></choice>
+<choice correct="false"><div>Closing tickets without confirming the fix</div></choice>
+</checkboxgroup>
+<solution>
+<div class="detailed-solution">
+<p>Documentation, prioritisation, and communication are the backbone. Closing without
+confirmation is how reopen rates climb.</p>
+</div>
+</solution>
+</choiceresponse>
+
+<multiplechoiceresponse>
+<p>You have spent your agreed window on a ticket with no progress. The professional move is to:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Escalate with complete notes and an explicit ask.</div></choice>
+<choice correct="false"><div>Keep it forever so nobody else is bothered.</div></choice>
+<choice correct="false"><div>Close it as "won't fix".</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Escalation is a routing decision, not a failure. Hand over the evidence and what you
+need; do not sit on work that is beyond your scope.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Completing this capstone earns you:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>A signed certificate for the IT Support Capstone course, completing the IT Support Specialist track.</div></choice>
+<choice correct="false"><div>Nothing until you take an external exam.</div></choice>
+<choice correct="false"><div>An automatic job offer.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>A passing grade issues a course certificate automatically, signed through Signara.
+The track records the courses that together constitute the specialism.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+</problem>

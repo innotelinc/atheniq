@@ -1,0 +1,46 @@
+<problem display_name="Homework: Directory Services" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>Users in one department need a mapped drive. The maintainable way to deliver it is:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Assign a Group Policy object to the department's OU.</div></choice>
+<choice correct="false"><div>Map the drive by hand on each computer.</div></choice>
+<choice correct="false"><div>Give every user Domain Admin rights.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Group Policy applied at the OU scales, is auditable, and is removed cleanly when the
+user moves. Manual mapping does not scale; Domain Admin violates least privilege.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Kerberos authentication starts failing across the domain. The most likely cause is:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Clocks have drifted more than five minutes.</div></choice>
+<choice correct="false"><div>The web proxy is down.</div></choice>
+<choice correct="false"><div>A printer is offline.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Kerberos is time-sensitive; more than five minutes of skew invalidates tickets. Keep
+domain controllers synchronised to reliable time sources.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>AD DS depends most critically on which service?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>DNS</div></choice>
+<choice correct="false"><div>DHCP</div></choice>
+<choice correct="false"><div>SMTP</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>AD locates domain services through DNS service records. If DNS is wrong, logon and
+replication fail.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+</problem>

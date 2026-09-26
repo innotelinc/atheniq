@@ -1,0 +1,35 @@
+<h3>Endpoint &amp; Network Defense</h3>
+<p>Defense in depth assumes any single control can fail, so controls are layered so
+that one failure is not enough.</p>
+
+<h4>Endpoint controls</h4>
+<ul>
+  <li><strong>EDR / antivirus</strong> — detections, quarantines, and useful telemetry.</li>
+  <li><strong>Host firewalls</strong> — default deny inbound; allow only what is
+      needed.</li>
+  <li><strong>Disk encryption</strong> — protects data on a lost device.</li>
+  <li><strong>Application allow-listing</strong> — the strongest anti-malware control
+      where it is practical.</li>
+  <li><strong>Patching</strong> — the highest-value activity on any network.</li>
+</ul>
+
+<h4>Network controls</h4>
+<ul>
+  <li><strong>Firewalls and ACLs</strong> — allow-list traffic between zones.</li>
+  <li><strong>IDS/IPS</strong> — detect and block known attack patterns.</li>
+  <li><strong>Segmentation</strong> — keep servers, users, IoT, and guests apart.</li>
+  <li><strong>DNS filtering</strong> — block known-malicious domains.</li>
+  <li><strong>VPN / zero trust</strong> — authenticate and authorise every path, not
+      just the perimeter.</li>
+</ul>
+
+<h4>Hardening basics</h4>
+<ol>
+  <li>Remove or disable what you do not need.</li>
+  <li>Change default credentials and disable default accounts.</li>
+  <li>Turn on central logging and forward it off the host.</li>
+  <li>Apply a baseline image, then patch it.</li>
+</ol>
+
+<p>Track coverage: which endpoints have EDR, which servers are patched, which firewall
+rules nobody can justify. Defence is measured, not assumed.</p>

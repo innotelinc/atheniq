@@ -14,7 +14,7 @@ def track(**overrides):
         "title": "Sample Track",
         "summary": "A sample.",
         "status": "draft",
-        "courses": ["course-v1:Innotel+TEST101+2026_T1"],
+        "courses": ["course-v1:InnotelLabs+TEST101+2026_T1"],
     }
     base.update(overrides)
     return base

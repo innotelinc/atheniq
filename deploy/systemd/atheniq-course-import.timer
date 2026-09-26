@@ -1,0 +1,11 @@
+[Unit]
+Description=Run the AthenIQ course import daily (repo courseware -> LMS)
+
+[Timer]
+OnBootSec=10min
+OnUnitActiveSec=1d
+Unit=atheniq-course-import.service
+Persistent=true
+
+[Install]
+WantedBy=timers.target

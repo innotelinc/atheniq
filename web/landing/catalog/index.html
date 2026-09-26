@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Course catalog — AthenIQ</title>
+  <meta name="description" content="Every track and course AthenIQ delivers, generated from the repository's catalogs and OLX packages.">
+  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <style>
+    :root {
+      color-scheme: dark;
+      --p-bg: #0a1118; --p-bg-elevated: #101a22; --p-border: #22323d;
+      --p-text: #eef4f8; --p-text-secondary: #c2cfd9; --p-text-muted: #93a4b1;
+      --p-accent: #10b981; --p-accent-hover: #34d399; --p-accent-tint: rgba(16,185,129,0.12);
+      --p-success: #2dd4bf; --p-gold: #fbbf24;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--p-bg); color: var(--p-text);
+      font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, "Helvetica Neue", sans-serif; line-height: 1.6; }
+    a { color: var(--p-accent); text-decoration: none; }
+    a:hover { color: var(--p-accent-hover); }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .84em; color: var(--p-text-secondary); }
+    .wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+    .topbar { position: sticky; top: 0; background: rgba(10,17,24,.8); backdrop-filter: blur(20px); border-bottom: 1px solid var(--p-border); }
+    .topbar .wrap { display: flex; align-items: center; height: 58px; gap: 18px; }
+    .brand { font-weight: 700; letter-spacing: .04em; color: var(--p-text); }
+    .brand .dot { color: var(--p-accent); }
+    .topbar nav { margin-left: auto; display: flex; gap: 4px; }
+    .topbar nav a { color: var(--p-text-secondary); padding: 6px 12px; border-radius: 6px; font-size: 14px; }
+    .topbar nav a:hover { color: var(--p-text); background: #1d2b36; }
+    h1 { font-size: clamp(1.9rem, 4vw, 2.6rem); letter-spacing: -.02em; margin: 48px 0 8px; }
+    h1 .accent { color: var(--p-accent); }
+    h2 { margin: 48px 0 16px; font-size: 1.35rem; }
+    .lede { color: var(--p-text-secondary); max-width: 660px; margin: 0 0 8px; }
+    .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+    .card { background: var(--p-bg-elevated); border: 1px solid var(--p-border); border-radius: 14px; padding: 20px; }
+    .card-head { display: flex; align-items: center; gap: 10px; }
+    .card h3 { margin: 0; font-size: 1.05rem; }
+    .muted { color: var(--p-text-muted); font-size: 13px; margin: 4px 0 10px; }
+    .courses { margin: 10px 0; padding-left: 18px; }
+    .skills { color: var(--p-text-muted); font-size: 12.5px; margin: 10px 0 0; }
+    .chip { margin-left: auto; font-size: 11px; letter-spacing: .05em; text-transform: uppercase; border-radius: 999px; padding: 1px 9px; }
+    .chip.active { color: var(--p-success); border: 1px solid rgba(45,212,191,.3); }
+    .chip.draft { color: var(--p-gold); border: 1px solid rgba(251,191,36,.3); }
+    .chip.retired { color: var(--p-text-muted); border: 1px solid var(--p-border); }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { text-align: left; padding: 12px 10px; border-bottom: 1px solid var(--p-border); vertical-align: top; }
+    th { color: var(--p-text-secondary); font-size: 12.5px; text-transform: uppercase; letter-spacing: .05em; }
+    td.num { white-space: nowrap; color: var(--p-text-secondary); }
+    footer { border-top: 1px solid var(--p-border); margin-top: 56px; padding: 28px 0 44px; color: var(--p-text-muted); font-size: 13px; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap">
+      <a class="brand" href="../">AthenIQ<span class="dot">.</span></a>
+      <nav aria-label="Main">
+        <a href="../">Home</a>
+        <a href="../#courses">Overview</a>
+        <a href="https://github.com/innotelinc/atheniq">GitHub</a>
+      </nav>
+    </div>
+  </header>
+  <main class="wrap">
+    <h1>Course catalog<span class="accent">.</span></h1>
+    <p class="lede">Every track and course AthenIQ delivers, generated from
+      <code>config/workforce-tracks.json</code>, <code>config/course-prices.json</code>
+      and the OLX packages under <code>courses/</code>.</p>
+
+    <h2>Tracks</h2>
+    <div class="grid">
+        <article class="card">
+          <div class="card-head"><h3>IT Support Specialist</h3><span class="chip active">active</span></div>
+          <p class="muted">IT Support Specialist · workforce · Magnate `premium`</p>
+          <p>Support users, devices, operating systems, and networks — then run a help desk. The entry certification of the workforce ladder.</p>
+          <ul class="courses"><li>ITSP101 — IT Support Foundations</li><li>ITSP102 — Networking &amp; Systems Support</li><li>ITSP103 — Security Operations Foundations</li><li>ITSP104 — IT Support Capstone</li></ul>
+          <p class="skills">help desk operations, operating systems, hardware support, networking basics, security fundamentals, troubleshooting</p>
+        </article>
+        <article class="card">
+          <div class="card-head"><h3>Data Foundations</h3><span class="chip draft">draft</span></div>
+          <p class="muted">Data / Operations Analyst · workforce · Magnate `premium`</p>
+          <p>Spreadsheets to SQL: the data literacy every operations role now expects.</p>
+          <ul class="courses"><li>—</li></ul>
+          <p class="skills">spreadsheets, SQL, data cleaning, reporting</p>
+        </article>
+        <article class="card">
+          <div class="card-head"><h3>AI Classroom Facilitator</h3><span class="chip draft">draft</span></div>
+          <p class="muted">AI Classroom Facilitator · instructors · Magnate `premium`</p>
+          <p>Run generative AI classrooms: author with OpenMAIC, facilitate sessions, assess learners.</p>
+          <ul class="courses"><li>—</li></ul>
+          <p class="skills">course authoring, multi-agent lessons, live facilitation, assessment design</p>
+        </article>
+    </div>
+
+    <h2>Courses</h2>
+    <p class="lede">Structure column: chapters · units · lessons · problems.</p>
+    <table>
+      <thead><tr><th>Course</th><th>Track</th><th>Access</th><th>Structure</th></tr></thead>
+      <tbody>
+          <tr>
+            <td><strong><a href="../courses/it-support-certification/">ITSP101 — IT Support Foundations</a></strong><br><code>course-v1:InnotelLabs+ITSP101+2026_T1</code></td>
+            <td>IT Support Specialist</td>
+            <td>Magnate `premium`</td>
+            <td class="num">7 · 21 · 14 · 7</td>
+          </tr>
+          <tr>
+            <td><strong><a href="../courses/networking-systems-support/">ITSP102 — Networking &amp; Systems Support</a></strong><br><code>course-v1:InnotelLabs+ITSP102+2026_T1</code></td>
+            <td>IT Support Specialist</td>
+            <td>Magnate `premium`</td>
+            <td class="num">4 · 8 · 4 · 4</td>
+          </tr>
+          <tr>
+            <td><strong><a href="../courses/security-operations/">ITSP103 — Security Operations Foundations</a></strong><br><code>course-v1:InnotelLabs+ITSP103+2026_T1</code></td>
+            <td>IT Support Specialist</td>
+            <td>Magnate `premium`</td>
+            <td class="num">4 · 8 · 4 · 4</td>
+          </tr>
+          <tr>
+            <td><strong><a href="../courses/capstone/">ITSP104 — IT Support Capstone</a></strong><br><code>course-v1:InnotelLabs+ITSP104+2026_T1</code></td>
+            <td>IT Support Specialist</td>
+            <td>Magnate `premium`</td>
+            <td class="num">3 · 6 · 3 · 3</td>
+          </tr>
+          <tr>
+            <td><strong><a href="../courses/demo-course/">TEST101 — AthenIQ Demo Course</a></strong><br><code>course-v1:InnotelLabs+TEST101+2026_T1</code></td>
+            <td>—</td>
+            <td>Free</td>
+            <td class="num">5 · 13 · 6 · 7</td>
+          </tr>
+      </tbody>
+    </table>
+  </main>
+  <footer>
+    <div class="wrap">AthenIQ — Open Learning Platform · © 2026 Innotel Labs</div>
+  </footer>
+</body>
+</html>

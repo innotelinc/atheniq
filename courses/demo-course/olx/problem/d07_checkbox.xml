@@ -1,0 +1,17 @@
+<problem display_name="Checkbox (Multiple Answers)" max_attempts="3" showanswer="finished" weight="1.0">
+<choiceresponse>
+<p>Which of the following are graded assignment types in this course? Select all that apply.</p>
+<checkboxgroup>
+<choice correct="true"><div>Homework</div></choice>
+<choice correct="false"><div>Sequential</div></choice>
+<choice correct="true"><div>Final Exam</div></choice>
+<choice correct="false"><div>Vertical</div></choice>
+</checkboxgroup>
+<solution>
+<div class="detailed-solution">
+<p>Homework and Final Exam are assignment types with weights in the grading policy.
+Sequentials and verticals are structure, not graded work.</p>
+</div>
+</solution>
+</choiceresponse>
+</problem>

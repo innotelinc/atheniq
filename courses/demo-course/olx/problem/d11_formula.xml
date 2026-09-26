@@ -1,0 +1,11 @@
+<problem display_name="Math Expression" max_attempts="3" showanswer="finished" weight="1.0">
+<formularesponse answer="x^2" samples="x@1,2,3#3">
+<p>A square has side length <code>x</code>. Enter an expression for its area.</p>
+<formulaequationinput size="20"/>
+<solution>
+<div class="detailed-solution">
+<p>Area of a square is side squared: <code>x^2</code>.</p>
+</div>
+</solution>
+</formularesponse>
+</problem>

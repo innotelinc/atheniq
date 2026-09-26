@@ -1,0 +1,15 @@
+<problem display_name="Dropdown" max_attempts="3" showanswer="finished" weight="1.0">
+<optionresponse>
+<p>Complete the sentence: the course engine behind AthenIQ is ______.</p>
+<optioninput>
+<option correct="false">Moodle</option>
+<option correct="true">Open edX</option>
+<option correct="false">Sakai</option>
+</optioninput>
+<solution>
+<div class="detailed-solution">
+<p>AthenIQ runs Tutor's Open edX distribution for the LMS and Studio.</p>
+</div>
+</solution>
+</optionresponse>
+</problem>

@@ -1,0 +1,47 @@
+<problem display_name="Lab: Access Review" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>An employee moves from Finance to Marketing. The correct sequence is:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Remove the Finance access, then grant the Marketing role's access.</div></choice>
+<choice correct="false"><div>Grant Marketing access and leave Finance access in place.</div></choice>
+<choice correct="false"><div>Create a brand-new account and abandon the old one.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>A mover should end with exactly the new role's access. Leaving the old access creates
+privilege creep.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Role-based access control (RBAC) means access is granted to:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Roles, and users are placed in those roles.</div></choice>
+<choice correct="false"><div>Every user individually, by hand.</div></choice>
+<choice correct="false"><div>Whichever account is fastest to set up.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Roles make access auditable and consistent, and removal as simple as changing a
+group.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Which is the strongest control for an administrator account?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>A separate admin identity with MFA and just-in-time elevation.</div></choice>
+<choice correct="false"><div>A long password shared with the team.</div></choice>
+<choice correct="false"><div>Making the admin a local account with no MFA.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Separate identities plus MFA plus time-limited elevation limit both the chance and
+the blast radius of a compromised admin account. Shared passwords destroy
+accountability.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+</problem>

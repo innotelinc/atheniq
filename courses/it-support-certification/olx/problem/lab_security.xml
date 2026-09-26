@@ -1,0 +1,63 @@
+<problem display_name="Lab: Security Response" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>A user reports a message demanding payment to unlock their files. Your first
+action should be to:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="false"><div>Pay the demand to recover the files quickly.</div></choice>
+<choice correct="false"><div>Run a full antivirus scan and continue working.</div></choice>
+<choice correct="true"><div>Isolate the device from the network and report the incident immediately.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>This is a likely ransomware event. Isolate the device to stop the spread and
+escalate through the security incident channel — do not attempt to clean it yourself.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Which is the strongest phishing indicator?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>A message creating urgency to enter credentials at a slightly misspelled domain.</div></choice>
+<choice correct="false"><div>A message from a colleague with a normal signature.</div></choice>
+<choice correct="false"><div>A newsletter you subscribed to arriving on schedule.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Urgency plus a near-miss domain is the classic phishing pattern. Hover over
+links, verify the sender, and never enter credentials from an email link.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Which form of multi-factor authentication is the most phishing-resistant?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="false"><div>A one-time code sent by SMS</div></choice>
+<choice correct="false"><div>A code from an authenticator app typed into a website</div></choice>
+<choice correct="true"><div>A hardware security key (FIDO2) tied to the site's origin</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>FIDO2 hardware keys bind the credential to the real site origin, so a fake login
+page cannot relay it. SMS codes are the weakest and are vulnerable to interception.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<choiceresponse>
+<p>Which of the following are good password practices? Select all that apply.</p>
+<checkboxgroup>
+<choice correct="true"><div>Use a long, unique passphrase for every account.</div></choice>
+<choice correct="true"><div>Store passwords in a password manager.</div></choice>
+<choice correct="false"><div>Reuse one strong password across all sites.</div></choice>
+<choice correct="false"><div>Share the password with IT so they can help you.</div></choice>
+</checkboxgroup>
+<solution>
+<div class="detailed-solution">
+<p>Length, uniqueness, and a password manager are the core practices. Reuse means one
+breach exposes every account, and support never needs a user's password.</p>
+</div>
+</solution>
+</choiceresponse>
+</problem>

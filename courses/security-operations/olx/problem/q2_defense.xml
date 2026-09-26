@@ -1,0 +1,47 @@
+<problem display_name="Homework: Defense" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>"Defense in depth" means:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Layering controls so one failure does not compromise everything.</div></choice>
+<choice correct="false"><div>Buying one very strong firewall.</div></choice>
+<choice correct="false"><div>Keeping all systems on one flat network.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Every control can fail. Layering means an attacker must beat several before reaching
+the asset.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>The single highest-value activity for reducing endpoint risk is:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Patching promptly.</div></choice>
+<choice correct="false"><div>Renaming administrator accounts.</div></choice>
+<choice correct="false"><div>Buying more monitors.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Unpatched vulnerabilities are the most exploited entry point. Patch management beats
+almost every other control for effort returned.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<choiceresponse>
+<p>Which are network-segmentation benefits? Select all that apply.</p>
+<checkboxgroup>
+<choice correct="true"><div>Limiting lateral movement during an incident</div></choice>
+<choice correct="true"><div>Separating guests and IoT from servers</div></choice>
+<choice correct="false"><div>Eliminating the need for authentication</div></choice>
+<choice correct="false"><div>Making all traffic public</div></choice>
+</checkboxgroup>
+<solution>
+<div class="detailed-solution">
+<p>Segmentation constrains an attacker's reach and isolates untrusted devices. It does
+not replace authentication.</p>
+</div>
+</solution>
+</choiceresponse>
+</problem>

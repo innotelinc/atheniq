@@ -10,7 +10,8 @@ SHELL := /bin/bash
         openmaic-up openmaic-down convex-up convex-down convex-key \
         onyx-check onyx-buckets onyx-selftest magnate-probe \
         paid-status entitlement-status entitlement-sync \
-        check-commits check-compose check-tracks test tutor-quickstart
+        check-commits check-compose check-tracks check-courses check-catalog check-syllabus \
+        catalog syllabus course-bundle course-import test tutor-quickstart
 
 help: ## Show this help message
 	@echo "AthenIQ — operator workflow"
@@ -77,6 +78,29 @@ magnate-probe: ## Check the Magnate entitlement API is reachable + creds accepte
 
 check-tracks: ## Validate the workforce-tracks catalog
 	python3 scripts/check-workforce-tracks.py
+
+## ---- Courses (OLX authoring source) ---------------------------------------
+
+check-courses: ## Validate the OLX course packages under courses/
+	python3 scripts/check-course-olx.py
+
+catalog: ## Regenerate the static course catalog page from the config files
+	python3 scripts/build-course-catalog.py
+
+check-catalog: ## Fail if the course catalog page is stale
+	python3 scripts/build-course-catalog.py --check
+
+syllabus: ## Regenerate the per-course syllabus pages from the OLX outlines
+	python3 scripts/build-course-syllabus.py
+
+check-syllabus: ## Fail if a syllabus page is stale
+	python3 scripts/build-course-syllabus.py --check
+
+course-bundle: ## Bundle each OLX course into dist/courses/*.tar.gz
+	python3 scripts/import-courses.py --bundle
+
+course-import: ## Import the OLX courses into the running LMS (operator action)
+	python3 scripts/import-courses.py --execute
 
 ## ---- Paid access (enrollment + reconciliation) ----------------------------
 

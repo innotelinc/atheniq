@@ -1,0 +1,35 @@
+<h3>Hardware Basics</h3>
+<p>A computer is a set of buses and chips that move data between storage, memory,
+and the CPU. Knowing the pieces lets you isolate a fault to one of them.</p>
+
+<h4>Core components</h4>
+<table>
+  <tr><th>Component</th><th>Role</th><th>Common failure symptom</th></tr>
+  <tr><td>CPU</td><td>Executes instructions</td><td>Overheating, freezes under load</td></tr>
+  <tr><td>RAM</td><td>Working memory for running programs</td><td>Random crashes, BSOD, POST beeps</td></tr>
+  <tr><td>Storage (SSD/HDD)</td><td>Persistent data</td><td>Slow boot, clicking noises, boot failure</td></tr>
+  <tr><td>Motherboard</td><td>Connects everything</td><td>No power, dead ports</td></tr>
+  <tr><td>PSU</td><td>Converts AC to DC</td><td>No power, sudden shutdowns</td></tr>
+  <tr><td>GPU</td><td>Renders graphics</td><td>Artifacts, no display</td></tr>
+</table>
+
+<h4>Boot order and POST</h4>
+<p>On power-on the firmware (BIOS/UEFI) runs a <strong>Power-On Self-Test</strong>,
+then reads the boot device, then hands control to the operating system. Most "won't
+turn on" tickets are decided in those first seconds — a fan that never spins points
+at power; beeps or a debug LED point at memory, video, or the board.</p>
+
+<h4>Expansion and ports</h4>
+<ul>
+  <li><strong>USB</strong> — peripherals, storage, charging. USB-C is reversible and
+      carries data, video, and power.</li>
+  <li><strong>HDMI / DisplayPort</strong> — video and audio. Check the source input
+      before condemning a monitor.</li>
+  <li><strong>PCIe</strong> — internal cards such as GPUs and network adapters.</li>
+  <li><strong>M.2 / SATA</strong> — internal storage.</li>
+</ul>
+
+<h4>Safe handling</h4>
+<p>Power down and unplug before opening a case. Use an anti-static strap or touch
+bare metal to discharge yourself. Keep liquids away and photograph the layout before
+you remove anything.</p>

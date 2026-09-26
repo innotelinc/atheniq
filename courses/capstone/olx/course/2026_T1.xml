@@ -1,0 +1,6 @@
+<course cert_html_view_enabled="true" certificates_display_behavior="CertificatesDisplayBehaviors.END" display_name="ITSP104 — IT Support Capstone" enrollment_end="2027-12-31T00:00:00Z" enrollment_start="2026-01-01T00:00:00Z" language="en" start="2026-01-05T00:00:00Z">
+<chapter url_name="c1_brief"/>
+<chapter url_name="c2_simulation"/>
+<chapter url_name="c3_review"/>
+<wiki slug="InnotelLabs.ITSP104.2026_T1"/>
+</course>

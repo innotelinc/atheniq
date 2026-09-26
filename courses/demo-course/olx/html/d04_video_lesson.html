@@ -1,0 +1,23 @@
+<h3>Video &amp; Audio</h3>
+<p>Open edX can host uploaded video through its video pipeline, or play external
+sources. This lesson embeds a public HTML5 sample directly so it renders on any
+deployment with no extra configuration.</p>
+
+<video controls width="100%" preload="metadata"
+       aria-label="Sample video clip">
+  <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
+
+<h4>Authoring notes</h4>
+<ul>
+  <li><strong>Uploaded video</strong> — use the platform's <em>Video</em> component and
+      upload through Studio; the video pipeline transcodes and serves it.</li>
+  <li><strong>External video</strong> — YouTube or an HTML5 source works without the
+      pipeline, as shown above.</li>
+  <li><strong>Transcripts and captions</strong> — always publish a transcript; it is
+      required for accessibility and helps learners search the content.</li>
+  <li><strong>Keep clips short</strong> — a few focused minutes beat a long recording.</li>
+</ul>
+
+<p>Audio-only material works the same way: provide a player <em>and</em> a transcript.</p>

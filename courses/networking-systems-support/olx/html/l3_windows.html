@@ -1,0 +1,31 @@
+<h3>Windows Server &amp; Directory Services</h3>
+<p>Active Directory Domain Services (AD DS) is the identity and policy backbone of a
+Windows network. Everything else — DNS, DHCP, file shares, Group Policy — hangs off
+it.</p>
+
+<h4>The pieces</h4>
+<ul>
+  <li><strong>Domain controller</strong> — hosts AD DS and authenticates users.</li>
+  <li><strong>Organizational Units (OUs)</strong> — containers for users, computers,
+      and groups; the unit that policy is applied to.</li>
+  <li><strong>Group Policy Objects (GPOs)</strong> — settings applied to OUs: drive
+      maps, firewall rules, password policy, software.</li>
+  <li><strong>DNS</strong> — AD depends on it entirely; the domain name must resolve
+      to the domain controllers.</li>
+</ul>
+
+<h4>Everyday administrative tasks</h4>
+<ol>
+  <li>Create a user, add them to a group, assign group-based access.</li>
+  <li>Join a computer to the domain and move it to the right OU.</li>
+  <li>Apply a GPO and verify with <code>gpresult /r</code>.</li>
+  <li>Reset a password or unlock an account.</li>
+</ol>
+
+<h4>A healthy-domain checklist</h4>
+<ul>
+  <li><code>dcdiag</code> reports no failures.</li>
+  <li>DNS forward and reverse zones resolve internal names.</li>
+  <li>Time is synchronised — Kerberos fails if clocks drift more than five minutes.</li>
+  <li>Backups of System State and AD are tested, not just scheduled.</li>
+</ul>

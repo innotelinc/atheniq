@@ -1,0 +1,41 @@
+<h3>Networking Basics</h3>
+<p>Networks are layers. Problems live at one layer, so diagnose layer by layer
+instead of guessing.</p>
+
+<h4>The four-layer model</h4>
+<ul>
+  <li><strong>Link</strong> — the physical connection: cable, Wi-Fi radio, switch port.</li>
+  <li><strong>Internet (IP)</strong> — addressing and routing between networks.</li>
+  <li><strong>Transport (TCP/UDP)</strong> — reliable streams (TCP) or fast datagrams
+      (UDP), identified by ports.</li>
+  <li><strong>Application</strong> — HTTP, DNS, SMTP, and the apps themselves.</li>
+</ul>
+
+<h4>Core devices</h4>
+<ul>
+  <li><strong>Switch</strong> — connects devices in one network.</li>
+  <li><strong>Router / gateway</strong> — forwards traffic between networks, usually
+      to the internet.</li>
+  <li><strong>Access point</strong> — puts Wi-Fi on the network.</li>
+  <li><strong>Firewall</strong> — allows or blocks traffic by rule.</li>
+</ul>
+
+<h4>Ports and common services</h4>
+<table>
+  <tr><th>Port</th><th>Service</th></tr>
+  <tr><td>22</td><td>SSH</td></tr>
+  <tr><td>53</td><td>DNS</td></tr>
+  <tr><td>80 / 443</td><td>HTTP / HTTPS</td></tr>
+  <tr><td>25 / 587</td><td>SMTP mail submission</td></tr>
+  <tr><td>3389</td><td>RDP (remote desktop)</td></tr>
+</table>
+
+<h4>A fast connectivity check</h4>
+<ol>
+  <li>Is the Wi-Fi or cable connected? Check the link light or signal.</li>
+  <li>Do you have an IP address? (<code>ipconfig</code> / <code>ip a</code>)</li>
+  <li>Can you reach the gateway? <code>ping</code> the default gateway.</li>
+  <li>Can you resolve a name? <code>ping</code> a hostname, then a public IP.</li>
+  <li>Can you reach the service? Try the browser and the app.</li>
+</ol>
+<p>Whichever step fails first is your layer. That is where you start.</p>

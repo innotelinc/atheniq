@@ -196,7 +196,7 @@ python3 scripts/magnate-entitlements.py check --user learner@x.edu --plan premiu
 
   ```bash
   python3 scripts/magnate-entitlements.py buy \
-    --course course-v1:Innotel+TEST101+2026_T1 \
+    --course course-v1:InnotelLabs+TEST101+2026_T1 \
     --name "TEST101 — certificate" --amount-cents 4900 --user learner
   ```
 
@@ -217,7 +217,7 @@ python3 scripts/magnate-entitlements.py check --user learner@x.edu --plan premiu
 
   ```bash
   python3 scripts/paid-enrollment.py --user learner@x.edu \
-      --course course-v1:Innotel+TEST101+2026_T1
+      --course course-v1:InnotelLabs+TEST101+2026_T1
   python3 scripts/paid-enrollment.py --status        # ledger health
   ```
 

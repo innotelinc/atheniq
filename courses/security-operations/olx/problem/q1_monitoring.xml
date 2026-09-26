@@ -1,0 +1,46 @@
+<problem display_name="Homework: Monitoring" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>A SIEM's main job is to:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Collect and correlate logs to surface suspicious activity.</div></choice>
+<choice correct="false"><div>Encrypt every endpoint's disk.</div></choice>
+<choice correct="false"><div>Assign IP addresses to clients.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>A SIEM aggregates events from many sources and correlates them into alerts worth a
+human's attention.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>A spike of failed logins against many accounts from one source is most likely:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Password guessing or credential stuffing.</div></choice>
+<choice correct="false"><div>Normal morning login traffic.</div></choice>
+<choice correct="false"><div>A DNS outage.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Many failures against many accounts from a single source is the classic brute-force
+or stuffing signature; report it and consider blocking the source.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Which SOC metric best reflects responsiveness?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Time-to-detect and time-to-respond.</div></choice>
+<choice correct="false"><div>The total number of alerts generated.</div></choice>
+<choice correct="false"><div>The number of staff on shift.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Alerts are inputs, not outcomes. How fast real incidents are detected and answered
+is what matters.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+</problem>

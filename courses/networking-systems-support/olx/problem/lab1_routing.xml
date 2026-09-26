@@ -1,0 +1,47 @@
+<problem display_name="Lab: Routing &amp; Wireless" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>A wireless network on 2.4 GHz is slow and intermittent in a busy office. The best
+first change is to:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Move clients to 5 GHz and use non-overlapping channels.</div></choice>
+<choice correct="false"><div>Increase the access point transmit power to maximum.</div></choice>
+<choice correct="false"><div>Disable encryption to reduce overhead.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>2.4 GHz is congested and has few non-overlapping channels. 5 GHz offers more
+channels and less interference. Maximum power can worsen co-channel issues.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>A port that carries several VLANs between two switches is called:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>A trunk port</div></choice>
+<choice correct="false"><div>An access port</div></choice>
+<choice correct="false"><div>A loopback port</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Trunk ports tag frames with a VLAN id so multiple VLANs share one link. Access
+ports belong to a single VLAN.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>A router's job is to:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Forward packets between networks using its routing table.</div></choice>
+<choice correct="false"><div>Forward frames between ports in one VLAN.</div></choice>
+<choice correct="false"><div>Assign IP addresses to clients.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Routers move packets between networks; switches move frames within one; DHCP servers
+assign addresses.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+</problem>

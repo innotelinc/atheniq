@@ -1,0 +1,47 @@
+<problem display_name="Homework: Professional Practice" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>A user asks you to skip the identity check because they are in a hurry. You should:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Follow the identity process — it protects the user too.</div></choice>
+<choice correct="false"><div>Skip it; the user is clearly who they say they are.</div></choice>
+<choice correct="false"><div>Ask them to email you the password.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Identity checks exist because attackers also claim to be in a hurry. Follow them
+politely and explain why.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>You need to resolve a ticket quickly at another technician's request but the fix is
+risky. The best practice is to:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Confirm backups and get agreement before the risky change.</div></choice>
+<choice correct="false"><div>Do it fast and mention it later.</div></choice>
+<choice correct="false"><div>Refuse all risky changes forever.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Speed is not worth an unrecoverable change. Confirm recovery is possible and get
+agreement; that is what professionalism looks like under pressure.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Which note is most useful to the next technician?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="false"><div>"Fixed."</div></choice>
+<choice correct="true"><div>"Reseated RAM in slot 2; POST stopped beeping; ran 30 min stress test, no errors."</div></choice>
+<choice correct="false"><div>"Hardware issue."</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Record the cause, the action, and the verification. That note lets the next person
+act without repeating your work.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+</problem>

@@ -1,0 +1,62 @@
+<problem display_name="Final Exam" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>Which command follows a service's logs on a systemd host?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div><code>journalctl -u &lt;service&gt; -f</code></div></choice>
+<choice correct="false"><div><code>chmod +x &lt;service&gt;</code></div></choice>
+<choice correct="false"><div><code>df -h</code></div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p><code>journalctl -u</code> selects the unit and <code>-f</code> follows the log live.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>On a Linux server, the safer remote-access configuration is:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>SSH key authentication with password login disabled.</div></choice>
+<choice correct="false"><div>Shared root password over SSH.</div></choice>
+<choice correct="false"><div>Telnet for simplicity.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Keys resist guessing and can be revoked individually; root password login should be
+disabled. Telnet is unencrypted and unacceptable.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<choiceresponse>
+<p>Which are good server-hardening practices? Select all that apply.</p>
+<checkboxgroup>
+<choice correct="true"><div>Enable a default-deny firewall</div></choice>
+<choice correct="true"><div>Patch on a schedule</div></choice>
+<choice correct="false"><div>Disable logging to save disk space</div></choice>
+<choice correct="true"><div>Use groups and sudo instead of shared accounts</div></choice>
+</checkboxgroup>
+<solution>
+<div class="detailed-solution">
+<p>Firewalling, patching, and least-privilege accounts are core. Disabling logs removes
+the evidence you would need to investigate a problem.</p>
+</div>
+</solution>
+</choiceresponse>
+
+<multiplechoiceresponse>
+<p>DNS resolves names for users, but a single host cannot resolve anything. The others
+work. The most useful first step is to:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Compare its configured DNS servers and cache with a working host.</div></choice>
+<choice correct="false"><div>Replace the network switch.</div></choice>
+<choice correct="false"><div>Reinstall the operating system.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>If one host differs and the rest are fine, the fault is local to that host's
+configuration — not the network.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+</problem>

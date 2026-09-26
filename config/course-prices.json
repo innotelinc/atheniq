@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "subscribe_url": "https://subscribe.atheniq.innotel.us",
+  "courses": {
+    "course-v1:InnotelLabs+TEST101+2026_T1": {
+      "name": "TEST101 — Introduction",
+      "plan": null
+    },
+    "course-v1:InnotelLabs+ITSP101+2026_T1": {
+      "name": "ITSP101 — IT Support Foundations (certification)",
+      "plan": "premium"
+    },
+    "course-v1:InnotelLabs+ITSP102+2026_T1": {
+      "name": "ITSP102 — Networking & Systems Support",
+      "plan": "premium"
+    },
+    "course-v1:InnotelLabs+ITSP103+2026_T1": {
+      "name": "ITSP103 — Security Operations Foundations",
+      "plan": "premium"
+    },
+    "course-v1:InnotelLabs+ITSP104+2026_T1": {
+      "name": "ITSP104 — IT Support Capstone",
+      "plan": "premium"
+    },
+    "course-v1:InnotelLabs+DATA101+2026_T1": {
+      "name": "DATA101 — Data Foundations",
+      "plan": "premium"
+    },
+    "course-v1:InnotelLabs+SQL101+2026_T1": {
+      "name": "SQL101 — SQL Essentials",
+      "plan": "premium"
+    },
+    "course-v1:InnotelLabs+MAIC101+2026_T1": {
+      "name": "MAIC101 — AI Classroom Facilitation",
+      "plan": "premium"
+    }
+  }
+}

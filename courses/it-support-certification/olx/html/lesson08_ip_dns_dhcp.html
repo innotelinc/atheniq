@@ -1,0 +1,32 @@
+<h3>IP, DNS &amp; DHCP</h3>
+<p>Three protocols explain almost every "the internet is down" ticket.</p>
+
+<h4>IP addressing</h4>
+<p>Every device needs an address. IPv4 addresses are four octets
+(<code>192.168.1.20</code>), commonly combined with a subnet mask
+(<code>255.255.255.0</code>) and a gateway. Private ranges — <code>10.0.0.0/8</code>,
+<code>172.16.0.0/12</code>, <code>192.168.0.0/16</code> — are used inside networks.
+A <code>169.254.x.x</code> address means the device failed to get a lease.</p>
+
+<h4>DHCP — getting an address</h4>
+<p>DHCP hands out addresses automatically through a four-step exchange: Discover,
+Offer, Request, Acknowledge (DORA). If a device has no valid address, check that the
+DHCP server or router is reachable, then release and renew:</p>
+<ul>
+  <li>Windows: <code>ipconfig /release</code> then <code>ipconfig /renew</code></li>
+  <li>Linux: <code>sudo dhclient -r</code> then <code>sudo dhclient</code></li>
+</ul>
+
+<h4>DNS — turning names into addresses</h4>
+<p>DNS resolves names such as <code>learn.innotel.us</code> to IP addresses. When
+pinging an IP works but a hostname fails, the problem is DNS — not the network.
+Check the configured DNS servers and try a public resolver such as
+<code>1.1.1.1</code> to confirm.</p>
+<ul>
+  <li><code>nslookup example.com</code> / <code>dig example.com</code> — query DNS</li>
+  <li><code>ipconfig /flushdns</code> — clear a stale cache</li>
+</ul>
+
+<h4>Putting it together</h4>
+<p>A user can reach the office file server by IP but not by name: DHCP is fine, IP
+routing is fine, and DNS is broken. That single distinction cuts hours off a ticket.</p>

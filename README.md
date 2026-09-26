@@ -1,6 +1,8 @@
 <div align="center">
 
-# 🎓 AthenIQ — Learn What's Real.
+<img src="web/landing/assets/atheniq-logo.svg" alt="AthenIQ — an Innotel Labs product" width="320">
+
+# AthenIQ — Learn What's Real.
 
 **Open-source learning platform (LMS) for universities, workforce development & training — self-hosted, Authentik-native, AI-classroom ready.**
 
@@ -129,6 +131,8 @@ self-hosted backend are in [docs/Deployment.md](docs/Deployment.md) and
 | [docs/Integrations.md](docs/Integrations.md) | Tutor, OpenMAIC, Convex, Open Generative AI, OpenClaw/OmniRoute, Authentik, Signara |
 | [docs/Deployment.md](docs/Deployment.md) | Bring-up runbook, Cerulean DNS/TLS, production notes |
 | [docs/WorkforceTracks.md](docs/WorkforceTracks.md) | Workforce & instructor tracks: model, catalog, validation |
+| [docs/Brand.md](docs/Brand.md) | Logo, palette, and naming rules (Innotel Labs) |
+| [courses/README.md](courses/README.md) | Course library: OLX packages, the IT Support ladder, the demo course |
 
 ## Repository layout
 
@@ -140,7 +144,8 @@ atheniq/
 ├── .githooks/                 # Local attribution guard (shared with CI)
 ├── docker-compose.yml         # AI + realtime services: OpenMAIC Postgres, Convex
 ├── scripts/                   # setup, cert bridge, ONYX buckets, Magnate client, checks
-├── config/                    # workforce-tracks.json catalog
+├── courses/                   # OLX authoring source for delivered courses (ITSP101)
+├── config/                    # workforce-tracks.json + course-prices.json catalogs
 ├── tests/                     # stdlib unit tests (make test)
 ├── .env.example               # Environment template (never commit .env)
 └── Makefile                   # Operator workflow
@@ -157,6 +162,7 @@ make onyx-check    # verify ONYX is ready for classroom media
 make magnate-probe # paid-course entitlement API reachable + token accepted
 make entitlement-status # Magnate -> Authentik paid-access reconciliation
 make check-tracks  # validate the workforce-tracks catalog
+make check-courses # validate the OLX course packages under courses/
 make test          # unit tests (stdlib unittest)
 make check-commits
 make check-compose
@@ -169,7 +175,7 @@ make check-compose
 | **V1 — Foundation** | done | Repo scaffold, stack role, landing page, deployment runbook. |
 | **V1.1 — Bring-up** | done | Tutor LMS at `learn.innotel.us` and Studio at `studio.innotel.us` on Cerulean-provisioned hosts, Authentik OIDC for both (provider signing key, scope mappings, CMS TPA + redirect URIs reconciled live), OpenMAIC persistence Postgres. |
 | **V1.2 — Credentials** | done | Completion → Signara signing end to end: certificates issue on a passing grade, the bridge signs them on a 2-minute cadence, the learner's dashboard links the signed PDF. |
-| **V2 — Scale** | in progress | Realtime classrooms on self-hosted Convex (✓ version-pinnable profile), classroom media on ONYX (✓ bucket provisioning + verification), paid courses via Magnate entitlements (✓ entitlement/Checkout client), workforce tracks (✓ validated catalog — in-LMS track gating next). |
+| **V2 — Scale** | in progress | Realtime classrooms on self-hosted Convex (✓ version-pinnable profile), classroom media on ONYX (✓ bucket provisioning + verification), paid courses via Magnate entitlements (✓ entitlement/Checkout client), workforce tracks (✓ validated catalog), and a **course library authored as OLX and built into CI** — the four-course **IT Support Specialist certification** (ITSP101–104) and the **TEST101 demo course** (✓ in-LMS track gating next). |
 
 The same ladder is on the [landing page](web/landing/index.html#roadmap), and each
 stage's operator steps live in [docs/Deployment.md](docs/Deployment.md).
@@ -179,7 +185,9 @@ stage's operator steps live in [docs/Deployment.md](docs/Deployment.md).
 The project landing page is published through GitHub Pages at
 [https://innotelinc.github.io/atheniq/](https://innotelinc.github.io/atheniq/),
 maintained in [web/landing/index.html](web/landing/index.html) and deployed by
-[.github/workflows/pages.yml](.github/workflows/pages.yml).
+[.github/workflows/pages.yml](.github/workflows/pages.yml). The
+[course catalog](https://innotelinc.github.io/atheniq/catalog/) is generated from
+the repo's config and OLX packages (`make catalog`).
 
 ## Community & contribution
 
@@ -193,7 +201,7 @@ disclosure notes in [docs/Deployment.md](docs/Deployment.md#security).
 
 ---
 
-*AthenIQ — Learn What's Real. © 2026*
+*AthenIQ — Learn What's Real. An [Innotel Labs](https://innotelinc.github.io/atheniq/) product. © 2026 Innotel Labs.*
 
 ## 🏛️ Platform stack
 

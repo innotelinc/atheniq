@@ -1,0 +1,46 @@
+<problem display_name="Knowledge Check: Support Foundations" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>What is the primary purpose of the Tier 1 service desk?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Resolve first-contact requests and triage what cannot be closed.</div></choice>
+<choice correct="false"><div>Rebuild servers and manage the data centre.</div></choice>
+<choice correct="false"><div>Write the organisation's security policy.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Tier 1 handles first contact: password resets, access requests, simple how-to
+questions, and triage. Deeper work is escalated to Tier 2 or Tier 3.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Escalating a ticket to Tier 2 should be understood as:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="false"><div>A failure of the first technician.</div></choice>
+<choice correct="true"><div>A normal step that puts the work where it can be solved.</div></choice>
+<choice correct="false"><div>The end of your responsibility entirely.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Escalation is a professional routing decision. With clear notes it moves the
+ticket to the tier that has the access and depth to resolve it.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>The principle of least privilege means you should:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="false"><div>Give every user administrator rights so they can self-serve.</div></choice>
+<choice correct="true"><div>Grant only the access an account needs for its job.</div></choice>
+<choice correct="false"><div>Share one privileged account across the support team.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Least privilege limits both the chance and the impact of a mistake or a
+compromised account. Grant rights through groups and revoke them when the need ends.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+</problem>

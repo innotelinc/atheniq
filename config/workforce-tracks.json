@@ -4,25 +4,30 @@
     {
       "id": "it-support",
       "title": "IT Support Specialist",
-      "summary": "Fundamentals of supporting users, devices, and networks — the entry rung of the workforce ladder.",
+      "summary": "Support users, devices, operating systems, and networks — then run a help desk. The entry certification of the workforce ladder.",
       "audience": "workforce",
       "target_role": "IT Support Specialist",
-      "status": "draft",
+      "status": "active",
       "courses": [
-        "course-v1:Innotel+TEST101+2026_T1"
+        "course-v1:InnotelLabs+ITSP101+2026_T1",
+        "course-v1:InnotelLabs+ITSP102+2026_T1",
+        "course-v1:InnotelLabs+ITSP103+2026_T1",
+        "course-v1:InnotelLabs+ITSP104+2026_T1"
       ],
       "credential": {
         "type": "certificate",
-        "title": "IT Support Specialist — Track Completion",
+        "title": "IT Support Specialist — Certification",
         "signara_template": "course-completion"
       },
       "entitlement": {
-        "plan": null
+        "plan": "premium"
       },
       "skills": [
         "help desk operations",
         "operating systems",
+        "hardware support",
         "networking basics",
+        "security fundamentals",
         "troubleshooting"
       ]
     },
@@ -34,8 +39,8 @@
       "target_role": "Data / Operations Analyst",
       "status": "draft",
       "courses": [
-        "course-v1:Innotel+DATA101+2026_T1",
-        "course-v1:Innotel+SQL101+2026_T1"
+        "course-v1:InnotelLabs+DATA101+2026_T1",
+        "course-v1:InnotelLabs+SQL101+2026_T1"
       ],
       "credential": {
         "type": "certificate",
@@ -60,7 +65,7 @@
       "target_role": "AI Classroom Facilitator",
       "status": "draft",
       "courses": [
-        "course-v1:Innotel+MAIC101+2026_T1"
+        "course-v1:InnotelLabs+MAIC101+2026_T1"
       ],
       "credential": {
         "type": "certificate",

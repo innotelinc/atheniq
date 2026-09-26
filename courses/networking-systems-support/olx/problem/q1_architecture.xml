@@ -1,0 +1,47 @@
+<problem display_name="Homework: Architecture" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>A host at <code>192.168.10.20/24</code> wants to reach <code>192.168.11.5</code>.
+What does it use?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>The default gateway — the target is outside its subnet.</div></choice>
+<choice correct="false"><div>ARP — the target is on the same subnet.</div></choice>
+<choice correct="false"><div>Nothing; /24 can reach any address directly.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p><code>192.168.10.0/24</code> and <code>192.168.11.0/24</code> are different
+subnets, so traffic goes through the default gateway.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Why segment a network with VLANs?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>To separate traffic logically for security and performance without extra hardware.</div></choice>
+<choice correct="false"><div>To increase the speed of the physical switch ports.</div></choice>
+<choice correct="false"><div>To remove the need for IP addressing.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>VLANs keep voice, data, guest, and management traffic apart while sharing the same
+physical switches.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Which layer does DNS belong to in the TCP/IP model?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Application</div></choice>
+<choice correct="false"><div>Transport</div></choice>
+<choice correct="false"><div>Internet</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>DNS is an application-layer protocol. Name resolution failing while IP connectivity
+works points squarely here.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+</problem>

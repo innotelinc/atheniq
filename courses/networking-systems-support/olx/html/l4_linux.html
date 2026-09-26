@@ -1,0 +1,34 @@
+<h3>Linux Server Administration</h3>
+<p>Most of the internet runs on Linux, and so does much of the platform stack. Learn
+the shell and the service model, and everything else follows.</p>
+
+<h4>Services with systemd</h4>
+<ul>
+  <li><code>systemctl status nginx</code> — is it running?</li>
+  <li><code>systemctl enable --now nginx</code> — start now and on boot.</li>
+  <li><code>journalctl -u nginx -f</code> — follow its logs.</li>
+</ul>
+
+<h4>Packages</h4>
+<ul>
+  <li>Debian/Ubuntu: <code>apt update &amp;&amp; apt upgrade</code></li>
+  <li>RHEL family: <code>dnf install</code></li>
+</ul>
+
+<h4>Users, groups, and permissions</h4>
+<table>
+  <tr><th>Command</th><th>Purpose</th></tr>
+  <tr><td><code>useradd</code> / <code>usermod</code></td><td>Manage accounts</td></tr>
+  <tr><td><code>chmod</code> / <code>chown</code></td><td>Permissions and ownership</td></tr>
+  <tr><td><code>sudo</code></td><td>Run one command as another user</td></tr>
+</table>
+<p>POSIX permissions read as <code>rwx</code> for owner, group, and other. Prefer
+groups and <code>sudo</code> over shared root logins.</p>
+
+<h4>Remote access and safety</h4>
+<ul>
+  <li>Connect over <strong>SSH keys</strong>, not passwords, and disable password
+      login for root.</li>
+  <li>Keep the firewall on: <code>ufw</code> or <code>firewalld</code>, default deny.</li>
+  <li>Patch on a schedule and watch disk with <code>df -h</code>.</li>
+</ul>
