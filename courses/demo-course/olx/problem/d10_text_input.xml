@@ -1,0 +1,11 @@
+<problem display_name="Text Input" max_attempts="3" showanswer="finished" weight="1.0">
+<stringresponse answer="Open edX" type="ci">
+<p>What is the name of the open-source learning platform AthenIQ is built on?</p>
+<textline size="25"/>
+<solution>
+<div class="detailed-solution">
+<p>The answer is <strong>Open edX</strong>. Matching is case-insensitive.</p>
+</div>
+</solution>
+</stringresponse>
+</problem>

@@ -1,0 +1,19 @@
+[Unit]
+Description=AthenIQ -> LMS course import (converge courses/ into Open edX)
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# Bundles every courses/*/olx package, validates it, and imports it into the
+# Tutor CMS container (docker), so the LMS converges on the repo's courseware.
+# Safe to re-run: importing a course under the same course-v1: key updates it
+# in place, and an invalid package is refused rather than imported.
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 /usr/src/projects/complete/atheniq/scripts/import-courses.py --execute
+# If this unit's user cannot reach the docker socket, run it as a docker-capable
+# user (e.g. root) or add the user to the docker group:
+# User=root
+
+[Install]
+WantedBy=multi-user.target

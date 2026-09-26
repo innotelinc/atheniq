@@ -1,0 +1,38 @@
+<h3>Operating Systems</h3>
+<p>The operating system manages hardware, schedules programs, and provides the file
+system and user interface. Support work is largely operating-system work.</p>
+
+<h4>The three families you will meet</h4>
+<ul>
+  <li><strong>Windows</strong> — the dominant corporate desktop. Familiarity with
+      Settings, Task Manager, Disk Management, Event Viewer, and the command prompt
+      is essential.</li>
+  <li><strong>macOS</strong> — Unix-based. Key tools are System Settings, Activity
+      Monitor, Disk Utility, and Terminal.</li>
+  <li><strong>Linux</strong> — servers and increasingly desktops. Learn the shell,
+      package management, file permissions, and `systemd` services.</li>
+</ul>
+
+<h4>Files, paths, and permissions</h4>
+<p>Windows uses drive letters (<code>C:\Users\name</code>) and NTFS permissions.
+macOS and Linux use a single root tree (<code>/home/name</code>) and POSIX
+permissions (<code>rwx</code>). "Permission denied" almost always means the account
+lacks rights to the file or the folder above it.</p>
+
+<h4>Processes and performance</h4>
+<p>A slow computer is usually constrained in one of four resources: CPU, memory,
+disk, or network. Open the task manager or <code>top</code>, sort by consumption, and
+identify which resource is saturated before you change anything.</p>
+
+<h4>Updates and lifecycle</h4>
+<p>Security updates close known vulnerabilities and should be applied on a schedule.
+Know when each operating system reaches <em>end of support</em>: an unsupported OS
+cannot be made secure and must be upgraded or replaced.</p>
+
+<h4>Useful commands</h4>
+<ul>
+  <li><code>ipconfig /all</code> (Windows) or <code>ip a</code> (Linux/macOS) — network config</li>
+  <li><code>ping</code>, <code>tracert</code>/<code>traceroute</code> — reachability</li>
+  <li><code>sfc /scannow</code> (Windows) — repair system files</li>
+  <li><code>df -h</code>, <code>du -sh</code> — disk usage</li>
+</ul>

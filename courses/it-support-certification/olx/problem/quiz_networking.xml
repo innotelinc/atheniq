@@ -1,0 +1,46 @@
+<problem display_name="Homework: Networking" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>A user can ping the file server by IP address but not by its hostname. Which
+service is most likely failing?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="false"><div>DHCP</div></choice>
+<choice correct="true"><div>DNS</div></choice>
+<choice correct="false"><div>SMTP</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>If the IP works and the name does not, addressing and routing are fine and name
+resolution is broken — that is DNS.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Which port is used by HTTPS?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>443</div></choice>
+<choice correct="false"><div>25</div></choice>
+<choice correct="false"><div>3389</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>HTTPS uses TCP 443. Port 80 is plain HTTP, 25 is SMTP, and 3389 is RDP.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>A device shows an address beginning with <code>169.254.</code>. This means:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="false"><div>It has a valid public address.</div></choice>
+<choice correct="true"><div>It failed to obtain an address from DHCP.</div></choice>
+<choice correct="false"><div>It has been assigned by the router successfully.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>The <code>169.254.0.0/16</code> range is the link-local fallback used when DHCP
+gives no lease. Release and renew the address and check DHCP reachability.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+</problem>

@@ -1,0 +1,48 @@
+<problem display_name="Lab: OS Troubleshooting" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>A user reports the computer is "slow". Memory, CPU and disk all read low, but the
+network usage is pinned near the limit. The bottleneck is most likely:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="false"><div>The CPU</div></choice>
+<choice correct="false"><div>Free disk space</div></choice>
+<choice correct="true"><div>The network</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Performance is constrained by CPU, memory, disk, or network. Read the resource
+that is saturated, not the symptom the user names.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>A user can open a shared folder but cannot save into it, and sees "permission
+denied". The most likely cause is:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>The account lacks write permission on the folder.</div></choice>
+<choice correct="false"><div>The hard drive is failing.</div></choice>
+<choice correct="false"><div>The monitor needs to be replaced.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>"Permission denied" on one action points at access rights, not hardware. Check
+effective permissions on the folder and the group above it.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>An operating system reaches "end of support". The correct response is to:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="false"><div>Keep using it — support ended only affects new features.</div></choice>
+<choice correct="true"><div>Plan to upgrade or replace it, because it no longer receives security patches.</div></choice>
+<choice correct="false"><div>Disable the firewall to improve performance.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Without security updates, known vulnerabilities stay exploitable forever. An
+unsupported OS cannot be made secure and must be upgraded or replaced.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+</problem>

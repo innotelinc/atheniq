@@ -1,0 +1,8 @@
+<course cert_html_view_enabled="true" certificates_display_behavior="CertificatesDisplayBehaviors.END" display_name="TEST101 — AthenIQ Demo Course" enrollment_end="2027-12-31T00:00:00Z" enrollment_start="2026-01-01T00:00:00Z" language="en" start="2026-01-05T00:00:00Z">
+<chapter url_name="ch01_welcome"/>
+<chapter url_name="ch02_media"/>
+<chapter url_name="ch03_problems"/>
+<chapter url_name="ch04_credentials"/>
+<chapter url_name="ch05_final"/>
+<wiki slug="InnotelLabs.TEST101.2026_T1"/>
+</course>

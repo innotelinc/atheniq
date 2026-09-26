@@ -1,0 +1,34 @@
+<h3>Routing, Switching &amp; Wireless</h3>
+<p>Switches move frames inside a network; routers move packets between networks;
+access points put wireless clients onto the network.</p>
+
+<h4>Switching and VLANs</h4>
+<ul>
+  <li>A managed switch learns which MAC address lives on which port.</li>
+  <li><strong>VLANs</strong> segment the network logically — separate voice, data,
+      guest, and management traffic without separate hardware.</li>
+  <li>A <em>trunk</em> carries multiple VLANs between switches; an <em>access</em>
+      port belongs to one.</li>
+</ul>
+
+<h4>Routing</h4>
+<p>A router keeps a routing table of destinations and next hops. Static routes are
+hand-written; dynamic protocols (OSPF, BGP) discover paths automatically. NAT
+rewrites private addresses to a public one so a whole LAN can share a single
+internet address.</p>
+
+<h4>Wireless</h4>
+<table>
+  <tr><th>Concern</th><th>Practice</th></tr>
+  <tr><td>Coverage</td><td>Place APs for overlap, not max power</td></tr>
+  <tr><td>Interference</td><td>Prefer 5 GHz; use non-overlapping channels</td></tr>
+  <tr><td>Security</td><td>WPA2/WPA3-Enterprise with 802.1X, not open or WEP</td></tr>
+  <tr><td>Roaming</td><td>Same SSID across APs for seamless handoff</td></tr>
+</table>
+
+<h4>Useful tools</h4>
+<ul>
+  <li><code>ip route</code> / <code>route print</code> — the routing table</li>
+  <li><code>traceroute</code> / <code>tracert</code> — the path a packet takes</li>
+  <li><code>arp -a</code> — IP-to-MAC mappings on the local segment</li>
+</ul>

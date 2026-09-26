@@ -8,22 +8,22 @@ pe = load("paid-enrollment.py")
 
 class EnrollmentSql(unittest.TestCase):
     def test_insert_when_no_row_exists(self):
-        sql = pe.enrollment_sql(False, 7, "course-v1:Innotel+TEST101+2026_T1",
+        sql = pe.enrollment_sql(False, 7, "course-v1:InnotelLabs+TEST101+2026_T1",
                                 "verified", True)
         self.assertIn("INSERT INTO student_courseenrollment", sql)
         self.assertIn("VALUES", sql)
         self.assertIn(", 1, ", sql)  # is_active column value
-        self.assertIn("'course-v1:Innotel+TEST101+2026_T1'", sql)
+        self.assertIn("'course-v1:InnotelLabs+TEST101+2026_T1'", sql)
 
     def test_update_when_a_row_exists(self):
-        sql = pe.enrollment_sql(True, 7, "course-v1:Innotel+TEST101+2026_T1",
+        sql = pe.enrollment_sql(True, 7, "course-v1:InnotelLabs+TEST101+2026_T1",
                                 "verified", True)
         self.assertIn("UPDATE student_courseenrollment", sql)
         self.assertIn("is_active = 1", sql)
         self.assertNotIn("INSERT", sql)
 
     def test_revoke_deactivates(self):
-        sql = pe.enrollment_sql(True, 7, "course-v1:Innotel+TEST101+2026_T1",
+        sql = pe.enrollment_sql(True, 7, "course-v1:InnotelLabs+TEST101+2026_T1",
                                 "verified", False)
         self.assertIn("is_active = 0", sql)
 

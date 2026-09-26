@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="AthenIQ">
+  <defs>
+    <linearGradient id="atheniq-chevron" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#059669"/>
+      <stop offset="0.55" stop-color="#10b981"/>
+      <stop offset="1" stop-color="#34d399"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="#0b1220"/>
+  <ellipse cx="32" cy="31" rx="25" ry="9" transform="rotate(-18 32 31)"
+           fill="none" stroke="#34d399" stroke-opacity="0.5" stroke-width="1.6"/>
+  <circle cx="55" cy="24" r="2.4" fill="#6ee7b7"/>
+  <path d="M16 44 L32 28 L48 44" fill="none" stroke="url(#atheniq-chevron)"
+        stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M24 32 L32 24 L40 32" fill="none" stroke="url(#atheniq-chevron)"
+        stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

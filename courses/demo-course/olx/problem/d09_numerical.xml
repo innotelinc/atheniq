@@ -1,0 +1,12 @@
+<problem display_name="Numerical Input" max_attempts="3" showanswer="finished" weight="1.0">
+<numericalresponse answer="50">
+<p>What percentage score is the pass threshold for this demo course? Enter a number.</p>
+<formulaequationinput size="20"/>
+<responseparam type="tolerance" default="0%"/>
+<solution>
+<div class="detailed-solution">
+<p>The grading policy sets <code>GRADE_CUTOFFS</code> to 0.5 — a 50% pass.</p>
+</div>
+</solution>
+</numericalresponse>
+</problem>

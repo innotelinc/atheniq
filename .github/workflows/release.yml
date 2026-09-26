@@ -64,9 +64,16 @@ jobs:
             --exclude='./.gitignore' \
             -czf "dist/$ARCHIVE" \
             README.md CONTRIBUTING.md LICENSE Makefile docker-compose.yml \
-            docs scripts web deploy contrib .env.example
+            docs courses config scripts web deploy contrib .env.example
           (cd dist && sha256sum "$ARCHIVE" > "${ARCHIVE}.sha256")
-          ls -lh dist/
+          # Bundle each authored course as an importable OLX archive.
+          mkdir -p dist/courses
+          for dir in courses/*/olx; do
+            name="$(basename "$(dirname "$dir")")"
+            tar -czf "dist/courses/${name}.tar.gz" -C "courses/${name}" olx
+          done
+          (cd dist/courses && sha256sum *.tar.gz > SHA256SUMS)
+          ls -lh dist/ dist/courses/
           echo "bundle=$ARCHIVE" >> "$GITHUB_OUTPUT"
 
       - name: Cut the GitHub Release
@@ -83,6 +90,7 @@ jobs:
             "" \
             "**Artifact**" \
             "- atheniq-${VERSION#v}.tar.gz + sha256" \
+            "- OLX course packages: TEST101 demo + ITSP101-104 certification (dist/courses/, with SHA256SUMS)" \
             "" \
             "**See also**" \
             "- [docs/stack.md](https://github.com/innotelinc/atheniq/blob/main/docs/stack.md) — the owns/consumes map" \
@@ -92,9 +100,13 @@ jobs:
           gh release create "$VERSION" \
             "dist/$ARCHIVE" \
             "dist/$ARCHIVE.sha256" \
+            dist/courses/*.tar.gz \
+            dist/courses/SHA256SUMS \
             --title "AthenIQ $VERSION" \
             --notes "$NOTES" || \
           gh release upload "$VERSION" \
             "dist/$ARCHIVE" \
-            "dist/$ARCHIVE.sha256" --clobber
+            "dist/$ARCHIVE.sha256" \
+            dist/courses/*.tar.gz \
+            dist/courses/SHA256SUMS --clobber
           echo "::notice::released $VERSION"

@@ -1,0 +1,10 @@
+<course cert_html_view_enabled="true" certificates_display_behavior="CertificatesDisplayBehaviors.END" display_name="ITSP101 — IT Support Foundations" enrollment_end="2027-12-31T00:00:00Z" enrollment_start="2026-01-01T00:00:00Z" language="en" start="2026-01-05T00:00:00Z">
+<chapter url_name="ch01_welcome"/>
+<chapter url_name="ch02_hardware"/>
+<chapter url_name="ch03_operating_systems"/>
+<chapter url_name="ch04_networking"/>
+<chapter url_name="ch05_security"/>
+<chapter url_name="ch06_help_desk"/>
+<chapter url_name="ch07_troubleshooting"/>
+<wiki slug="InnotelLabs.ITSP101.2026_T1"/>
+</course>

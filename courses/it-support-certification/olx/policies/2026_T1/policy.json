@@ -1,0 +1,62 @@
+{
+"course/2026_T1": {
+"cert_html_view_enabled": true,
+"certificates_display_behavior": "CertificatesDisplayBehaviors.END",
+"certificates_show_before_end": true,
+"course_image": "it-support-certification-course-card.svg",
+"certificates": {
+"certificates": [
+{
+"course_title": "ITSP101 — IT Support Foundations",
+"id": 0,
+"is_active": true,
+"signatories": [
+{
+"name": "Darnel Hunter",
+"organization": "Innotel Labs",
+"title": "Innotel Labs"
+}
+]
+}
+]
+},
+"discussion_topics": {
+"General": {
+"id": "course"
+}
+},
+"display_name": "ITSP101 — IT Support Foundations",
+"enrollment_end": "2027-12-31T00:00:00Z",
+"enrollment_start": "2026-01-01T00:00:00Z",
+"language": "en",
+"learning_info": [],
+"start": "2026-01-05T00:00:00Z",
+"tabs": [
+{
+"course_staff_only": false,
+"name": "Course",
+"type": "courseware"
+},
+{
+"course_staff_only": false,
+"name": "Progress",
+"type": "progress"
+},
+{
+"course_staff_only": false,
+"name": "Dates",
+"type": "dates"
+},
+{
+"course_staff_only": false,
+"name": "Discussion",
+"type": "discussion"
+},
+{
+"course_staff_only": false,
+"name": "Handouts",
+"type": "html"
+}
+]
+}
+}

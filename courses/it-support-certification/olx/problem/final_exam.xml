@@ -1,0 +1,79 @@
+<problem display_name="Final Exam" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>Which is the FIRST step of a sound troubleshooting methodology?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Identify the problem and gather information.</div></choice>
+<choice correct="false"><div>Replace the most expensive suspect component.</div></choice>
+<choice correct="false"><div>Reinstall the operating system.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Identify the problem first: what changed, when it started, who is affected, and
+whether it reproduces. Everything else follows from good information.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>A browser cannot load a page. Applying "divide and conquer", which test best
+narrows the fault fastest?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Ping a hostname and its IP to separate DNS from connectivity.</div></choice>
+<choice correct="false"><div>Reinstall the browser immediately.</div></choice>
+<choice correct="false"><div>Replace the network switch.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Testing name versus address separates the layers. It eliminates half the possible
+causes before you change anything.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<choiceresponse>
+<p>When should a ticket be escalated? Select all that apply.</p>
+<checkboxgroup>
+<choice correct="true"><div>The problem is beyond your access or scope.</div></choice>
+<choice correct="true"><div>It may be a security incident.</div></choice>
+<choice correct="true"><div>You have spent your agreed window without progress.</div></choice>
+<choice correct="false"><div>Before asking the user any questions.</div></choice>
+</checkboxgroup>
+<solution>
+<div class="detailed-solution">
+<p>Escalate for access, scope, security risk, or time — with good notes. Escalation is
+a routing decision, not a failure.</p>
+</div>
+</solution>
+</choiceresponse>
+
+<multiplechoiceresponse>
+<p>A support technician wants to install a new tool. The best practice is to:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="false"><div>Download it from any site that offers a free version.</div></choice>
+<choice correct="true"><div>Install from the organisation's approved source and check the licence.</div></choice>
+<choice correct="false"><div>Ask the user to install it themselves with admin rights.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Untrusted installers are a leading malware vector, and licence type matters. Use
+the approved, centrally managed deployment path.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>After passing this course, the recommended next course in the IT Support
+Specialist track is:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>ITSP102 — Networking &amp; Systems Support</div></choice>
+<choice correct="false"><div>A second attempt at this same course.</div></choice>
+<choice correct="false"><div>No further study is needed.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>The track continues with deeper networking and systems administration, then
+security operations, then a capstone. Foundations is the first rung, not the last.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+</problem>

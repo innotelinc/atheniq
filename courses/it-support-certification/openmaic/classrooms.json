@@ -1,0 +1,137 @@
+{
+  "version": 1,
+  "provider": "openmaic",
+  "gateway": "OmniRoute",
+  "source_course": "course-v1:InnotelLabs+ITSP101+2026_T1",
+  "locale": "en",
+  "defaults": {
+    "teacher_persona": "An experienced IT support lead who explains in plain language and always shows the reasoning behind a fix.",
+    "classmates": [
+      "A nervous new starter on their first week of a service desk",
+      "A curious career-changer who asks 'why' until the layer is clear"
+    ],
+    "interaction": "Socratic: the teacher asks before telling, and the classmates voice the misconceptions a real learner would have.",
+    "assessment": "Each classroom ends with 3-5 checks aligned to the chapter's graded activity."
+  },
+  "classrooms": [
+    {
+      "id": "itsp101-ch01-orientation",
+      "chapter": "ch01_welcome",
+      "linked_units": ["unit01_how_it_works", "unit02_support_role"],
+      "title": "Welcome to the Service Desk",
+      "prompt": "Run a first-day orientation for a new IT support technician: what the role is, how tickets flow, what Tier 1/2/3 mean, and how the course and its certification work.",
+      "objectives": [
+        "Describe the IT support role and tiers",
+        "Explain least privilege and professional conduct",
+        "Navigate the course and its grading"
+      ],
+      "activities": [
+        {"type": "slides", "title": "Your first day"},
+        {"type": "roleplay", "title": "A user calls with a password problem"},
+        {"type": "quiz", "title": "Support foundations"}
+      ]
+    },
+    {
+      "id": "itsp101-ch02-hardware",
+      "chapter": "ch02_hardware",
+      "linked_units": ["unit04_hardware_basics", "unit05_peripherals_mobile"],
+      "title": "Inside the Machine",
+      "prompt": "Walk through a desktop's core components and a set of failing peripherals. Have the classmates guess which component is at fault, then confirm with the boot/POST story.",
+      "objectives": [
+        "Map symptoms to hardware components",
+        "Interpret POST and beep codes",
+        "Diagnose common peripheral failures safely"
+      ],
+      "activities": [
+        {"type": "slides", "title": "Components and buses"},
+        {"type": "simulation", "title": "No display: work the POST beep code"},
+        {"type": "quiz", "title": "Hardware"}
+      ]
+    },
+    {
+      "id": "itsp101-ch03-operating-systems",
+      "chapter": "ch03_operating_systems",
+      "linked_units": ["unit07_operating_systems", "unit08_accounts_software"],
+      "title": "Three Operating Systems, One Method",
+      "prompt": "Compare Windows, macOS, and Linux task-for-task, then debug a 'slow computer' by reading which resource is saturated. Cover accounts, installs, and sign-in troubleshooting.",
+      "objectives": [
+        "Locate equivalent tools on each OS",
+        "Diagnose performance by resource",
+        "Work through a sign-in problem in order"
+      ],
+      "activities": [
+        {"type": "slides", "title": "The same task on three systems"},
+        {"type": "simulation", "title": "Task manager detective: find the bottleneck"},
+        {"type": "lab", "title": "OS troubleshooting"}
+      ]
+    },
+    {
+      "id": "itsp101-ch04-networking",
+      "chapter": "ch04_networking",
+      "linked_units": ["unit10_networking", "unit11_ip_dns_dhcp"],
+      "title": "Follow the Packet",
+      "prompt": "Send a packet from a laptop to a web server layer by layer. Pause at IP, DNS, and DHCP to show where common failures occur, then run the five-step connectivity check live.",
+      "objectives": [
+        "Describe the network layers and core devices",
+        "Explain DHCP (DORA) and DNS resolution",
+        "Isolate a failure with the connectivity check"
+      ],
+      "activities": [
+        {"type": "slides", "title": "Layers and devices"},
+        {"type": "simulation", "title": "Name works, IP doesn't: find the broken layer"},
+        {"type": "quiz", "title": "Networking"}
+      ]
+    },
+    {
+      "id": "itsp101-ch05-security",
+      "chapter": "ch05_security",
+      "linked_units": ["unit13_security", "unit14_passwords_mfa"],
+      "title": "Respond to an Incident",
+      "prompt": "Run a phishing-then-ransomware incident: teach recognition, then have the class respond step by step — isolate, report, reset, preserve evidence. Contrast MFA strengths.",
+      "objectives": [
+        "Recognize phishing and social engineering",
+        "Execute the first response to a suspected infection",
+        "Choose and support strong authentication"
+      ],
+      "activities": [
+        {"type": "slides", "title": "Threats and controls"},
+        {"type": "roleplay", "title": "A user forwards a suspicious invoice"},
+        {"type": "lab", "title": "Security response"}
+      ]
+    },
+    {
+      "id": "itsp101-ch06-helpdesk",
+      "chapter": "ch06_help_desk",
+      "linked_units": ["unit16_helpdesk", "unit17_ticketing_sla"],
+      "title": "Work the Queue",
+      "prompt": "Simulate a morning of incoming tickets. Have the class categorize, prioritize, draft a usable ticket, and decide escalations against a set of SLAs.",
+      "objectives": [
+        "Run the ticket lifecycle",
+        "Prioritize by urgency and impact",
+        "Write a ticket the next technician can use"
+      ],
+      "activities": [
+        {"type": "slides", "title": "Lifecycle and priority"},
+        {"type": "roleplay", "title": "Triage six tickets on the clock"},
+        {"type": "lab", "title": "Ticket triage"}
+      ]
+    },
+    {
+      "id": "itsp101-ch07-troubleshooting",
+      "chapter": "ch07_troubleshooting",
+      "linked_units": ["unit19_troubleshooting", "unit20_certification"],
+      "title": "Method Over Guesswork",
+      "prompt": "Take one vague complaint and resolve it with the seven-step methodology, narrating each elimination. Close with exam prep and where the certification track goes next.",
+      "objectives": [
+        "Apply the troubleshooting methodology",
+        "Divide and conquer a layered problem",
+        "Decide when to escalate"
+      ],
+      "activities": [
+        {"type": "slides", "title": "The method"},
+        {"type": "simulation", "title": "Vague ticket: eliminate, don't guess"},
+        {"type": "quiz", "title": "Final review"}
+      ]
+    }
+  ]
+}

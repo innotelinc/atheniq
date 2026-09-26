@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="AthenIQ logo mark">
+  <defs>
+    <linearGradient id="atheniq-chevron" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#059669"/>
+      <stop offset="0.55" stop-color="#10b981"/>
+      <stop offset="1" stop-color="#34d399"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="32" cy="30" rx="27" ry="10" transform="rotate(-18 32 30)"
+           fill="none" stroke="#34d399" stroke-opacity="0.45" stroke-width="1.6"/>
+  <circle cx="57" cy="22" r="2.6" fill="#6ee7b7"/>
+  <path d="M15 44 L32 27 L49 44" fill="none" stroke="url(#atheniq-chevron)"
+        stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M23 31 L32 22 L41 31" fill="none" stroke="url(#atheniq-chevron)"
+        stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

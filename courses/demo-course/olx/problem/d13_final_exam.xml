@@ -1,0 +1,46 @@
+<problem display_name="Final Exam" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>Which surface signs the course certificates AthenIQ issues?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Signara</div></choice>
+<choice correct="false"><div>The LMS database</div></choice>
+<choice correct="false"><div>The learner's browser</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>AthenIQ produces completion evidence; Signara is the platform's DocumentOps
+surface and the only thing that signs.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Which statement about the Studio course outline is correct?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>A chapter contains sequentials, which contain verticals.</div></choice>
+<choice correct="false"><div>A chapter may contain verticals directly.</div></choice>
+<choice correct="false"><div>A vertical contains sequentials.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>The containment order is chapter → sequential (subsection) → vertical (unit). A
+vertical placed directly under a chapter breaks the authoring outline.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<choiceresponse>
+<p>Which of these are valid ways to source video in Open edX? Select all that apply.</p>
+<checkboxgroup>
+<choice correct="true"><div>Upload through the platform's video component</div></choice>
+<choice correct="true"><div>Embed an external HTML5 or YouTube source</div></choice>
+<choice correct="false"><div>Reference a file on the learner's own computer</div></choice>
+</checkboxgroup>
+<solution>
+<div class="detailed-solution">
+<p>Uploaded video and external sources both work; a course can never reach into a
+learner's local filesystem.</p>
+</div>
+</solution>
+</choiceresponse>
+</problem>

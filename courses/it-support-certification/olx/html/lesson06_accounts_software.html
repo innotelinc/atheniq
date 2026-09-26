@@ -1,0 +1,40 @@
+<h3>Accounts &amp; Software</h3>
+<p>Most of a service desk's volume is identity and application work: access,
+installs, and sign-in problems.</p>
+
+<h4>Accounts and directory services</h4>
+<p>An account is an identity with rights. Directories such as Active Directory or
+Authentik store it and let single sign-on carry one login across many systems.
+Common tasks: create, disable, reset a password, and change group membership.</p>
+<ul>
+  <li><strong>Least privilege:</strong> grant the minimum access needed for the job.</li>
+  <li><strong>Group-based access:</strong> assign rights to groups, not individuals —
+      it is easier to audit and to revoke.</li>
+  <li><strong>Offboarding:</strong> disable accounts immediately when someone leaves,
+      then remove access and recover devices.</li>
+</ul>
+
+<h4>Software installation and licensing</h4>
+<ul>
+  <li>Install from a trusted, approved source. Untrusted installers are a leading
+      malware vector.</li>
+  <li>Check the licence before installing — user, device, or subscription models
+      differ.</li>
+  <li>Prefer central deployment (SCCM, Intune, package repos, MDM) over clicking
+      through installers by hand.</li>
+</ul>
+
+<h4>Sign-in troubleshooting, in order</h4>
+<ol>
+  <li>Confirm the username and that Caps Lock is off.</li>
+  <li>Reset the password through the approved self-service flow.</li>
+  <li>Check whether the account is locked out or disabled.</li>
+  <li>Verify multi-factor enrolment and clock/time sync on the device.</li>
+  <li>Clear cached credentials or re-authenticate the app; only then involve the
+      identity team.</li>
+</ol>
+
+<h4>Backups</h4>
+<p>Before any risky change, confirm the user's data is backed up and know how to
+restore it. A support technician who can recover data is never the cause of a
+catastrophe.</p>

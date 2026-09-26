@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" role="img" aria-label="ITSP104 — IT Support Capstone">
+  <defs>
+    <linearGradient id="g" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#059669"/><stop offset="0.55" stop-color="#10b981"/><stop offset="1" stop-color="#34d399"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="450" fill="#0a1118"/>
+  <g transform="translate(56 96) scale(2.6)">
+    <ellipse cx="32" cy="30" rx="27" ry="10" transform="rotate(-18 32 30)" fill="none" stroke="#34d399" stroke-opacity="0.45" stroke-width="1.6"/>
+    <circle cx="57" cy="22" r="2.6" fill="#6ee7b7"/>
+    <path d="M15 44 L32 27 L49 44" fill="none" stroke="url(#g)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M23 31 L32 22 L41 31" fill="none" stroke="url(#g)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <text x="56" y="330" font-family="ui-sans-serif, system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="26" font-weight="700" letter-spacing="3" fill="#34d399">ITSP104</text>
+  <text x="56" y="376" font-family="ui-sans-serif, system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="40" font-weight="700" fill="#eef4f8">IT Support Capstone</text>
+  <text x="56" y="412" font-family="ui-sans-serif, system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="18" fill="#93a4b1">Innotel Labs · IT Support Specialist track</text>
+</svg>

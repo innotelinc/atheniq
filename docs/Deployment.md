@@ -45,6 +45,28 @@ tutor local launch            # idempotent full deployment on later runs
   [docs/Integrations.md](Integrations.md#tutor-open-edx--the-lms-core)).
 - Upgrade path stays with Tutor: `tutor local upgrade` after reading upstream
   release notes.
+- Courseware authored in this repo under `courses/` imports into Studio as OLX;
+  the full walkthrough (and the ITSP101 certification course) is in
+  [`courses/it-support-certification/README.md`](../courses/it-support-certification/README.md).
+  `make check-courses` lints those packages in CI, and `package-courses` builds
+  each as a `.tar.gz` artifact. The course org slug is **`InnotelLabs`** (the
+  Innotel Labs brand); re-import runs created under the older `Innotel` org under
+  the new key. `make course-import` bundles and imports every package into the
+  running CMS (preview first with `python3 scripts/import-courses.py`), and
+  `make course-bundle` writes the `dist/courses/*.tar.gz` archives without touching
+  the LMS.
+- To converge the LMS on the repo's courseware automatically, install the import
+  timer (daily, and on boot):
+
+  ```bash
+  sudo cp deploy/systemd/atheniq-course-import.service deploy/systemd/atheniq-course-import.timer /etc/systemd/system/
+  sudo systemctl daemon-reload && sudo systemctl enable --now atheniq-course-import.timer
+  journalctl -u atheniq-course-import.service -n 20   # watch runs
+  ```
+
+  The unit runs `scripts/import-courses.py --execute` (oneshot) each tick; an
+  invalid package is refused, and re-importing a course under the same
+  `course-v1:` key updates it in place.
 
 ## Stage 2 — Authentik OIDC applications
 
@@ -220,7 +242,7 @@ Turn the entitlement into access, and keep it honest:
 ```bash
 # grant one learner access to a paid course (idempotent); --revoke to remove it
 python3 scripts/paid-enrollment.py --user learner@x.edu \
-    --course course-v1:Innotel+TEST101+2026_T1
+    --course course-v1:InnotelLabs+TEST101+2026_T1
 python3 scripts/paid-enrollment.py --status       # enrollment ledger
 ```
 
@@ -505,7 +527,7 @@ still returns the JSON payload.
 
 ### 9.6 TEST101 certificates enabled (LMS side)
 
-**Status (2026-09):** `course-v1:Innotel+TEST101+2026_T1` issues real Open edX
+**Status (2026-09):** `course-v1:InnotelLabs+TEST101+2026_T1` issues real Open edX
 webview certificates, and the **Signara signing leg is live** via
 [`scripts/cert-bridge.py`](../scripts/cert-bridge.py) — see §9.7 below.
 
@@ -664,7 +686,7 @@ Verified live end-to-end, twice:
 - **Signal-level** — a fresh learner (`student.one`) with a persisted passing
 grade (the exact state `CourseGradeFactory._update` writes) fired
 `COURSE_GRADE_NOW_PASSED` → the worker logged
-`Generated certificate with status downloadable ... for 6 : course-v1:Innotel+TEST101+2026_T1`
+`Generated certificate with status downloadable ... for 6 : course-v1:InnotelLabs+TEST101+2026_T1`
 → a `downloadable` certificate (`c5b4408f…`) appeared with recipient
 **Student One** on the webview → the bridge pushed it through Signara
 (`COMPLETED`, `SIGNED`, signed PDF contains `Student One`), and the learner's
@@ -690,7 +712,7 @@ source of truth — check it before debugging the browser:
 ```bash
 # as a staff user (signed session) — every level must carry child_info
 curl -b "studio_session_id=$COOKIE" \
-  https://studio.<domain>/api/contentstore/v1/course_index/course-v1:Innotel+TEST101+2026_T1
+  https://studio.<domain>/api/contentstore/v1/course_index/course-v1:InnotelLabs+TEST101+2026_T1
 ```
 
 Fix: insert a sequential between the chapter and the vertical (CMS shell,
@@ -710,13 +732,13 @@ with store.bulk_operations(ck):
     store.publish(course.location, 1)
 ```
 
-Also added to TEST101: **graded problems** (`problem_check`-style
-multiple-choice) under each unit, and the course grading policy is the
-realistic multi-assignment set (`Homework` 0.2 / `Lab` 0.2 / `Midterm Exam`
-0.25 / `Final Exam` 0.35, `GRADE_CUTOFFS: {Pass: 0.5}`) — the same shape a
-real course uses. The current catalog: section *Welcome* → **Final Exam**
-(1 problem), **Homework 1** (2 problems), **Lab 1** (1 problem), **Midterm
-Exam** (1 problem). A learner who answers them all correctly passes (~0.9) and
+TEST101 is now a full, importable **demo course** authored in
+[`courses/demo-course/`](../courses/demo-course/README.md): five chapters
+(Welcome, Text/Images/Video, Problem Types, Grading & Certificates, Final
+Assessment), six text components, and seven problems covering multiple choice,
+checkbox, dropdown, numerical, text, and math expression. Its grading policy is
+`Homework` 0.4 / `Final Exam` 0.6 with `GRADE_CUTOFFS: {Pass: 0.5}`. A learner
+who answers the graded problems and the final exam correctly passes and
 auto-issues a certificate; the auto-issue chain was re-verified with this
 policy (learner `student.three`, grade 0.9, cert `c5cfe2b5…`, signed by the
 scheduled bridge). Only the structure (chapter → sequential → vertical) is

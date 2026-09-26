@@ -1,0 +1,8 @@
+<sequential display_name="Homework: Problem Types" graded="true" format="Homework" show_correctness="always">
+<vertical url_name="u06_multiple_choice"/>
+<vertical url_name="u07_checkbox"/>
+<vertical url_name="u08_dropdown"/>
+<vertical url_name="u09_numerical"/>
+<vertical url_name="u10_text_input"/>
+<vertical url_name="u11_formula"/>
+</sequential>

@@ -1,0 +1,16 @@
+<problem display_name="Multiple Choice" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>Which component hosts rich text and embedded media?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Text (HTML)</div></choice>
+<choice correct="false"><div>Sequential</div></choice>
+<choice correct="false"><div>Tabs</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>A text component (the <code>html</code> XBlock) renders rich text and can embed
+images, video, and links.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+</problem>

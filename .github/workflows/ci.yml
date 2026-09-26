@@ -29,7 +29,28 @@ jobs:
           test -f docs/stack.md
           test -f .env.example
           test -f web/landing/index.html
+          test -f config/workforce-tracks.json
+          test -f courses/it-support-certification/olx/course.xml
           echo "structure: ok"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Unit tests
+        run: make test
+
+      - name: Validate the workforce-tracks catalog
+        run: make check-tracks
+
+      - name: Validate the OLX course packages
+        run: make check-courses
+
+      - name: Validate the course catalog page is current
+        run: make check-catalog
+
+      - name: Validate the syllabus pages are current
+        run: make check-syllabus
 
       - name: Validate compose (default)
         run: docker compose config --quiet
@@ -41,3 +62,26 @@ jobs:
         run: |
           grep -qi "AthenIQ" web/landing/index.html
           echo "landing: ok"
+
+  package-courses:
+    name: Package OLX courses
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build importable course archives
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          for dir in courses/*/olx; do
+            name="$(basename "$(dirname "$dir")")"
+            tar -czf "dist/${name}.tar.gz" -C "courses/${name}" olx
+          done
+          ls -lh dist
+
+      - name: Upload course archives
+        uses: actions/upload-artifact@v5
+        with:
+          name: atheniq-olx-courses
+          path: dist/*.tar.gz
+          if-no-files-found: error

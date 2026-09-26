@@ -1,0 +1,47 @@
+<problem display_name="Homework: Hardware" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>Which component keeps data when the power is off?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Storage (SSD or HDD)</div></choice>
+<choice correct="false"><div>RAM</div></choice>
+<choice correct="false"><div>CPU cache</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>RAM and cache are volatile — they lose their contents without power. Persistent
+data lives on storage such as an SSD or hard disk.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>A desktop powers on, the fans spin, but there is no display and the motherboard
+emits a repeating beep pattern. The most useful first step is to:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="false"><div>Reinstall the operating system.</div></choice>
+<choice correct="true"><div>Look up the firmware beep code and reseat the indicated component.</div></choice>
+<choice correct="false"><div>Replace the hard drive.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>POST beep codes point at a specific subsystem, most often memory or video. Decode
+the code, then reseat or swap that component before touching anything else.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Before opening a computer case, you should:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="false"><div>Leave it running so you can watch the fans.</div></choice>
+<choice correct="true"><div>Power it down, unplug it, and discharge static from yourself.</div></choice>
+<choice correct="false"><div>Wear a grounded wrist strap while it is still plugged in.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Power down and disconnect first, then equalise your static charge by touching
+bare metal or using an anti-static strap. Never work inside a live machine.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+</problem>

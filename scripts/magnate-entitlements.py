@@ -30,7 +30,7 @@ Configuration comes from `.env` (see .env.example §Magnate):
 Usage:
     python3 scripts/magnate-entitlements.py probe
     python3 scripts/magnate-entitlements.py check --user learner@x.edu --plan premium
-    python3 scripts/magnate-entitlements.py buy --course course-v1:Innotel+TEST101+2026_T1 \\
+    python3 scripts/magnate-entitlements.py buy --course course-v1:InnotelLabs+TEST101+2026_T1 \\
         --name "TEST101 — certificate" --amount-cents 4900 --email learner@x.edu
     python3 scripts/magnate-entitlements.py verify-signature --secret "$SECRET" --body-file payload.json
 

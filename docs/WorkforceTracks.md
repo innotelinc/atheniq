@@ -20,8 +20,8 @@ operator share one definition of what a track is.
   "target_role": "Data / Operations Analyst",
   "status": "draft",                    // draft | active | retired
   "courses": [
-    "course-v1:Innotel+DATA101+2026_T1",
-    "course-v1:Innotel+SQL101+2026_T1"
+    "course-v1:InnotelLabs+DATA101+2026_T1",
+    "course-v1:InnotelLabs+SQL101+2026_T1"
   ],
   "credential": {
     "type": "certificate",              // certificate | badge | none
@@ -68,17 +68,31 @@ certificate (see [docs/Deployment.md](Deployment.md#98-automatic-certificate-iss
 and the bridge signs it in Signara. The track records which courses together
 constitute the credential.
 
-> **Status (2026-09):** the catalog and its validation are live; tracks are
-> seeded `draft`. Promoting a track to `active` means its course runs exist in
-> the LMS, its entitlement (if any) is wired, and — for a track-level
-> credential — a Signara signing flow for the track is configured. Track-level
-> credential issuance and in-LMS track gating are the remaining V2 work.
+> **Status (2026-09):** the catalog and its validation are live. The
+> `it-support` track is **active**, backed by a four-course certification ladder
+> authored in [`courses/`](../courses/README.md) as importable OLX (plus an
+> OpenMAIC classroom spec): **ITSP101 Foundations**, **ITSP102 Networking &
+> Systems Support**, **ITSP103 Security Operations**, and **ITSP104 Capstone**.
+> The other tracks are seeded `draft`. Promoting a track to `active` means its
+> course runs exist in the LMS, its entitlement (if any) is wired, and — for a
+> track-level credential — a Signara signing flow for the track is configured.
+> Track-level credential issuance and in-LMS track gating are the remaining V2
+> work.
+
+## Where a track's courses live
+
+Courseware is authored in this repo under [`courses/`](../courses/README.md) as
+**OLX** — the layout Open edX Studio exports and imports — so it is versioned and
+reviewable beside the catalog that references it. `scripts/check-course-olx.py`
+lints it (`make check-courses`) exactly as `check-workforce-tracks.py` lints the
+catalog; the LMS stays the runtime.
 
 ## Adding or retiring a track
 
 1. Add the track to `config/workforce-tracks.json` and run `make check-tracks`.
-2. Create the course runs in Studio (`studio.<domain>`) under the tracked
-   `course-v1:` keys, with graded problems and a certificate definition.
+2. Author the course as OLX under `courses/<slug>/` (or create the runs in
+   Studio at `studio.<domain>`) under the tracked `course-v1:` keys, with graded
+   problems and a certificate definition, then run `make check-courses`.
 3. If the track is paid, point `entitlement.plan` at the plan slug Magnate
    reports for it and confirm with
    `python3 scripts/magnate-entitlements.py check --plan <slug>`.

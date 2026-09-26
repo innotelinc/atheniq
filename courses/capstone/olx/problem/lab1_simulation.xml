@@ -1,0 +1,65 @@
+<problem display_name="Lab: Service Desk Simulation" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>Three tickets: (a) the CEO's laptop will not power on, (b) a mouse is unresponsive,
+(c) the whole sales floor cannot reach the CRM. Which do you work first?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>(c) — an outage affecting a whole team and a core service.</div></choice>
+<choice correct="false"><div>(a) — the CEO is the most senior person.</div></choice>
+<choice correct="false"><div>(b) — it is the quickest to close.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Priority is impact times urgency. A team-wide outage of a core service outranks a
+single device, however senior its user. (b) can be slotted in while (c) is being
+worked if it is genuinely trivial.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Eight users in one office report the same Wi-Fi failure within minutes. You should:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Treat it as one incident, check the access point, and communicate.</div></choice>
+<choice correct="false"><div>Work eight separate tickets in order.</div></choice>
+<choice correct="false"><div>Tell each user to reboot and close the tickets.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Related tickets are one incident with one root cause. Working them separately wastes
+time and hides the scope.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<choiceresponse>
+<p>Which must be included in an escalation? Select all that apply.</p>
+<checkboxgroup>
+<choice correct="true"><div>The symptom and its impact</div></choice>
+<choice correct="true"><div>What you already tried, and the result</div></choice>
+<choice correct="true"><div>The evidence (errors, logs, timestamps)</div></choice>
+<choice correct="false"><div>Only the words "it's broken"</div></choice>
+</checkboxgroup>
+<solution>
+<div class="detailed-solution">
+<p>An escalation is a request for a decision. Give the next tier everything they need
+to act without starting over.</p>
+</div>
+</solution>
+</choiceresponse>
+
+<multiplechoiceresponse>
+<p>A fix worked yesterday and the same user is back with the same problem. The best
+next step is:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Find the root cause and document it, rather than applying the same band-aid.</div></choice>
+<choice correct="false"><div>Apply the same fix, close it, and move on.</div></choice>
+<choice correct="false"><div>Escalate before investigating.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>A recurring problem means the cause was never fixed. Investigate the root cause and
+write it up so the next recurrence is prevented, not repeated.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+</problem>

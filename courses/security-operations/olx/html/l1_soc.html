@@ -1,0 +1,34 @@
+<h3>Security Operations &amp; Monitoring</h3>
+<p>A security operations centre (SOC) watches for the signs of an attack and responds.
+Support technicians feed it the raw signals — alerts, tickets, odd behaviour — and act
+on its decisions.</p>
+
+<h4>What the SOC does</h4>
+<ul>
+  <li><strong>Collect</strong> — logs and events from endpoints, servers, network,
+      identity, and cloud.</li>
+  <li><strong>Detect</strong> — correlate them against rules and known attacker
+      behaviour (a SIEM or EDR platform).</li>
+  <li><strong>Triage</strong> — decide which alerts are real, and how urgent.</li>
+  <li><strong>Respond</strong> — contain, investigate, and hand off.</li>
+</ul>
+
+<h4>The signals support sees first</h4>
+<table>
+  <tr><th>Signal</th><th>What it can mean</th></tr>
+  <tr><td>Failed logins spike</td><td>Password guessing or credential stuffing</td></tr>
+  <tr><td>Antivirus/EDR alert</td><td>Malware or a false positive</td></tr>
+  <tr><td>Unexpected outbound traffic</td><td>Command-and-control or data exfiltration</td></tr>
+  <tr><td>New admin account</td><td>Compromise or an unmanaged change</td></tr>
+</table>
+
+<h4>Triage discipline</h4>
+<ol>
+  <li>Confirm the alert is real and not a known-good change.</li>
+  <li>Assess impact: what data or systems are exposed?</li>
+  <li>Preserve the evidence before touching anything.</li>
+  <li>Escalate on policy, not on mood — when in doubt, report.</li>
+</ol>
+
+<p>Measure the SOC on time-to-detect and time-to-respond, not on the number of alerts
+closed.</p>

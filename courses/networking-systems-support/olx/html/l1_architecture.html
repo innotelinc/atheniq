@@ -1,0 +1,33 @@
+<h3>Network Architecture</h3>
+<p>Networks are described by their size, their topology, and the layers that carry
+data. Support work is almost always about one of those three.</p>
+
+<h4>By size</h4>
+<ul>
+  <li><strong>LAN</strong> — one building or site, high speed, locally managed.</li>
+  <li><strong>WAN</strong> — links sites together across distance; slower, leased or
+      tunnelled.</li>
+  <li><strong>MAN</strong> — a city-scale network, often a campus or metro fibre ring.</li>
+</ul>
+
+<h4>Topologies</h4>
+<p>Modern LANs are switched <em>star</em> topologies: every device connects to a
+switch, and the switch forwards frames only to the port that needs them. Redundancy
+comes from a mesh between switches rather than from a physical ring.</p>
+
+<h4>Addressing and subnets</h4>
+<table>
+  <tr><th>Term</th><th>Meaning</th></tr>
+  <tr><td>IP address</td><td>Host identity on a network</td></tr>
+  <tr><td>Subnet mask / CIDR</td><td>Which part is network vs host</td></tr>
+  <tr><td>Default gateway</td><td>The router to reach other networks</td></tr>
+  <tr><td>VLAN</td><td>A logical network carved out of a switch</td></tr>
+</table>
+<p><code>192.168.10.0/24</code> gives 256 addresses; the <code>/24</code> is the
+prefix length. A host uses its own subnet for local traffic and the gateway for
+everything else.</p>
+
+<h4>The model that matters</h4>
+<p>Whether you use OSI's seven layers or TCP/IP's four, the value is the same:
+diagnose one layer at a time. If the link is up and addressing is valid but names do
+not resolve, the fault is at the name layer, not the cable.</p>
