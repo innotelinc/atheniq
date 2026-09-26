@@ -48,7 +48,7 @@ tutor local launch            # idempotent full deployment on later runs
 - Courseware authored in this repo under `courses/` imports into Studio as OLX;
   the full walkthrough (and the ITSP101 certification course) is in
   [`courses/it-support-certification/README.md`](../courses/it-support-certification/README.md).
-  `make check-courses` lints those packages in CI, and `package-courses` builds
+  `make check-courses` lints those packages in CI, and `make course-bundle` builds
   each as a `.tar.gz` artifact. The course org slug is **`InnotelLabs`** (the
   Innotel Labs brand); re-import runs created under the older `Innotel` org under
   the new key. `make course-import` bundles and imports every package into the

@@ -22,6 +22,9 @@ Checks per course:
   * a `<problem>` contains at least one response element
   * (warning) at least one graded sequential and one problem exist
   * (warning) a policies/<run>/grading_policy.json parses when present
+  * a policy's `tabs` declare a type the LMS renders, and a `static_tab` has its
+    `tabs/<url_slug>.html` (an unknown type — e.g. the legacy `html` handouts tab
+    — makes the importer log a `PluginError` and the LMS silently drop the tab)
 
 Usage:
     python3 scripts/check-course-olx.py                 # all courses, human summary
@@ -52,6 +55,15 @@ COMPONENT_TAGS = {"html", "problem", "video", "lti", "poll", "survey", "drag-and
 RESPONSE_TAGS = {"multiplechoiceresponse", "choiceresponse", "numericalresponse",
                  "stringresponse", "customresponse", "optionresponse",
                  "formularesponse", "coderesponse"}
+# Tab types the LMS actually knows how to render. A policy that declares anything
+# else (the legacy "html" handouts tab is the common trap) makes the importer log
+# `No such plugin html for entry point openedx.course_tab` and the LMS drop the tab.
+KNOWN_TAB_TYPES = {
+    "courseware", "syllabus", "progress", "dates", "discussion",
+    "static_tab", "external_link", "external_discussion",
+    "textbooks", "pdf_textbooks", "html_textbooks",
+    "edxnotes", "teams", "wiki", "course_live", "lti",
+}
 
 
 def parse(path):
@@ -229,6 +241,28 @@ def validate_course(olx_dir):
             image = course_policy.get("course_image")
             if image and not os.path.isfile(os.path.join(olx_dir, "static", image)):
                 fail(f"policies/{run}/policy.json: course_image '{image}' not found in static/")
+            tabs = course_policy.get("tabs")
+            if tabs is not None and not isinstance(tabs, list):
+                fail(f"policies/{run}/policy.json: tabs must be a list")
+            elif isinstance(tabs, list):
+                for tab in tabs:
+                    if not isinstance(tab, dict):
+                        fail(f"policies/{run}/policy.json: each tab entry must be an object")
+                        continue
+                    name = tab.get("name")
+                    ttype = tab.get("type")
+                    if not ttype:
+                        fail(f"policies/{run}/policy.json: tab {name!r} has no type")
+                    elif ttype not in KNOWN_TAB_TYPES:
+                        fail(f"policies/{run}/policy.json: tab {name!r} declares unknown type "
+                             f"'{ttype}' (the LMS would drop it)")
+                    elif ttype == "static_tab":
+                        slug = tab.get("url_slug")
+                        if not slug:
+                            fail(f"policies/{run}/policy.json: static_tab {name!r} needs a url_slug")
+                        elif not os.path.isfile(os.path.join(olx_dir, "tabs", f"{slug}.html")):
+                            fail(f"policies/{run}/policy.json: static_tab {name!r} content "
+                                 f"tabs/{slug}.html not found")
             certs = (course_policy.get("certificates") or {}).get("certificates")
             certs = [c for c in certs if isinstance(c, dict)] if isinstance(certs, list) else []
             if not certs:

@@ -51,11 +51,6 @@
 "course_staff_only": false,
 "name": "Discussion",
 "type": "discussion"
-},
-{
-"course_staff_only": false,
-"name": "Handouts",
-"type": "html"
 }
 ]
 }

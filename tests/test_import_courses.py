@@ -63,11 +63,17 @@ class Archive(unittest.TestCase):
         entry = self.entries["capstone"]
         path = os.path.join(self.tmp.name, entry["archive"])
         cmds = imp.import_commands(entry, path)
-        self.assertEqual(len(cmds), 2)
+        # copy the archive in, stage it as a data_dir course directory, import it
+        self.assertEqual(len(cmds), 3)
         self.assertIn("docker cp", cmds[0])
-        self.assertIn("manage.py cms import", cmds[1])
-        self.assertIn(entry["key"], cmds[1])
-        self.assertIn("tutor_local-cms-1", cmds[1])
+        self.assertIn("tar xzf", cmds[1])
+        self.assertIn("--strip-components=1", cmds[1])
+        self.assertIn("manage.py cms import", cmds[2])
+        self.assertIn("tutor_local-cms-1", cmds[2])
+        # cms import takes a data dir + a course *directory*, never a course key
+        staged = f"{entry['slug']}-{entry['run']}"
+        self.assertIn(f"import /openedx/data {staged}", cmds[2])
+        self.assertNotIn(entry["key"], cmds[2])
 
 
 if __name__ == "__main__":

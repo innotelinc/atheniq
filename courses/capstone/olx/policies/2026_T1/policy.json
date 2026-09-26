@@ -35,8 +35,7 @@
 {"course_staff_only": false, "name": "Course", "type": "courseware"},
 {"course_staff_only": false, "name": "Progress", "type": "progress"},
 {"course_staff_only": false, "name": "Dates", "type": "dates"},
-{"course_staff_only": false, "name": "Discussion", "type": "discussion"},
-{"course_staff_only": false, "name": "Handouts", "type": "html"}
+{"course_staff_only": false, "name": "Discussion", "type": "discussion"}
 ]
 }
 }

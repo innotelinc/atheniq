@@ -112,6 +112,33 @@ class ValidateCourse(unittest.TestCase):
         errors, _, _ = olx.validate_course(self.base)
         self.assertTrue(any("no recognized response" in e for e in errors))
 
+    def _set_tabs(self, tabs):
+        policy_path = os.path.join(self.base, "policies", "2026_T1", "policy.json")
+        with open(policy_path) as fh:
+            policy = json.load(fh)
+        policy["course/2026_T1"]["tabs"] = tabs
+        with open(policy_path, "w") as fh:
+            json.dump(policy, fh)
+
+    def test_rejects_unknown_tab_type(self):
+        self._set_tabs([{"name": "Handouts", "type": "html"}])
+        errors, _, _ = olx.validate_course(self.base)
+        self.assertTrue(any("unknown type 'html'" in e for e in errors), errors)
+
+    def test_rejects_static_tab_without_content(self):
+        self._set_tabs([{"name": "Handouts", "type": "static_tab", "url_slug": "handouts"}])
+        errors, _, _ = olx.validate_course(self.base)
+        self.assertTrue(any("tabs/handouts.html not found" in e for e in errors), errors)
+
+    def test_accepts_valid_tabs_with_backing_content(self):
+        write(os.path.join(self.base, "tabs", "handouts.html"), "<p>hi</p>")
+        self._set_tabs([
+            {"name": "Course", "type": "courseware"},
+            {"name": "Handouts", "type": "static_tab", "url_slug": "handouts"},
+        ])
+        errors, _, _ = olx.validate_course(self.base)
+        self.assertEqual(errors, [])
+
     def test_warns_without_graded_work(self):
         write(os.path.join(self.base, "sequential", "seq1.xml"),
               '<sequential display_name="Lesson" graded="false">\n'

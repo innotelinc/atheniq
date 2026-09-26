@@ -112,17 +112,28 @@ def build_archive(entry, dest_dir):
 
 def import_commands(entry, archive_path, container=None, platform=None, data_dir=None,
                     python=None):
-    """The two shell commands that import one bundled course into the CMS."""
+    """The shell commands that import one bundled course into the CMS.
+
+    ``manage.py cms import`` takes a *data directory* plus one or more course
+    directories **inside** it; it does not unpack archives, and a course key is
+    not a valid argument. So the bundle (a single top-level ``olx/`` dir) is
+    copied in, extracted so ``course.xml`` sits at the staged directory's root,
+    then imported by directory name. The destination key is read from
+    ``course.xml``, so no target id is passed.
+    """
     container = container or DEFAULTS["CMS_CONTAINER"]
     platform = platform or DEFAULTS["EDX_PLATFORM"]
     data_dir = data_dir or DEFAULTS["EDX_DATA_DIR"]
     python = python or DEFAULTS["PYTHON"]
     basename = os.path.basename(archive_path)
     remote = f"/tmp/{basename}"
+    staged = f"{data_dir}/{entry['slug']}-{entry['run']}"
     return [
         f"docker cp {archive_path} {container}:{remote}",
+        (f"docker exec {container} sh -c 'rm -rf {staged} && mkdir -p {staged} && "
+         f"tar xzf {remote} -C {staged} --strip-components=1'"),
         (f"docker exec {container} sh -c 'cd {platform} && "
-         f"{python} ./manage.py cms import {data_dir} {entry['key']} {remote}'"),
+         f"{python} ./manage.py cms import {data_dir} {entry['slug']}-{entry['run']}'"),
     ]
 
 

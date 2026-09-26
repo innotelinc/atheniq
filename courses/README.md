@@ -24,9 +24,13 @@ make course-import                               # import every course into the 
 
 `scripts/import-courses.py` finds every `courses/*/olx` package, validates it with
 the same linter CI runs, bundles each with a top-level `olx/` directory, and prints
-the `docker cp` + `manage.py cms import` commands it would run. Nothing touches the
-LMS until `--execute` (or `make course-import`) — a deliberate operator action. See
-[docs/Deployment.md](../docs/Deployment.md).
+the `docker cp` + extract + `manage.py cms import` commands it would run. Note that
+`manage.py cms import` takes a data directory plus course *directories* inside it —
+it does not unpack archives and a course key is not a valid argument — so the tool
+stages each bundle under `/openedx/data/<slug>-<run>` (extracting the `olx/`
+wrapper) and imports it by directory name; the key is read from `course.xml`.
+Nothing touches the LMS until `--execute` (or `make course-import`) — a deliberate
+operator action. See [docs/Deployment.md](../docs/Deployment.md).
 
 Re-importing is idempotent in effect: importing a course under the same
 `course-v1:` key updates it in place.

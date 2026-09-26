@@ -76,13 +76,20 @@ tar -czf /tmp/ITSP101-2026_T1.tar.gz olx
 Then either:
 
 - **Studio UI:** Tools → Import, and upload the `.tar.gz`; or
-- **CLI (Tutor):**
+- **CLI (Tutor):** `cms import` reads a course dir under the data dir; it does not
+  unpack archives. Stage the bundle (unwrapping its top-level `olx/`) first:
   ```bash
   docker cp /tmp/ITSP101-2026_T1.tar.gz tutor_local-cms-1:/tmp/
   docker exec tutor_local-cms-1 sh -c \
+    'rm -rf /openedx/data/it-support-certification-2026_T1 && \
+     mkdir -p /openedx/data/it-support-certification-2026_T1 && \
+     tar xzf /tmp/ITSP101-2026_T1.tar.gz \
+       -C /openedx/data/it-support-certification-2026_T1 --strip-components=1'
+  docker exec tutor_local-cms-1 sh -c \
     'cd /openedx/edx-platform && ./manage.py cms import /openedx/data \
-       course-v1:InnotelLabs+ITSP101+2026_T1 /tmp/ITSP101-2026_T1.tar.gz'
+       it-support-certification-2026_T1'
   ```
+  (Or run `make course-import` from the repo root to do this for every course.)
 
 After import, confirm the certificate block is active and publish the course. The
 completion → Signara signing leg is automatic once a learner passes (see

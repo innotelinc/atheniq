@@ -30,10 +30,20 @@ Same as any OLX package:
 cd courses/demo-course
 tar -czf /tmp/TEST101-2026_T1.tar.gz olx
 docker cp /tmp/TEST101-2026_T1.tar.gz tutor_local-cms-1:/tmp/
+# `cms import` reads a course dir under the data dir; it does not unpack archives.
+# Stage the bundle (unwrapping its top-level olx/) so course.xml sits at the root.
+docker exec tutor_local-cms-1 sh -c \
+  'rm -rf /openedx/data/demo-course-2026_T1 && \
+   mkdir -p /openedx/data/demo-course-2026_T1 && \
+   tar xzf /tmp/TEST101-2026_T1.tar.gz \
+     -C /openedx/data/demo-course-2026_T1 --strip-components=1'
 docker exec tutor_local-cms-1 sh -c \
   'cd /openedx/edx-platform && ./manage.py cms import /openedx/data \
-     course-v1:InnotelLabs+TEST101+2026_T1 /tmp/TEST101-2026_T1.tar.gz'
+     demo-course-2026_T1'
 ```
+
+(Or just run `make course-import` from the repo root — it does the copy, staging,
+and import for every course.)
 
 Then publish the course and confirm the certificate block is active. A learner who
 answers the graded problems and the final exam correctly clears the 50% pass and
