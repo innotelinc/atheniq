@@ -132,9 +132,19 @@ backend over the private network.
 until buckets are configured. To move classroom media to ONYX's S3-compatible
 endpoint, set `ONYX_S3_ENDPOINT`, `ONYX_S3_BUCKET_FILES`,
 `ONYX_S3_BUCKET_EXPORTS` and the `ONYX_S3_ACCESS_KEY`/`ONYX_S3_SECRET_KEY` pair
-in `.env` and re-run `make convex-up`; `ONYX_S3_FORCE_PATH_STYLE=true` is the
-default and is what ONYX expects. Leaving them blank is a supported state, not a
-misconfiguration.
+in `.env` (`ONYX_S3_FORCE_PATH_STYLE=true` is the default and is what ONYX
+expects), create the buckets, and re-run `make convex-up`:
+
+```bash
+make onyx-check      # verify ONYX is reachable + the credentials are accepted
+make onyx-buckets    # create atheniq-files + atheniq-exports (idempotent)
+```
+
+`scripts/onyx-buckets.py` talks ONYX's S3 API directly (SigV4, no `aws`/`mc`
+dependency); `make onyx-selftest` validates the configuration offline and
+`--dry-run` shows the plan without calling ONYX. Leaving the endpoint blank is a
+supported state, not a misconfiguration — Convex then keeps files on its own
+data volume. See [docs/Integrations.md](Integrations.md#onyx--object-storage-storageops).
 
 For production workloads, follow the upstream advanced guides to move the store
 to Postgres/MySQL. Convex Auth is not supported self-hosted — keep app auth on
@@ -179,6 +189,31 @@ front of it, `:20129`.
 2. Set `SIGNARA_API_URL` and `SIGNARA_API_KEY` in `.env`.
 3. Completion events in Open edX flow to Signara and return signed certificates
    as described in [docs/Integrations.md](Integrations.md#signara--signed-course-certificates-documentops).
+
+## Stage 8 — Paid courses (Magnate)
+
+Magnate owns billing for the platform; AthenIQ gates paid courses on a Magnate
+plan entitlement rather than running a price list. Set in `.env`:
+
+- `MAGNATE_API_URL` — the Magnate storefront/service base URL
+  (`https://app.magnate.innotel.us`),
+- `MAGNATE_ENTITLEMENTS_TOKEN` — the same value as Magnate's
+  `ENTITLEMENTS_API_TOKEN` (it gates both `/api/entitlements` and
+  `/api/purchases`),
+- `MAGNATE_PAID_PLAN` — the plan slug that unlocks paid courses.
+
+Then verify the leg:
+
+```bash
+make magnate-probe     # reachability + token accepted
+python3 scripts/magnate-entitlements.py check --user <username|email> --plan "$MAGNATE_PAID_PLAN"
+```
+
+`scripts/magnate-entitlements.py` also creates a one-off course Checkout
+(`buy --course <key> --name <label> --amount-cents <n>`, `--dry-run` to preview)
+and verifies Magnate's signed purchase callbacks (`verify-signature`). The
+entitlement decision — not a local price — is what grants a learner access to a
+paid course; see [docs/Integrations.md](Integrations.md#magnate--paid-courses--entitlements-revenueops).
 
 ## Cerulean DNS and TLS
 

@@ -52,7 +52,7 @@ Platform services consumed throughout:
 | OpenMAIC | AI classroom | Multi-agent lesson generation (slides, quizzes, simulations, PBL) with AI teachers/classmates. Runs from its upstream repo (`docker compose --profile server-persistence`). |
 | Convex (self-hosted) | Realtime layer | Presence, chat, live quiz state, progress sync for classrooms and study groups. Backend on `:3210`, HTTP actions `:3211`, dashboard `:6791`. |
 | Open Generative AI | Media studio | Course image/video/lip-sync generation (MuAPI-powered) for Studio authors. |
-| OmniRoute | Model gateway | OpenAI-compatible endpoint (`:20128`) pooling model providers; the single model exit for OpenMAIC and the agent layer. |
+| OmniRoute | Model gateway | OpenAI-compatible endpoint pooling model providers; the single model exit for OpenMAIC and the agent layer. Callers dial its identity-aware door (`:20129`); its own `:20128` listener stays loopback/bridge-only. |
 | OpenClaw | Assistant gateway | Sessions, tools, events, channels (Slack, Telegram, Discord…); runs the OpenMAIC skill. |
 | OpenClaude | Agent CLI | CLI agent for authoring/operations tasks, pointed at the OmniRoute endpoint. |
 | Signara | Certificate signing | Receives completion records and returns signed course certificates. |
@@ -116,7 +116,7 @@ internet ──► NGINX Proxy Manager (Cerulean-provisioned)
               ├── classroom.<domain>  → OpenMAIC
               └── certs.<domain>      → Signara portal (shared)
 host network (private)
-  ├── OmniRoute        :20128   (model gateway)
+  ├── OmniRoute        :20129   (SSO proxy → gateway :20128)
   ├── Convex backend   :3210    (realtime)
   ├── Convex dashboard :6791
   ├── OpenMAIC Postgres (profile)

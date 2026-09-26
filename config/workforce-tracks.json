@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "tracks": [
+    {
+      "id": "it-support",
+      "title": "IT Support Specialist",
+      "summary": "Fundamentals of supporting users, devices, and networks — the entry rung of the workforce ladder.",
+      "audience": "workforce",
+      "target_role": "IT Support Specialist",
+      "status": "draft",
+      "courses": [
+        "course-v1:Innotel+TEST101+2026_T1"
+      ],
+      "credential": {
+        "type": "certificate",
+        "title": "IT Support Specialist — Track Completion",
+        "signara_template": "course-completion"
+      },
+      "entitlement": {
+        "plan": null
+      },
+      "skills": [
+        "help desk operations",
+        "operating systems",
+        "networking basics",
+        "troubleshooting"
+      ]
+    },
+    {
+      "id": "data-foundations",
+      "title": "Data Foundations",
+      "summary": "Spreadsheets to SQL: the data literacy every operations role now expects.",
+      "audience": "workforce",
+      "target_role": "Data / Operations Analyst",
+      "status": "draft",
+      "courses": [
+        "course-v1:Innotel+DATA101+2026_T1",
+        "course-v1:Innotel+SQL101+2026_T1"
+      ],
+      "credential": {
+        "type": "certificate",
+        "title": "Data Foundations — Track Completion",
+        "signara_template": "course-completion"
+      },
+      "entitlement": {
+        "plan": "premium"
+      },
+      "skills": [
+        "spreadsheets",
+        "SQL",
+        "data cleaning",
+        "reporting"
+      ]
+    },
+    {
+      "id": "ai-classroom-facilitator",
+      "title": "AI Classroom Facilitator",
+      "summary": "Run generative AI classrooms: author with OpenMAIC, facilitate sessions, assess learners.",
+      "audience": "instructors",
+      "target_role": "AI Classroom Facilitator",
+      "status": "draft",
+      "courses": [
+        "course-v1:Innotel+MAIC101+2026_T1"
+      ],
+      "credential": {
+        "type": "certificate",
+        "title": "AI Classroom Facilitator — Track Completion",
+        "signara_template": "course-completion"
+      },
+      "entitlement": {
+        "plan": "premium"
+      },
+      "skills": [
+        "course authoring",
+        "multi-agent lessons",
+        "live facilitation",
+        "assessment design"
+      ]
+    }
+  ]
+}

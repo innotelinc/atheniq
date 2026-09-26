@@ -93,8 +93,10 @@ docker compose --profile server-persistence up --build
 ```bash
 cp .env.example .env
 docker compose --profile openmaic up -d      # OpenMAIC Postgres persistence
-# No gateway here: the model gateway is the platform's OmniRoute (Group 2,
-# mesh 10.10.2.1, :20128) — point OMNIROUTE_BASE_URL at it in .env.
+# No gateway here: the model gateway is the platform's single OmniRoute
+# (Group 2). Callers dial its identity-aware door, :20129 — its own :20128
+# answers only on that host's loopback/bridge. Point OMNIROUTE_BASE_URL at
+# http://192.168.1.46:20129/v1 in .env.
 ```
 
 Full bring-up order, Authentik/Cerulean/Signara wiring, and the Convex
@@ -126,6 +128,7 @@ self-hosted backend are in [docs/Deployment.md](docs/Deployment.md) and
 | [docs/Architecture.md](docs/Architecture.md) | System design, components, data flows |
 | [docs/Integrations.md](docs/Integrations.md) | Tutor, OpenMAIC, Convex, Open Generative AI, OpenClaw/OmniRoute, Authentik, Signara |
 | [docs/Deployment.md](docs/Deployment.md) | Bring-up runbook, Cerulean DNS/TLS, production notes |
+| [docs/WorkforceTracks.md](docs/WorkforceTracks.md) | Workforce & instructor tracks: model, catalog, validation |
 
 ## Repository layout
 
@@ -136,7 +139,8 @@ atheniq/
 ├── .github/workflows/         # CI, attribution guard, Pages publish
 ├── .githooks/                 # Local attribution guard (shared with CI)
 ├── docker-compose.yml         # AI + realtime services: OpenMAIC Postgres, Convex
-├── scripts/                   # setup.sh, commit-message policy
+├── scripts/                   # setup, cert bridge, ONYX buckets, Magnate client, checks
+├── config/                    # workforce-tracks.json catalog
 ├── .env.example               # Environment template (never commit .env)
 └── Makefile                   # Operator workflow
 ```
@@ -144,10 +148,13 @@ atheniq/
 ## Development & operations
 
 ```bash
-make help        # every target, one view
-make setup       # hooks + .env + preflight
-make up          # openmaic + convex profiles
-make convex-key  # mint a Convex admin key from the running backend
+make help          # every target, one view
+make setup         # hooks + .env + preflight
+make up            # openmaic + convex profiles
+make convex-key    # mint a Convex admin key from the running backend
+make onyx-check    # verify ONYX is ready for classroom media
+make magnate-probe # paid-course entitlement API reachable + token accepted
+make check-tracks  # validate the workforce-tracks catalog
 make check-commits
 make check-compose
 ```
@@ -159,7 +166,7 @@ make check-compose
 | **V1 — Foundation** | done | Repo scaffold, stack role, landing page, deployment runbook. |
 | **V1.1 — Bring-up** | done | Tutor LMS at `learn.innotel.us` and Studio at `studio.innotel.us` on Cerulean-provisioned hosts, Authentik OIDC for both (provider signing key, scope mappings, CMS TPA + redirect URIs reconciled live), OpenMAIC persistence Postgres. |
 | **V1.2 — Credentials** | done | Completion → Signara signing end to end: certificates issue on a passing grade, the bridge signs them on a 2-minute cadence, the learner's dashboard links the signed PDF. |
-| **V2 — Scale** | in progress | Self-hosted Convex realtime classrooms (version-pinnable profile in this repo ✓), classroom media on ONYX, paid courses via Magnate entitlements, workforce tracks. |
+| **V2 — Scale** | in progress | Realtime classrooms on self-hosted Convex (✓ version-pinnable profile), classroom media on ONYX (✓ bucket provisioning + verification), paid courses via Magnate entitlements (✓ entitlement/Checkout client), workforce tracks (✓ validated catalog — in-LMS track gating next). |
 
 The same ladder is on the [landing page](web/landing/index.html#roadmap), and each
 stage's operator steps live in [docs/Deployment.md](docs/Deployment.md).
