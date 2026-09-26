@@ -36,7 +36,8 @@ class Page(unittest.TestCase):
     def test_page_escapes_html_and_links_the_assets(self):
         page = catalog.build(ROOT)
         self.assertIn("&amp;", page)          # "Networking & Systems"
-        self.assertIn("assets/favicon.svg", page)
+        self.assertIn("data:image/svg+xml", page)   # self-contained inline favicon
+        self.assertIn("assets/favicon-32.png", page)
         self.assertIn("IT Support Specialist", page)
 
 

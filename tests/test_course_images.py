@@ -55,6 +55,20 @@ class ShippedRasters(unittest.TestCase):
             self.assertTrue(os.path.isfile(os.path.join(course["olx"], "static", image)), image)
 
 
+class InlineFavicon(unittest.TestCase):
+    """The stack's conformity audit wants a self-contained SVG favicon."""
+
+    def test_landing_page_embeds_the_current_favicon(self):
+        page = (ROOT / "web" / "landing" / "index.html").read_text()
+        self.assertIn(images.inline_favicon(), page)
+
+    def test_generated_pages_embed_the_current_favicon(self):
+        data_uri = images.inline_favicon()
+        for rel in ("web/landing/catalog/index.html",
+                    "web/landing/courses/it-support-certification/index.html"):
+            self.assertIn(data_uri, (ROOT / rel).read_text(), rel)
+
+
 @unittest.skipUnless(HAVE_PIL, "Pillow not installed")
 class Rendering(unittest.TestCase):
     def test_course_card_is_sized_and_not_blank(self):
