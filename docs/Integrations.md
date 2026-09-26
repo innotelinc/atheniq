@@ -70,10 +70,18 @@ Convex provides reactive database/state functions. AthenIQ uses a self-hosted
 backend as the realtime substrate for live classrooms and study groups:
 presence, chat, live quizzes, and moment-by-moment progress.
 
-- Fetch the official self-hosted `docker-compose.yml` from the upstream
-  `self-hosted/docker/` directory and run it (backend `:3210`, HTTP actions
-  `:3211`, dashboard `:6791`).
-- Generate an admin key: `docker compose exec backend ./generate_admin_key.sh`
+- Run the in-repo profile (reviewed here, not fetched from upstream): the
+  `convex` + `convex-dashboard` services in [docker-compose.yml](../docker-compose.yml)
+  — backend `:3210`, HTTP actions `:3211`, dashboard `:6791`, both bound to
+  loopback. Images default to `latest` and pin independently via
+  `CONVEX_BACKEND_VERSION` / `CONVEX_DASHBOARD_VERSION`:
+
+  ```bash
+  make convex-up
+  ```
+
+- Generate an admin key from the **running** backend: `make convex-key` (only
+  the backend can sign a valid one; it cannot be generated locally).
 - Configure the frontend/CLI:
 
   ```env
@@ -86,6 +94,36 @@ presence, chat, live quizzes, and moment-by-moment progress.
 - Convex Auth is not supported on self-hosted deployments; bind app-level auth
   to Authentik OIDC instead.
 
+## ONYX — object storage (StorageOps)
+
+**Stack surface:** ONYX owns object storage for the whole platform; AthenIQ
+consumes it and runs no storage of its own.
+
+Classroom media (Convex's file storage) and courseware uploads belong on
+ONYX's S3-compatible object store rather than a container-local volume.
+
+- Set `ONYX_S3_ENDPOINT` (the objectstore's S3 surface —
+  `storage.onyx.innotel.us`, or `http://<onyx-host>:2090` on the LAN),
+  `ONYX_S3_ACCESS_KEY` / `ONYX_S3_SECRET_KEY` (ONYX's own
+  `S3_ACCESS_KEY`/`S3_SECRET_KEY` pair), and the two bucket names in `.env`.
+- Provision the buckets through the S3 API (SigV4, standard library only):
+
+  ```bash
+  make onyx-buckets   # create atheniq-files + atheniq-exports (idempotent)
+  make onyx-check     # verify they are reachable (read-only)
+  ```
+
+  [`scripts/onyx-buckets.py`](../scripts/onyx-buckets.py) implements SigV4 from
+  the spec, so no `aws`/`mc` client is required; `--dry-run` prints the plan and
+  `--selftest` validates the config without touching the network. It checks the
+  credentials with a `ListBuckets` probe first, so a wrong key is reported as
+  "credentials rejected" rather than mistaken for a missing bucket.
+- Then bring Convex up against ONYX (`make convex-up`); it reads the same
+  `ONYX_S3_*` values for its file and export buckets. Leaving the endpoint blank
+  is a supported state — Convex then keeps files on its own data volume.
+- ONYX tiers a bucket `local` / `cloud` / `tiered` through its own control API;
+  AthenIQ's two buckets are plain local buckets.
+
 ## Open Generative AI — course media studio
 
 **Upstream:** https://github.com/anil-matcha/open-generative-ai
@@ -95,7 +133,7 @@ authors use it to produce course thumbnails, explainer visuals, and short
 lesson media without leaving the platform.
 
 - Self-host the studio per its upstream README and expose it at
-  `studio-media.<domain>` (or keep it author-only on the LAN).
+  `media.<domain>` (or keep it author-only on the LAN).
 - Finished assets are exported to ONYX object storage and referenced by Open
   edX Studio courseware.
 - `OPEN_GENERATIVE_AI_URL` in `.env` points the authoring workflow at the
@@ -136,6 +174,41 @@ Every surface consumes the same Authentik tenant:
 - Groups: `atheniq-admins`, `instructors`, `learners`, `paid_users`
   (Magnate-managed).
 - Disable a user in Authentik → immediate loss of access everywhere.
+
+## Magnate — paid courses & entitlements (RevenueOps)
+
+**Stack surface:** Magnate owns billing, plans, and entitlements for the whole
+platform; AthenIQ never holds Stripe keys or a price.
+
+Paid courses gate on a Magnate **plan entitlement**, checked server-to-server
+with the shared bearer token (`ENTITLEMENTS_API_TOKEN` on Magnate):
+
+```bash
+make magnate-probe                                                    # reachability + token
+python3 scripts/magnate-entitlements.py check --user learner@x.edu --plan premium
+```
+
+- `entitled: true` → AthenIQ grants access (enrollment mode, course visibility,
+  or the `paid_users` Authentik group). `false` → it does not. Group membership
+  stays Authentik's job; Magnate only reports the billing decision.
+- The same token gates `POST /api/purchases`, AthenIQ's path to sell one course
+  as a one-off hosted Checkout item without any Stripe key of its own:
+
+  ```bash
+  python3 scripts/magnate-entitlements.py buy \
+    --course course-v1:Innotel+TEST101+2026_T1 \
+    --name "TEST101 — certificate" --amount-cents 4900 --user learner
+  ```
+
+  The course key and username ride along in the item's `metadata`.
+- Magnate's purchase-completion callback (`purchase.completed`, header
+  `X-Magnate-Signature` = HMAC-SHA256 over the raw body) is a **single
+  platform-wide hook** (`MAGNATE_PURCHASE_FULFILLMENT_URL` on Magnate), already
+  claimed by another consumer in this estate. AthenIQ therefore treats the plan
+  *entitlement* as the gate and does not depend on owning that hook; if it ever
+  does, `magnate-entitlements.py verify-signature` validates the callback.
+- Cancellation and expiry need no separate plumbing: when Magnate reports
+  `entitled: false` (or the user leaves `paid_users`), paid-course access ends.
 
 ## Signara — signed course certificates (DocumentOps)
 
@@ -178,6 +251,10 @@ High-signal variables:
 | `OMNIROUTE_BASE_URL` / `OMNIROUTE_API_KEY` / `OMNIROUTE_MODEL` | Model gateway endpoint, key, default model |
 | `OPENMAIC_*` / `PERSISTENCE_*` | OpenMAIC persistence Postgres + tokens |
 | `CONVEX_SELF_HOSTED_URL` / `CONVEX_SELF_HOSTED_ADMIN_KEY` | Self-hosted Convex endpoint + admin key |
+| `ONYX_S3_ENDPOINT` / `ONYX_S3_ACCESS_KEY` / `ONYX_S3_SECRET_KEY` | ONYX S3-compatible endpoint + credential for classroom media (`make onyx-buckets`) |
+| `ONYX_S3_BUCKET_FILES` / `ONYX_S3_BUCKET_EXPORTS` | Convex's ONYX buckets (default `atheniq-files` / `atheniq-exports`) |
+| `MAGNATE_API_URL` / `MAGNATE_ENTITLEMENTS_TOKEN` | Magnate base URL + shared entitlement/purchase bearer token |
+| `MAGNATE_PAID_PLAN` | Plan slug that gates paid courses/tracks |
 | `OPEN_GENERATIVE_AI_URL` | Media studio API base |
 | `SIGNARA_API_URL` / `SIGNARA_API_KEY` | Certificate signing submission (machine auth via `X-API-Key`) |
 | `CERT_SIGNER_NAME` / `CERT_SIGNER_EMAIL` / `CERT_SIGNER_TITLE` | Issuer/signatory on certificate signing requests |

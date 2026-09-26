@@ -9,8 +9,9 @@
 #   docker compose --profile openmaic up -d   # OpenMAIC persistence Postgres
 #
 # AthenIQ runs no model gateway of its own. The platform runs ONE OmniRoute, in
-# Group 2 (`2-voice/`, mesh `10.10.2.1`, API and dashboard both on :20128); point
-# OMNIROUTE_BASE_URL at it. See .env.example and §10.4 of
+# Group 2 (`2-voice/`, mesh `10.10.2.1`). Its own :20128 is not a routable
+# target; callers dial the identity-aware SSO door in front of it, :20129, and
+# point OMNIROUTE_BASE_URL there. See .env.example and §10.4 of
 # ips/docs/convergence-onyx-olympus-distro-atlas.md.
 #
 #   docker compose --profile convex up -d    # realtime classrooms

@@ -8,7 +8,8 @@ SHELL := /bin/bash
 
 .PHONY: help setup up down logs ps \
         openmaic-up openmaic-down convex-up convex-down convex-key \
-        check-commits check-compose tutor-quickstart
+        onyx-check onyx-buckets onyx-selftest magnate-probe \
+        check-commits check-compose check-tracks tutor-quickstart
 
 help: ## Show this help message
 	@echo "AthenIQ — operator workflow"
@@ -54,6 +55,27 @@ convex-down: ## Stop Convex (keeps its data volume)
 
 convex-key: ## Mint a Convex admin key from the running backend (paste into .env)
 	@docker compose --profile convex exec -T convex ./generate_admin_key.sh
+
+## ---- Storage on ONYX (classroom media) ------------------------------------
+
+onyx-check: ## Verify the ONYX classroom-media buckets are reachable (read-only)
+	python3 scripts/onyx-buckets.py --check
+
+onyx-buckets: ## Create the ONYX classroom-media buckets (idempotent)
+	python3 scripts/onyx-buckets.py --create
+
+onyx-selftest: ## Validate the ONYX config + SigV4 signing (no network)
+	python3 scripts/onyx-buckets.py --selftest
+
+## ---- Revenue on Magnate (paid courses) ------------------------------------
+
+magnate-probe: ## Check the Magnate entitlement API is reachable + creds accepted
+	python3 scripts/magnate-entitlements.py probe
+
+## ---- Workforce tracks -----------------------------------------------------
+
+check-tracks: ## Validate the workforce-tracks catalog
+	python3 scripts/check-workforce-tracks.py
 
 ## ---- Checks ---------------------------------------------------------------
 
