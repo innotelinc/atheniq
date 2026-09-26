@@ -33,9 +33,11 @@ mode deliberately verifies *presence and dimensions*, not byte equality, so it
 is stable across Pillow versions; regenerate with `make images`.
 """
 import argparse
+import base64
 import importlib.util
 import json
 import os
+import re
 import sys
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -87,6 +89,22 @@ def _font(weight, size):
             return ImageFont.truetype(path, size)
     # Pillow >= 10 bundles a scalable default face.
     return ImageFont.load_default(size=size)
+
+
+def inline_favicon(repo=REPO):
+    """The favicon as a self-contained `data:` URI.
+
+    The Innotel Platform Stack's conformity audit requires every landing page to
+    carry a *self-contained* SVG favicon, so it is embedded in the page rather
+    than linked. An inlined icon is also cache-busted with the page itself — it
+    can never be served stale from a separate URL.
+    """
+    path = os.path.join(repo, "web", "landing", "assets", "favicon.svg")
+    with open(path) as fh:
+        svg = fh.read().strip()
+    svg = re.sub(r">\s+<", "><", svg)
+    svg = re.sub(r"\s{2,}", " ", svg)
+    return "data:image/svg+xml;base64," + base64.b64encode(svg.encode()).decode()
 
 
 def _load_module(name, path):

@@ -35,6 +35,7 @@ def _load_module(name, path):
 
 
 VALIDATOR = _load_module("check_course_olx", os.path.join(REPO, "scripts", "check-course-olx.py"))
+IMAGES = _load_module("build_course_images", os.path.join(REPO, "scripts", "build-course-images.py"))
 
 
 def _text(node, attr="display_name"):
@@ -102,6 +103,7 @@ def _e(text):
 
 
 def render(model):
+    favicon = IMAGES.inline_favicon()
     chapters = []
     for i, chapter in enumerate(model["chapters"], start=1):
         subsections = []
@@ -137,7 +139,7 @@ def render(model):
   <title>{_e(model['title'])} — Syllabus — AthenIQ</title>
   <meta name="description" content="Syllabus for {_e(model['title'])}.">
   <meta property="og:image" content="https://innotelinc.github.io/atheniq/assets/atheniq-og.png">
-  <link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+  <link rel="icon" href="{favicon}">
   <link rel="icon" type="image/png" sizes="32x32" href="../../assets/favicon-32.png">
   <link rel="apple-touch-icon" href="../../assets/apple-touch-icon.png">
   <style>

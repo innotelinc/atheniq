@@ -39,6 +39,7 @@ def _load_module(name, path):
 
 
 VALIDATOR = _load_module("check_course_olx", os.path.join(REPO, "scripts", "check-course-olx.py"))
+IMAGES = _load_module("build_course_images", os.path.join(REPO, "scripts", "build-course-images.py"))
 
 
 def access_label(entry):
@@ -93,6 +94,7 @@ def _e(text):
 
 
 def render(model):
+    favicon = IMAGES.inline_favicon()
     track_by_id = {t["id"]: t for t in model["tracks"]}
     course_by_key = {c["key"]: c for c in model["courses"]}
 
@@ -132,7 +134,7 @@ def render(model):
   <title>Course catalog — AthenIQ</title>
   <meta name="description" content="Every track and course AthenIQ delivers, generated from the repository's catalogs and OLX packages.">
   <meta property="og:image" content="https://innotelinc.github.io/atheniq/assets/atheniq-og.png">
-  <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <link rel="icon" href="{favicon}">
   <link rel="icon" type="image/png" sizes="32x32" href="../assets/favicon-32.png">
   <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
   <style>

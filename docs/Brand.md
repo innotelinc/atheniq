@@ -42,6 +42,13 @@ When the mark, the palette, or the typography changes, regenerate the rasters wi
 `make images` in the same change — the generator mirrors the tokens and the mark
 geometry documented here, so the two never drift apart.
 
+Every landing/syllabus page also embeds the favicon **inline**, as a
+`data:image/svg+xml` URI (`scripts/build-course-images.py:inline_favicon`). The
+Innotel Platform Stack's conformity audit requires the icon to be self-contained,
+and an inlined icon is cache-busted with the page itself, so it can never be served
+stale from a separate URL. Update the SVG master and the embedded copy together;
+the tests fail if they diverge.
+
 **Clear space.** Leave at least the width of one chevron (≈ 1/4 of the mark) around
 the mark on every side. Do not stretch, rotate, recolour, or add effects.
 
