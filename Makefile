@@ -10,8 +10,8 @@ SHELL := /bin/bash
         openmaic-up openmaic-down convex-up convex-down convex-key \
         onyx-check onyx-buckets onyx-selftest magnate-probe \
         paid-status entitlement-status entitlement-sync \
-        check-commits check-compose check-tracks check-courses check-catalog check-syllabus \
-        catalog syllabus course-bundle course-import test tutor-quickstart
+        check-commits check-compose check-tracks check-courses check-catalog check-syllabus check-images \
+        catalog syllabus images course-bundle course-import test tutor-quickstart
 
 help: ## Show this help message
 	@echo "AthenIQ — operator workflow"
@@ -95,6 +95,12 @@ syllabus: ## Regenerate the per-course syllabus pages from the OLX outlines
 
 check-syllabus: ## Fail if a syllabus page is stale
 	python3 scripts/build-course-syllabus.py --check
+
+images: ## Render the PNG brand + course-card assets (needs Pillow)
+	python3 scripts/build-course-images.py
+
+check-images: ## Fail if a PNG raster is missing or mis-sized
+	python3 scripts/build-course-images.py --check
 
 course-bundle: ## Bundle each OLX course into dist/courses/*.tar.gz
 	python3 scripts/import-courses.py --bundle

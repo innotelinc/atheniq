@@ -54,7 +54,11 @@ tutor local launch            # idempotent full deployment on later runs
   the new key. `make course-import` bundles and imports every package into the
   running CMS (preview first with `python3 scripts/import-courses.py`), and
   `make course-bundle` writes the `dist/courses/*.tar.gz` archives without touching
-  the LMS.
+  the LMS. Each package ships its course card as a rendered PNG
+  (`static/<slug>-course-card.png`, the policy's `course_image`), because the Open
+  edX course card does not render SVG; `make images` regenerates the rasters and
+  `make check-images` verifies them in CI (`pip install Pillow` is the only extra
+  dependency). See [`docs/Brand.md`](Brand.md) for the asset set.
 - To converge the LMS on the repo's courseware automatically, install the import
   timer (daily, and on boot):
 
