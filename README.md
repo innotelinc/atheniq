@@ -141,6 +141,7 @@ atheniq/
 ├── docker-compose.yml         # AI + realtime services: OpenMAIC Postgres, Convex
 ├── scripts/                   # setup, cert bridge, ONYX buckets, Magnate client, checks
 ├── config/                    # workforce-tracks.json catalog
+├── tests/                     # stdlib unit tests (make test)
 ├── .env.example               # Environment template (never commit .env)
 └── Makefile                   # Operator workflow
 ```
@@ -154,7 +155,9 @@ make up            # openmaic + convex profiles
 make convex-key    # mint a Convex admin key from the running backend
 make onyx-check    # verify ONYX is ready for classroom media
 make magnate-probe # paid-course entitlement API reachable + token accepted
+make entitlement-status # Magnate -> Authentik paid-access reconciliation
 make check-tracks  # validate the workforce-tracks catalog
+make test          # unit tests (stdlib unittest)
 make check-commits
 make check-compose
 ```

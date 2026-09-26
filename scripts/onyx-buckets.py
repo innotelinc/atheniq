@@ -105,24 +105,34 @@ def _uri_encode(path):
     return urllib.parse.quote(path, safe="/-_.~")
 
 
-def build_auth(method, host, path, access_key, secret_key, region, now=None):
-    """Return the SigV4 Authorization header for an empty-body S3 request."""
-    now = now or time.gmtime()
-    amzdate = time.strftime("%Y%m%dT%H%M%SZ", now)
-    datestamp = time.strftime("%Y%m%d", now)
+def _collapse(value):
+    # Header values are folded (trimmed, internal runs of spaces -> one) for the
+    # canonical request, matching the AWS rule.
+    return " ".join(str(value).split())
 
-    canonical_headers = f"host:{host}\nx-amz-content-sha256:{EMPTY_SHA256}\nx-amz-date:{amzdate}\n"
-    signed_headers = "host;x-amz-content-sha256;x-amz-date"
+
+def build_authorization(method, host, path, access_key, secret_key, region,
+                        service, headers, payload_hash, amzdate):
+    """Return the SigV4 Authorization header for an explicit header set.
+
+    This is the general form; `build_auth` is the S3 bucket-request wrapper.
+    It is separate so the algorithm can be pinned to the published AWS test
+    vectors in the unit tests (service `service`, a specific header set).
+    """
+    datestamp = amzdate[:8]
+    names = sorted(headers)
+    canonical_headers = "".join(f"{name}:{_collapse(headers[name])}\n" for name in names)
+    signed_headers = ";".join(names)
     canonical_request = "\n".join([
         method,
         _uri_encode(path),
         "",  # canonical query string
         canonical_headers,
         signed_headers,
-        EMPTY_SHA256,
+        payload_hash,
     ])
 
-    scope = f"{datestamp}/{region}/s3/aws4_request"
+    scope = f"{datestamp}/{region}/{service}/aws4_request"
     string_to_sign = "\n".join([
         ALGORITHM,
         amzdate,
@@ -130,16 +140,28 @@ def build_auth(method, host, path, access_key, secret_key, region, now=None):
         hashlib.sha256(canonical_request.encode("utf-8")).hexdigest(),
     ])
     signature = hmac.new(
-        signing_key(secret_key, datestamp, region, "s3"),
+        signing_key(secret_key, datestamp, region, service),
         string_to_sign.encode("utf-8"),
         hashlib.sha256,
     ).hexdigest()
-
     return (
         f"{ALGORITHM} Credential={access_key}/{scope}, "
-        f"SignedHeaders={signed_headers}, Signature={signature}",
-        amzdate,
+        f"SignedHeaders={signed_headers}, Signature={signature}"
     )
+
+
+def build_auth(method, host, path, access_key, secret_key, region, now=None, service="s3"):
+    """Return the SigV4 Authorization header for an empty-body S3 request."""
+    now = now or time.gmtime()
+    amzdate = time.strftime("%Y%m%dT%H%M%SZ", now)
+    headers = {
+        "host": host,
+        "x-amz-content-sha256": EMPTY_SHA256,
+        "x-amz-date": amzdate,
+    }
+    auth = build_authorization(method, host, path, access_key, secret_key, region,
+                               service, headers, EMPTY_SHA256, amzdate)
+    return auth, amzdate
 
 
 def s3_request(method, endpoint, bucket, access_key, secret_key, region,
