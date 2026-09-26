@@ -215,6 +215,25 @@ and verifies Magnate's signed purchase callbacks (`verify-signature`). The
 entitlement decision — not a local price — is what grants a learner access to a
 paid course; see [docs/Integrations.md](Integrations.md#magnate--paid-courses--entitlements-revenueops).
 
+Turn the entitlement into access, and keep it honest:
+
+```bash
+# grant one learner access to a paid course (idempotent); --revoke to remove it
+python3 scripts/paid-enrollment.py --user learner@x.edu \
+    --course course-v1:Innotel+TEST101+2026_T1
+python3 scripts/paid-enrollment.py --status       # enrollment ledger
+```
+
+The `learners` -> `paid_users` group membership converges on a timer, so a
+missed Magnate webhook or a restored Authentik DB heals itself. Set
+`AUTHENTIK_API_URL` / `AUTHENTIK_API_TOKEN` in `.env`, then install the unit:
+
+```bash
+sudo cp deploy/systemd/atheniq-entitlement-sync.service deploy/systemd/atheniq-entitlement-sync.timer /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now atheniq-entitlement-sync.timer
+make entitlement-status    # what it sees now, without writing
+```
+
 ## Cerulean DNS and TLS
 
 Public hosts are provisioned through Cerulean as usual for stack platforms:

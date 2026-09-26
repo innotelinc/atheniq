@@ -1,0 +1,16 @@
+[Unit]
+Description=AthenIQ -> Authentik entitlement sync (reconcile Magnate paid access)
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# Runs one reconciliation pass over the `learners` group and exits. Needs the
+# Magnate entitlement API and Authentik reachable; credentials come from the
+# repo .env (MAGNATE_ENTITLEMENTS_TOKEN, AUTHENTIK_API_TOKEN). A pass that
+# cannot determine an entitlement changes nothing, so a brief outage is safe.
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 /usr/src/projects/complete/atheniq/scripts/entitlement-sync.py
+
+[Install]
+WantedBy=multi-user.target

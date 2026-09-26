@@ -9,7 +9,8 @@ SHELL := /bin/bash
 .PHONY: help setup up down logs ps \
         openmaic-up openmaic-down convex-up convex-down convex-key \
         onyx-check onyx-buckets onyx-selftest magnate-probe \
-        check-commits check-compose check-tracks tutor-quickstart
+        paid-status entitlement-status entitlement-sync \
+        check-commits check-compose check-tracks test tutor-quickstart
 
 help: ## Show this help message
 	@echo "AthenIQ — operator workflow"
@@ -76,6 +77,22 @@ magnate-probe: ## Check the Magnate entitlement API is reachable + creds accepte
 
 check-tracks: ## Validate the workforce-tracks catalog
 	python3 scripts/check-workforce-tracks.py
+
+## ---- Paid access (enrollment + reconciliation) ----------------------------
+
+paid-status: ## Show the paid-enrollment ledger health (AthenIQ's LMS DB)
+	python3 scripts/paid-enrollment.py --status
+
+entitlement-status: ## Show Magnate -> Authentik paid-access reconciliation status
+	python3 scripts/entitlement-sync.py --status
+
+entitlement-sync: ## Preview the Magnate -> Authentik reconciliation (dry run)
+	python3 scripts/entitlement-sync.py --dry-run
+
+## ---- Tests ----------------------------------------------------------------
+
+test: ## Run the unit tests (stdlib unittest, no dependencies)
+	python3 -m unittest discover -s tests -p 'test_*.py' -v
 
 ## ---- Checks ---------------------------------------------------------------
 

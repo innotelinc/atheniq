@@ -209,6 +209,29 @@ python3 scripts/magnate-entitlements.py check --user learner@x.edu --plan premiu
   does, `magnate-entitlements.py verify-signature` validates the callback.
 - Cancellation and expiry need no separate plumbing: when Magnate reports
   `entitled: false` (or the user leaves `paid_users`), paid-course access ends.
+- **Enrolling the paid learner** — `scripts/paid-enrollment.py` turns the
+  entitlement into an Open edX enrollment (mode `PAID_ENROLLMENT_MODE`, default
+  `verified`), idempotently, and revokes it with `--revoke`. It reaches the LMS
+  through the Tutor MySQL container the same way the cert bridge does, and
+  ledgers every grant in `atheniq_paid_enrollment`:
+
+  ```bash
+  python3 scripts/paid-enrollment.py --user learner@x.edu \
+      --course course-v1:Innotel+TEST101+2026_T1
+  python3 scripts/paid-enrollment.py --status        # ledger health
+  ```
+
+- **Keeping group membership honest** — `scripts/entitlement-sync.py` walks the
+  `learners` group in Authentik and adds or removes `paid_users` to match the
+  plan entitlement, so a missed webhook, a restored database, or a manual plan
+  change converges on the next pass. An entitlement it cannot determine changes
+  nothing — an outage never revokes access. Run it on a timer via
+  [`deploy/systemd/atheniq-entitlement-sync.timer`](../deploy/systemd/atheniq-entitlement-sync.timer):
+
+  ```bash
+  make entitlement-status   # learners / paid / plan counts, no writes
+  make entitlement-sync     # dry run of the reconciliation
+  ```
 
 ## Signara — signed course certificates (DocumentOps)
 
@@ -255,6 +278,8 @@ High-signal variables:
 | `ONYX_S3_BUCKET_FILES` / `ONYX_S3_BUCKET_EXPORTS` | Convex's ONYX buckets (default `atheniq-files` / `atheniq-exports`) |
 | `MAGNATE_API_URL` / `MAGNATE_ENTITLEMENTS_TOKEN` | Magnate base URL + shared entitlement/purchase bearer token |
 | `MAGNATE_PAID_PLAN` | Plan slug that gates paid courses/tracks |
+| `PAID_ENROLLMENT_MODE` | Open edX enrollment mode granted on entitlement (default `verified`) |
+| `AUTHENTIK_API_URL` / `AUTHENTIK_API_TOKEN` | Authentik API access for the paid-access reconciler |
 | `OPEN_GENERATIVE_AI_URL` | Media studio API base |
 | `SIGNARA_API_URL` / `SIGNARA_API_KEY` | Certificate signing submission (machine auth via `X-API-Key`) |
 | `CERT_SIGNER_NAME` / `CERT_SIGNER_EMAIL` / `CERT_SIGNER_TITLE` | Issuer/signatory on certificate signing requests |
