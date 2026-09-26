@@ -37,6 +37,9 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Install image tooling (Pillow)
+        run: python -m pip install --disable-pip-version-check Pillow
+
       - name: Unit tests
         run: make test
 
@@ -51,6 +54,9 @@ jobs:
 
       - name: Validate the syllabus pages are current
         run: make check-syllabus
+
+      - name: Validate the PNG assets are current
+        run: make check-images
 
       - name: Validate compose (default)
         run: docker compose config --quiet

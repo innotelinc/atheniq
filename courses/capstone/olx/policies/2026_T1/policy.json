@@ -3,7 +3,7 @@
 "cert_html_view_enabled": true,
 "certificates_display_behavior": "CertificatesDisplayBehaviors.END",
 "certificates_show_before_end": true,
-"course_image": "capstone-course-card.svg",
+"course_image": "capstone-course-card.png",
 "certificates": {
 "certificates": [
 {

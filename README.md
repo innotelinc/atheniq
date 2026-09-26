@@ -163,6 +163,7 @@ make magnate-probe # paid-course entitlement API reachable + token accepted
 make entitlement-status # Magnate -> Authentik paid-access reconciliation
 make check-tracks  # validate the workforce-tracks catalog
 make check-courses # validate the OLX course packages under courses/
+make images        # render the PNG brand + course-card assets (needs Pillow)
 make test          # unit tests (stdlib unittest)
 make check-commits
 make check-compose

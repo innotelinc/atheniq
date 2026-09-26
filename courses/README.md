@@ -47,6 +47,24 @@ make check-catalog    # CI: fail if a generated page is stale
 make check-syllabus
 ```
 
+## Course card images (PNG)
+
+Each course keeps its card as a **vector master** (`static/<slug>-course-card.svg`)
+and a rendered **raster** (`static/<slug>-course-card.png`). The PNG is the LMS-facing
+`course_image` because the Open edX course card, social unfurlers, and app icons do
+not render SVG.
+
+```bash
+make images           # render every PNG with Pillow (no SVG rasteriser needed)
+make check-images     # CI: fail if a raster is missing or mis-sized
+```
+
+`scripts/build-course-images.py` derives the card text from the OLX package and
+[`config/workforce-tracks.json`](../config/workforce-tracks.json); it also renders the
+landing page's `favicon-32.png`, `apple-touch-icon.png`, and `atheniq-og.png`. Pillow
+is the only dependency (`pip install Pillow`), and the palette/geometry mirror
+[`docs/Brand.md`](../docs/Brand.md) — change the brand there first.
+
 ## Adding a course
 
 1. Create `courses/<course-slug>/olx/` in the Studio export layout (root
@@ -57,6 +75,7 @@ make check-syllabus
 3. Run the lints — they are wired into CI:
 
    ```bash
+   make images            # render the course card + brand PNGs
    make check-courses     # the OLX structure
    make check-tracks      # the workforce-track catalog
    make test              # unit tests

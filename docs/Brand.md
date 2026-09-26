@@ -25,6 +25,23 @@ motion. Two nested chevrons rise through a slanted orbit ring with a trailing no
 | [`web/landing/assets/atheniq-logo.svg`](../web/landing/assets/atheniq-logo.svg) | Horizontal lockup: mark + wordmark + "by Innotel Labs" |
 | [`web/landing/assets/favicon.svg`](../web/landing/assets/favicon.svg) | Square tile, for favicons and app icons |
 
+The SVG files above are the **vector masters**. Several consumers do not render SVG
+— the Open edX course card, Open Graph / social unfurls, and iOS/Android home-screen
+icons — so rendered **PNG** versions ship alongside them, produced by
+[`scripts/build-course-images.py`](../scripts/build-course-images.py) (`make images`,
+verified by `make check-images`). Pillow is the only dependency.
+
+| Raster | Size | Use |
+| --- | --- | --- |
+| [`web/landing/assets/favicon-32.png`](../web/landing/assets/favicon-32.png) | 32×32 | Browser tab |
+| [`web/landing/assets/apple-touch-icon.png`](../web/landing/assets/apple-touch-icon.png) | 180×180 | Home-screen / app icon |
+| [`web/landing/assets/atheniq-og.png`](../web/landing/assets/atheniq-og.png) | 1200×630 | Social / Open Graph card |
+| `courses/<slug>/olx/static/<slug>-course-card.png` | 1200×675 | LMS course card (`course_image`) |
+
+When the mark, the palette, or the typography changes, regenerate the rasters with
+`make images` in the same change — the generator mirrors the tokens and the mark
+geometry documented here, so the two never drift apart.
+
 **Clear space.** Leave at least the width of one chevron (≈ 1/4 of the mark) around
 the mark on every side. Do not stretch, rotate, recolour, or add effects.
 

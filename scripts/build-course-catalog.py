@@ -131,7 +131,10 @@ def render(model):
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Course catalog — AthenIQ</title>
   <meta name="description" content="Every track and course AthenIQ delivers, generated from the repository's catalogs and OLX packages.">
+  <meta property="og:image" content="https://innotelinc.github.io/atheniq/assets/atheniq-og.png">
   <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/favicon-32.png">
+  <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
   <style>
     :root {{
       color-scheme: dark;
