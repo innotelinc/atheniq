@@ -8,7 +8,7 @@ teaches the method, ITSP102 teaches the systems the method is applied to.
 | Course key | `course-v1:InnotelLabs+ITSP102+2026_T1` |
 | Track | `it-support` |
 | Grading | Homework 40% · Lab 20% · Final Exam 40% · pass at 70% |
-| Certificate | Open edX certificate, signed through Signara |
+| Certificate | AthenIQ certificate, signed through Signara |
 
 ## Outline
 

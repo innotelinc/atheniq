@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """AthenIQ — validate the OLX course packages under `courses/`.
 
-Each course is authored as Open Learning XML in the exact layout Open edX Studio
+Each course is authored as Open Learning XML in the exact layout AthenIQ Studio
 exports and imports: a root `course.xml`, a `course/<run>.xml` block, then
 `chapter/`, `sequential/`, `vertical/`, `html/` and `problem/` directories plus
 `policies/`, `about/` and `info/`. Keeping the courseware as data in the repo lets

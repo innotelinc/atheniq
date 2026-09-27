@@ -2,7 +2,7 @@
 """AthenIQ — grant or revoke paid-course access from a Magnate entitlement.
 
 This closes the revenue loop: Magnate decides *whether* a learner has paid, and
-this script turns that decision into an Open edX enrollment. It never prices or
+this script turns that decision into an AthenIQ enrollment. It never prices or
 charges anything — it reads the plan entitlement Magnate owns (see
 scripts/magnate-entitlements.py) and reflects it in the LMS.
 
@@ -16,7 +16,7 @@ Flow:
 
 The LMS is reached through the Tutor MySQL container exactly as
 `scripts/cert-bridge.py` reaches it, so no Django process has to be booted.
-Direct enrollment writes bypass Open edX signals (as the cert bridge's direct
+Direct enrollment writes bypass AthenIQ signals (as the cert bridge's direct
 certificate writes do); this is an operator tool for paid access, not a general
 enrollment API. `--dry-run` prints the SQL instead of running it.
 
@@ -292,7 +292,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--user", help="LMS username or email")
-    ap.add_argument("--course", help="Open edX course key")
+    ap.add_argument("--course", help="AthenIQ course key")
     ap.add_argument("--mode", help=f"enrollment mode (default {DEFAULTS['PAID_ENROLLMENT_MODE']})")
     ap.add_argument("--revoke", action="store_true", help="deactivate the enrollment")
     ap.add_argument("--force", action="store_true", help="skip the Magnate entitlement check")

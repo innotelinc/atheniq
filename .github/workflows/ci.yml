@@ -49,6 +49,9 @@ jobs:
       - name: Validate the OLX course packages
         run: make check-courses
 
+      - name: Validate the track gating plan
+        run: make check-gating
+
       - name: Validate the course catalog page is current
         run: make check-catalog
 
@@ -57,6 +60,9 @@ jobs:
 
       - name: Validate the PNG assets are current
         run: make check-images
+
+      - name: Validate the owl mark is in sync across the SVGs
+        run: make check-brand
 
       - name: Validate compose (default)
         run: docker compose config --quiet

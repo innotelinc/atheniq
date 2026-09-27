@@ -17,8 +17,9 @@ provides, and explicitly does not own.
 - Courseware delivery (LMS + Studio authoring)
 - Assessments, grading, and learner records
 - AI interactive classrooms (multi-agent lessons, quizzes, simulations)
-- Course completions and completion evidence
+- Course completions and completion evidence (course and track credentials)
 - Course media authoring workflows
+- White-label LMS/MFE branding (AthenIQ theme + MFE footer plugin)
 
 ## Provides
 
@@ -48,7 +49,7 @@ provides, and explicitly does not own.
 AthenIQ assembles upstream open-source projects rather than re-implementing
 them. They are integrated, not forked responsibilities:
 
-- **Tutor** (OverhangIO) — Dockerized Open edX LMS/CMS distribution
+- **Tutor** (OverhangIO) — Dockerized LMS/CMS distribution
 - **OpenMAIC** (THU-MAIC) — Open Multi-Agent Interactive Classroom
 - **Convex** (self-hosted backend) — realtime state for live classrooms
 - **Open Generative AI** (MuAPI studio) — course media generation

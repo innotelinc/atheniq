@@ -5,7 +5,7 @@ The repository keeps the *vector masters* as SVG: `web/landing/assets/*.svg` and
 each course's `static/<slug>-course-card.svg`. Some consumers, though, do not
 render SVG at all:
 
-  * the Open edX **course card** (Studio's "Course Card Image") wants a raster;
+  * the AthenIQ **course card** (Studio's "Course Card Image") wants a raster;
   * social unfurlers (Open Graph / Twitter cards) reject SVG;
   * iOS/Android home-screen icons (`apple-touch-icon`) must be PNG.
 
@@ -19,6 +19,10 @@ It emits:
   * `web/landing/assets/apple-touch-icon.png`  180×180 (home screen)
   * `web/landing/assets/atheniq-og.png`        1200×630 (social card)
   * `courses/<slug>/olx/static/<slug>-course-card.png`  1200×675 (LMS card)
+  * `contrib/atheniq-theme/lms/static/images/logo.png`        66×112 (LMS header)
+  * `contrib/atheniq-theme/lms/static/images/logo-white.png`  66×112 (dark header)
+  * `contrib/atheniq-theme/lms/static/images/favicon.ico`      64×64  (multi-size icon)
+  * `contrib/atheniq-theme/mfe/footer-logo.png`               480×120 (MFE footer)
 
 Both the SVG masters and these rasters derive from `docs/Brand.md`; keep the
 palette, the mark geometry, and this file in step.
@@ -50,6 +54,19 @@ TRACKS_FILE = os.path.join(REPO, "config", "workforce-tracks.json")
 CARD_SIZE = (1200, 675)
 CARD_SCALE = 1.5
 
+# White-label assets for the running Tutor stack (see contrib/atheniq-theme).
+THEME_DIR = os.path.join(REPO, "contrib", "atheniq-theme")
+# Indigo's header logo canvas; the header CSS sizes it to `height: 48px`.
+LMS_LOGO_SIZE = (66, 112)
+# The learner MFE footer pins its logo image to `width: 120px`.
+MFE_FOOTER_SIZE = (400, 120)
+FAVICON_ICO_SIZE = (64, 64)
+FAVICON_ICO_SIZES = [(16, 16), (32, 32), (48, 48), (64, 64)]
+# The favicon tile draws the mark at this fraction of the tile's height, so the
+# owl fills the icon without touching the rounded corners. `favicon_transform`
+# derives the matching SVG transform from it — the two must agree.
+FAVICON_MARK_HEIGHT = 0.74
+
 # --- Brand tokens (mirrors docs/Brand.md) ---------------------------------
 BG = (10, 17, 24)          # --p-bg        #0a1118
 TILE_BG = (11, 18, 32)     # favicon tile  #0b1220
@@ -57,8 +74,7 @@ TEXT = (238, 244, 248)     # --p-text      #eef4f8
 MUTED = (147, 164, 177)    # --p-text-muted #93a4b1
 ACCENT_HOVER = (52, 211, 153)   # --p-accent-hover #34d399
 ACCENT = (16, 185, 129)    # --p-accent    #10b981
-NODE = (110, 231, 183)     # trailing orbit node #6ee7b7
-RING = (52, 211, 153, 115)  # orbit stroke, ~0.45 alpha
+NODE = (110, 231, 183)     # IQ spark / owl pupils #6ee7b7
 GRADIENT_STOPS = [(0.0, (5, 150, 105)), (0.55, (16, 185, 129)), (1.0, (52, 211, 153))]
 
 try:
@@ -89,6 +105,11 @@ def _font(weight, size):
             return ImageFont.truetype(path, size)
     # Pillow >= 10 bundles a scalable default face.
     return ImageFont.load_default(size=size)
+
+
+def theme_images_dir(repo=REPO):
+    """Where the white-label LMS/maintenance rasters live in the repository."""
+    return os.path.join(repo, "contrib", "atheniq-theme", "lms", "static", "images")
 
 
 def inline_favicon(repo=REPO):
@@ -142,10 +163,73 @@ def _gradient(size, stops=GRADIENT_STOPS):
     return small.resize(size, Image.BILINEAR)
 
 
-# --- The mark (ascending chevrons through a slanted orbit) ----------------
+# --- The mark (Athene's owl: eye rings, beak, tufts, IQ spark) -------------
+
+# Mark geometry in 64-unit space; mirrored exactly by the SVG masters.
+# The 2026 refresh: a bolder owl — two large eye rings that touch at the brow,
+# a heavy monoline, a solid beak and a four-point IQ spark, so the mark reads as
+# one bold glyph from favicon to hero. Keep this block and every SVG in step
+# (docs/Brand.md).
+EYE_RINGS = ((22.0, 30.5), (42.0, 30.5))
+EYE_R = 10.5
+EYE_STROKE = 4.2
+# The pupil is deliberately smaller than the ring's inner radius: at favicon
+# sizes the gap has to survive as a visible ring, so the pupil is a dot, not a
+# disc. Keep >= ~1px of gap at 20px (asserted by tests/test_course_images.py).
+PUPIL_R = 2.8
+TUFTS = (((16.0, 22.0), (11.0, 12.5)), ((48.0, 22.0), (53.0, 12.5)))
+BEAK = ((28.8, 36.5), (35.2, 36.5), (32.0, 43.5))
+# A four-point spark crowning the owl.
+SPARK = ((32.0, 5.4), (34.6, 11.6), (32.0, 17.8), (29.4, 11.6))
+
+
+def mark_bounds():
+    """The mark's visual box in 64-unit space, stroke included.
+
+    Derived from the geometry above so a shape tweak can never leave the
+    centring maths (favicon tile, LMS logo, footer lockup) behind.
+    """
+    xs = ([cx - EYE_R for cx, _ in EYE_RINGS] + [cx + EYE_R for cx, _ in EYE_RINGS]
+          + [p[0] for tuft in TUFTS for p in tuft] + [p[0] for p in SPARK]
+          + [p[0] for p in BEAK])
+    ys = ([cy - EYE_R for _, cy in EYE_RINGS] + [cy + EYE_R for _, cy in EYE_RINGS]
+          + [p[1] for tuft in TUFTS for p in tuft] + [p[1] for p in SPARK]
+          + [p[1] for p in BEAK])
+    half = EYE_STROKE / 2
+    return (min(xs) - half, min(ys) - half, max(xs) + half, max(ys) + half)
+
+
+def favicon_transform(tile=64.0):
+    """(tx, ty, scale) that centres the mark in a `tile`-square SVG favicon.
+
+    Derived from the geometry so a shape tweak can never leave the favicon
+    behind; `scripts/check-brand-mark.py` fails if the SVG drifts from it.
+    """
+    x0, y0, x1, y1 = mark_bounds()
+    scale = tile * FAVICON_MARK_HEIGHT / (y1 - y0)
+    tx = tile / 2 - (x0 + x1) / 2 * scale
+    ty = tile / 2 - (y0 + y1) / 2 * scale
+    return (round(tx, 2), round(ty, 2), round(scale, 3))
+
+
+def favicon_transform_attr(tile=64.0):
+    """The exact `transform="..."` the favicon SVG must carry."""
+    tx, ty, scale = favicon_transform(tile)
+    return f"translate({tx} {ty}) scale({scale})"
+
+
+def _place_mark(base, cx, cy, height):
+    """Draw the mark so its visible box is centred on (cx, cy) at `height` tall."""
+    x0, y0, x1, y1 = mark_bounds()
+    scale = height / (y1 - y0)
+    ox = cx - (x0 + x1) / 2 * scale
+    oy = cy - (y0 + y1) / 2 * scale
+    _draw_mark(base, ox, oy, scale)
+    return scale
+
 
 def _draw_mark(base, ox, oy, scale):
-    """Draw the brand mark at (ox, oy) in 64-unit space, scaled by `scale`."""
+    """Draw the AthenIQ owl mark at (ox, oy) in 64-unit space, scaled by `scale`."""
     size = int(round(64 * scale))
     pad = int(round(10 * scale))
     side = size + 2 * pad
@@ -153,39 +237,35 @@ def _draw_mark(base, ox, oy, scale):
     def pt(x, y):
         return (pad + x * scale, pad + y * scale)
 
-    # Orbit ring: an ellipse, rotated -18° about its centre.
-    ring = Image.new("RGBA", (side, side), (0, 0, 0, 0))
-    ring_draw = ImageDraw.Draw(ring)
-    cx, cy = pt(32, 30)
-    rx, ry = 27 * scale, 10 * scale
-    ring_draw.ellipse([cx - rx, cy - ry, cx + rx, cy + ry],
-                      outline=RING, width=max(1, round(1.6 * scale)))
-    ring = ring.rotate(-18, resample=Image.BICUBIC, center=(cx, cy))
-
-    # Chevrons: two nested "V" strokes, filled with the brand gradient.
-    stroke = max(1, round(7 * scale))
+    # Gradient pass: the two eye rings, the ear tufts and the beak. Round the
+    # tuft caps by stamping circles at both ends (Pillow lines have no caps).
+    stroke = max(2, round(EYE_STROKE * scale))
     mask = Image.new("L", (side, side), 0)
     mask_draw = ImageDraw.Draw(mask)
-    # Each chevron is a two-segment "V"; round its joints and caps by stamping
-    # circles at every vertex (Pillow lines support joint="curve" but not caps).
-    for apex, (left, right) in (((32, 27), ((15, 44), (49, 44))),
-                                ((32, 22), ((23, 31), (41, 31)))):
-        vertices = [left, apex, right]
-        mask_draw.line([pt(*v) for v in vertices], fill=255, width=stroke, joint="curve")
-        for x, y in (pt(*v) for v in vertices):
+    for (base_xy, tip_xy) in TUFTS:
+        mask_draw.line([pt(*base_xy), pt(*tip_xy)], fill=255, width=stroke)
+        for x, y in (pt(*base_xy), pt(*tip_xy)):
             r = stroke / 2
             mask_draw.ellipse([x - r, y - r, x + r, y + r], fill=255)
+    for cx0, cy0 in EYE_RINGS:
+        cx, cy = pt(cx0, cy0)
+        r = EYE_R * scale
+        mask_draw.ellipse([cx - r, cy - r, cx + r, cy + r], outline=255, width=stroke)
+    mask_draw.polygon([pt(*v) for v in BEAK], fill=255)
 
-    chevrons = Image.new("RGBA", (side, side), (0, 0, 0, 0))
-    chevrons.paste(_gradient((side, side)).convert("RGBA"), (0, 0), mask)
+    gradient = Image.new("RGBA", (side, side), (0, 0, 0, 0))
+    gradient.paste(_gradient((side, side)).convert("RGBA"), (0, 0), mask)
 
     tile = Image.new("RGBA", (side, side), (0, 0, 0, 0))
-    tile.alpha_composite(ring)
-    tile.alpha_composite(chevrons)
-    node = ImageDraw.Draw(tile)
-    nx, ny = pt(57, 22)
-    nr = 2.6 * scale
-    node.ellipse([nx - nr, ny - nr, nx + nr, ny + nr], fill=NODE)
+    tile.alpha_composite(gradient)
+
+    # Solid pass: the pupils and the IQ spark, both in the bright accent node.
+    solid = ImageDraw.Draw(tile)
+    for cx0, cy0 in EYE_RINGS:
+        cx, cy = pt(cx0, cy0)
+        r = PUPIL_R * scale
+        solid.ellipse([cx - r, cy - r, cx + r, cy + r], fill=NODE)
+    solid.polygon([pt(*v) for v in SPARK], fill=NODE)
 
     base.paste(tile, (int(round(ox - pad)), int(round(oy - pad))), tile)
 
@@ -217,7 +297,7 @@ def _draw_textlength(text, font):
 # --- Assets ----------------------------------------------------------------
 
 def render_course_card(code, title, subtitle):
-    """One 1200×675 Open edX course card, 16:9."""
+    """One 1200×675 AthenIQ course card, 16:9."""
     _require_pil()
     width, height = CARD_SIZE
     img = Image.new("RGB", (width, height), BG)
@@ -244,10 +324,44 @@ def render_mark_tile(size):
     ImageDraw.Draw(mask).rounded_rectangle([0, 0, size - 1, size - 1], radius=radius, fill=255)
     img.putalpha(mask)
 
-    scale = size * 0.78 / 64
-    ox = (size - 64 * scale) / 2
-    oy = (size - 64 * scale) / 2
-    _draw_mark(img, ox, oy, scale)
+    _place_mark(img, cx=size / 2, cy=size / 2, height=size * FAVICON_MARK_HEIGHT)
+    return img
+
+
+def render_lms_logo(white=False):
+    """The LMS header logo (Indigo's `images/logo.png` / `logo-white.png`).
+
+    Indigo's asset is 66×112 with the visible mark centred in a 48px band, and
+    the header CSS pins the image to `height: 48px`. Matching that canvas keeps
+    the header layout byte-for-byte identical; the owl's emerald gradient reads
+    on both the light and the dark header, so the two files are the same art.
+    """
+    _require_pil()
+    width, height = LMS_LOGO_SIZE
+    img = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    _place_mark(img, cx=width / 2, cy=56.0, height=48.0)
+    return img
+
+
+def render_mfe_footer_logo():
+    """The learner-MFE footer lockup: mark + dark wordmark, on transparency.
+
+    The MFE footer paints a light background (`--pgn-color-light-100`), so the
+    wordmark is drawn in the brand's near-black slate rather than white. The
+    footer `<img>` is pinned to `width: 120px`, so this is rendered ~4× for
+    crispness.
+    """
+    _require_pil()
+    width, height = MFE_FOOTER_SIZE
+    img = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    _place_mark(img, cx=52.0, cy=height / 2, height=height * 0.58)
+
+    draw = ImageDraw.Draw(img)
+    text_x, baseline = 110, 76
+    font = _fit_font("AthenIQ.", "bold", 62, width - text_x - 16)
+    ascent, _ = font.getmetrics()
+    x = _tracked(draw, (text_x, baseline - ascent), "AthenIQ", font, BG, 1.4)
+    draw.text((x + 4, baseline - ascent), ".", font=font, fill=ACCENT)
     return img
 
 
@@ -265,7 +379,7 @@ def render_og_card():
     end = _tracked(draw, (440, 236), "AthenIQ", _font("bold", 88), TEXT, 1.5)
     draw.text((end + 6, 236), ".", font=_font("bold", 88), fill=ACCENT_HOVER)
     draw.text((444, 352), "Learn what's real.", font=_font("semibold", 34), fill=ACCENT_HOVER)
-    draw.text((444, 400), "Open learning platform · Innotel Labs", font=_font("regular", 26), fill=MUTED)
+    draw.text((444, 400), "Named for Athene + IQ · Innotel Labs", font=_font("regular", 26), fill=MUTED)
 
     draw.rectangle([110, 470, 1090, 472], fill=(34, 50, 61))
     return img
@@ -302,10 +416,16 @@ def course_models(repo=REPO):
 
 def planned_outputs(repo=REPO):
     """Return [(path, (width, height))] for every raster this tool owns."""
+    theme = theme_images_dir(repo)
     out = [
         (os.path.join(repo, "web", "landing", "assets", "favicon-32.png"), (32, 32)),
         (os.path.join(repo, "web", "landing", "assets", "apple-touch-icon.png"), (180, 180)),
         (os.path.join(repo, "web", "landing", "assets", "atheniq-og.png"), (1200, 630)),
+        (os.path.join(theme, "logo.png"), LMS_LOGO_SIZE),
+        (os.path.join(theme, "logo-white.png"), LMS_LOGO_SIZE),
+        (os.path.join(theme, "favicon.ico"), FAVICON_ICO_SIZE),
+        (os.path.join(repo, "contrib", "atheniq-theme", "mfe", "footer-logo.png"),
+         MFE_FOOTER_SIZE),
     ]
     for course in course_models(repo):
         out.append((os.path.join(course["olx"], "static",
@@ -316,10 +436,16 @@ def planned_outputs(repo=REPO):
 def build_all(repo=REPO):
     """Render every asset; return [(path, PIL.Image)]."""
     _require_pil()
+    theme = theme_images_dir(repo)
     rendered = [
         (os.path.join(repo, "web", "landing", "assets", "favicon-32.png"), render_mark_tile(32)),
         (os.path.join(repo, "web", "landing", "assets", "apple-touch-icon.png"), render_mark_tile(180)),
         (os.path.join(repo, "web", "landing", "assets", "atheniq-og.png"), render_og_card()),
+        (os.path.join(theme, "logo.png"), render_lms_logo()),
+        (os.path.join(theme, "logo-white.png"), render_lms_logo(white=True)),
+        (os.path.join(theme, "favicon.ico"), render_mark_tile(64)),
+        (os.path.join(repo, "contrib", "atheniq-theme", "mfe", "footer-logo.png"),
+         render_mfe_footer_logo()),
     ]
     for course in course_models(repo):
         image = render_course_card(course["code"], course["title"], course["subtitle"])
@@ -368,7 +494,10 @@ def main():
 
     for path, image in build_all():
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        image.save(path, "PNG", optimize=True)
+        if path.endswith(".ico"):
+            image.save(path, "ICO", sizes=FAVICON_ICO_SIZES)
+        else:
+            image.save(path, "PNG", optimize=True)
         print(f"wrote {os.path.relpath(path, REPO)}  {image.size[0]}×{image.size[1]}")
 
 

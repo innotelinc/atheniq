@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tutor-atheniq-mfe"
+version = "0.1.0"
+description = "AthenIQ white-label footer for the Tutor/Open edX learner MFEs"
+
+[project.entry-points."tutor.plugin.v0"]
+atheniqmfe = "atheniqmfe.plugin"
+
+[tool.setuptools]
+packages = ["atheniqmfe"]

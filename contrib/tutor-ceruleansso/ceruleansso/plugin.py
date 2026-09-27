@@ -1,8 +1,8 @@
-"""Cerulean (Authentik) OIDC single sign-on for Open edX (AthenIQ)."""
+"""Cerulean (Authentik) OIDC single sign-on for AthenIQ."""
 from tutor import hooks as _tutor_hooks
 
 # Shared settings applied to BOTH the LMS (learn) and CMS (studio). These make
-# the Open edX OIDC social-auth backend point at the Cerulean Authentik
+# the AthenIQ OIDC social-auth backend point at the Cerulean Authentik
 # provider (client "atheniq-lms") and force HTTPS redirect_uri construction.
 #
 # NOTE on the client secret: it is intentionally NOT hardcoded here. Set it in
@@ -17,7 +17,7 @@ AUTHENTICATION_BACKENDS = list(AUTHENTICATION_BACKENDS) + [
     "social_core.backends.open_id_connect.OpenIdConnectAuth",
 ]
 SOCIAL_AUTH_OIDC_OIDC_ENDPOINT = "https://auth.cerulean.innotel.us/application/o/atheniq-lms"
-# The Tutor Open edX plugin hardcodes SOCIAL_AUTH_REDIRECT_IS_HTTPS=False in the
+# The Tutor AthenIQ plugin hardcodes SOCIAL_AUTH_REDIRECT_IS_HTTPS=False in the
 # CMS (studio) settings template. With that off, the CMS builds the redirect_uri from
 # the REQUEST scheme (HTTP, because the Caddy/NPM edge terminates TLS and proxies
 # HTTP into the container), which does not match the registered
@@ -26,13 +26,13 @@ SOCIAL_AUTH_OIDC_OIDC_ENDPOINT = "https://auth.cerulean.innotel.us/application/o
 SOCIAL_AUTH_REDIRECT_IS_HTTPS = True
 """
 
-# CMS (Studio) extra settings. Stock Open edX leaves the CMS without the
+# CMS (Studio) extra settings. Stock AthenIQ leaves the CMS without the
 # third_party_auth machinery ("LMS only, not CMS") and Studio's own login uses
 # the internal `edx-oauth2` backend, so several LMS-only pieces must be
 # replicated here for Cerulean SSO to complete in Studio:
-#   * SOCIAL_AUTH_PIPELINE  - Open edX TPA pipeline (profile-aware user create,
+#   * SOCIAL_AUTH_PIPELINE  - AthenIQ TPA pipeline (profile-aware user create,
 #     email association, logged-in cookies). Without it the CMS falls back to
-#     social-auth's raw pipeline, which fails to create Open edX users.
+#     social-auth's raw pipeline, which fails to create AthenIQ users.
 #   * INSTALLED_APPS/MIDDLEWARE - third_party_auth must be installed for the
 #     pipeline + its ExceptionMiddleware (turns social errors into redirects).
 #   * TPA_PROVIDER_*_THROTTLE - only defined in lms/envs/common.py; the TPA API

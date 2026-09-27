@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """AthenIQ → Signara certificate bridge.
 
-Watches the Open edX LMS for newly issued course certificates and pushes each
+Watches the AthenIQ LMS for newly issued course certificates and pushes each
 one through Signara's signing workflow, producing a signed certificate PDF that
 the learner can view and verify in the Signara portal (the stack's sole
 DocumentOps surface).
@@ -14,12 +14,18 @@ Flow per certificate (mirrors docs/Integrations.md §Signara):
   5. sign it via the signer's public token,
   6. record the outcome in a ledger table so re-runs are idempotent.
 
+Each pass then issues any **workforce-track credentials** that have become due:
+when a learner holds certificates for every course in a track, the track's
+credential is signed through the same flow (detection lives in
+scripts/track-credential.py). Disable that half with `--no-track-credentials`.
+
 Usage:
     python3 scripts/cert-bridge.py --once            # one pass over new certs
     python3 scripts/cert-bridge.py --watch           # poll forever (default)
     python3 scripts/cert-bridge.py --dry-run         # show what would sync
     python3 scripts/cert-bridge.py --status          # ledger health (MySQL only)
     python3 scripts/cert-bridge.py --interval 120    # watch interval seconds
+    python3 scripts/cert-bridge.py --once --no-track-credentials  # course certs only
 
 PARTIAL rows (the document was uploaded but the signing request or signature
 failed) are auto-resumed on every pass: the bridge re-fetches the request,
@@ -35,6 +41,7 @@ Run it on the group-1 (Primary) host next to Tutor and Signara, e.g. under a
 simple cron or a `--watch` systemd unit.
 """
 import argparse
+import importlib.util
 import json
 import os
 import re
@@ -179,6 +186,65 @@ def pending_certs():
             "course_name": f[9], "org": f[10],
         })
     return certs
+
+
+TRACK_LEARNERS_QUERY = (
+    "SELECT au.username, au.email, COALESCE(ap.name, ''), "
+    "       GROUP_CONCAT(DISTINCT cc.course_id) "
+    "FROM certificates_generatedcertificate cc "
+    "JOIN auth_user au ON au.id = cc.user_id "
+    "LEFT JOIN auth_userprofile ap ON ap.user_id = au.id "
+    "WHERE cc.status = 'downloadable' "
+    "GROUP BY au.id, au.username, au.email, ap.name"
+)
+
+
+def _load_module(name, path):
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def sync_track_credentials(signara, dry_run):
+    """Issue workforce-track credentials for learners who have just completed a
+    whole ladder.
+
+    A course certificate is per-course; the **track** credential is a second
+    document, issued once every course in the track is passed. Rather than make
+    an operator notice that, the bridge checks it on every pass: for each learner
+    with downloadable certificates it computes the tracks they now complete and
+    signs any that are not already SIGNED. Detection and the Signara flow live in
+    scripts/track-credential.py so the two tools never drift apart.
+    """
+    tc = _load_module("atheniq_track_credential",
+                      os.path.join(REPO, "scripts", "track-credential.py"))
+    try:
+        with open(os.path.join(REPO, "config", "workforce-tracks.json")) as fh:
+            catalog = json.load(fh)
+    except (OSError, ValueError):
+        return 0
+
+    rows = mysql(TRACK_LEARNERS_QUERY)
+    issued = 0
+    for line in rows.splitlines():
+        if not line.strip():
+            continue
+        f = line.split("\t")
+        if len(f) < 4:
+            continue
+        learner = {"username": f[0], "email": f[1], "name": f[2]}
+        earned = [k.strip() for k in f[3].split(",") if k.strip()]
+        for track in tc.completed_tracks(catalog, earned):
+            if tc.credential_for(track) is None:
+                continue
+            if tc.ledger_status(track["id"], learner["username"]) == "SIGNED":
+                continue
+            print(f"  track {track['id']} complete for {learner['username']} "
+                  "— issuing credential")
+            tc.issue(signara, track, learner, dry_run)
+            issued += 1
+    return issued
 
 
 def learner_display_name(cert):
@@ -497,7 +563,7 @@ def sync_once(signara, dry_run, verbose):
     for cert in certs:
         learner = learner_display_name(cert)
         title = f"{cert['course_name'] or cert['course_id']} - Certificate of Completion ({learner})"
-        desc = (f"Open edX course completion certificate - {cert['course_id']} "
+        desc = (f"AthenIQ course completion certificate - {cert['course_id']} "
                 f"(grade {cert['grade']}), auto-synced by the AthenIQ cert bridge.")
         print(f"  [{cert['id']}] {learner} <{cert['email']}> — {cert['course_id']} grade {cert['grade']}")
         if dry_run:
@@ -571,6 +637,8 @@ def main():
     ap.add_argument("--status", action="store_true", help="print ledger health and exit (no Signara calls)")
     ap.add_argument("--interval", type=int, default=120, help="watch poll interval in seconds (default 120)")
     ap.add_argument("--insecure", action="store_true", help="disable TLS verification (demo hosts)")
+    ap.add_argument("--no-track-credentials", action="store_true",
+                    help="skip workforce-track credential issuance on this pass")
     args = ap.parse_args()
 
     env = load_dotenv(os.path.join(REPO, ".env"))
@@ -587,18 +655,26 @@ def main():
         raise SystemExit("SIGNARA_API_KEY is not set — see .env.example and docs/Deployment.md Stage 7.")
     signara = Signara(base, key, verify=not args.insecure)
 
+    track = not args.no_track_credentials
+
     if args.dry_run:
         sync_once(signara, dry_run=True, verbose=True)
+        if track:
+            sync_track_credentials(signara, dry_run=True)
         return
 
     if args.once:
         sync_once(signara, dry_run=False, verbose=True)
+        if track:
+            sync_track_credentials(signara, dry_run=False)
         return
 
     print(f"Watching for new certificates every {args.interval}s (Ctrl-C to stop).")
     while True:
         try:
             sync_once(signara, dry_run=False, verbose=True)
+            if track:
+                sync_track_credentials(signara, dry_run=False)
         except Exception as e:
             print(f"pass failed: {e}")
         time.sleep(args.interval)

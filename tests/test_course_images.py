@@ -84,6 +84,25 @@ class Rendering(unittest.TestCase):
         self.assertEqual(tile.convert("RGBA").getpixel((0, 0))[3], 0)
         self.assertEqual(tile.convert("RGBA").getpixel((90, 90))[3], 255)
 
+    def test_mark_tile_stays_open_at_favicon_size(self):
+        """The pupil must not fuse with the eye ring at 20px (Brand.md minimum)."""
+        size = 20
+        px = images.render_mark_tile(size).convert("RGBA").load()
+        x0, y0, x1, y1 = images.mark_bounds()
+        scale = size * images.FAVICON_MARK_HEIGHT / (y1 - y0)
+        ox = size / 2 - (x0 + x1) / 2 * scale
+        oy = size / 2 - (y0 + y1) / 2 * scale
+        ex = ox + images.EYE_RINGS[0][0] * scale
+        ey = oy + images.EYE_RINGS[0][1] * scale
+        inner = images.EYE_R - images.EYE_STROKE / 2
+        gap = 0
+        for i in range(8):
+            t = images.PUPIL_R + (i + 0.5) / 8 * (inner - images.PUPIL_R)
+            x, y = int(round(ex + t * scale)), int(round(ey))
+            if 0 <= x < size and 0 <= y < size and px[x, y][:3] == images.TILE_BG:
+                gap += 1
+        self.assertGreater(gap, 0, "pupil and eye ring fuse at 20px")
+
     def test_check_passes_on_the_committed_assets(self):
         self.assertEqual(images.check(), [])
 

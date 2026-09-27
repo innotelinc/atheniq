@@ -1,7 +1,7 @@
 # ==========================================================================
 # AthenIQ — operator compose for the AI services this repo directly runs.
 #
-# The LMS core (Tutor / Open edX) runs from Tutor's own compose project
+# The LMS core (Tutor) runs from Tutor's own compose project
 # (`tutor local`); OpenMAIC runs from its upstream repo. This file covers the
 # glue services AthenIQ owns: the OpenMAIC persistence Postgres. Profiles are
 # opt-in and additive.

@@ -20,7 +20,7 @@ Cerulean Vault, Cerulean, ONYX, Magnate, Signara).
           ┌────────────────────────┼────────────────────────────┐
           ▼                        ▼                            ▼
 ┌────────────────────┐   ┌────────────────────┐   ┌────────────────────────┐
-│   TUTOR / Open edX │   │      OpenMAIC      │   │  OpenClaw · OpenClaude │
+│   TUTOR / ATHENIQ  │   │      OpenMAIC      │   │  OpenClaw · OpenClaude │
 │  LMS + Studio (CMS)│   │  AI classrooms     │   │  agent layer           │
 │  catalog, enroll,  │   │  slides, quizzes,  │   │  skills, chat channels │
 │  grade, records    │   │  sims, PBL         │   └───────────┬────────────┘
@@ -48,7 +48,7 @@ Platform services consumed throughout:
 
 | Component | Role | Notes |
 | --- | --- | --- |
-| Tutor / Open edX | LMS core | Course catalog, enrollment, courseware, assessments, grading, learner records. Tutor runs its own containers (`tutor local`); this repo configures and operates it. |
+| Tutor / AthenIQ | LMS core | Course catalog, enrollment, courseware, assessments, grading, learner records. Tutor runs its own containers (`tutor local`); this repo configures and operates it. |
 | OpenMAIC | AI classroom | Multi-agent lesson generation (slides, quizzes, simulations, PBL) with AI teachers/classmates. Runs from its upstream repo (`docker compose --profile server-persistence`). |
 | Convex (self-hosted) | Realtime layer | Presence, chat, live quiz state, progress sync for classrooms and study groups. Backend on `:3210`, HTTP actions `:3211`, dashboard `:6791`. |
 | Open Generative AI | Media studio | Course image/video/lip-sync generation (MuAPI-powered) for Studio authors. |
@@ -73,7 +73,7 @@ surface at once.
 ### Enrollment → delivery
 Learner enrolls (via catalog, or a Magnate entitlement) in Tutor → course runs
 link OpenMAIC classroom sessions → live session state (presence, chat, quiz
-answers) syncs through self-hosted Convex → progress writes back to Open edX
+answers) syncs through self-hosted Convex → progress writes back to AthenIQ
 gradebook.
 
 ### Model traffic
@@ -82,7 +82,7 @@ OpenMAIC lessons and agent-layer requests call the OmniRoute endpoint
 operator has connected — no per-surface model keys, no cloud dependency.
 
 ### Completion → certificate
-Course completion in Open edX emits a completion event → AthenIQ prepares a
+Course completion in AthenIQ emits a completion event → AthenIQ prepares a
 completion record (learner, course, score, date, issuer) → Signara signs the
 course certificate through its signature workflows → the signed artifact is
 stored and returned to the learner record.
@@ -112,7 +112,7 @@ Studio courseware.
 ```
 internet ──► NGINX Proxy Manager (Cerulean-provisioned)
               ├── learn.<domain>      → Tutor LMS
-              ├── studio.<domain>     → Open edX Studio
+              ├── studio.<domain>     → AthenIQ Studio
               ├── classroom.<domain>  → OpenMAIC
               └── certs.<domain>      → Signara portal (shared)
 host network (private)

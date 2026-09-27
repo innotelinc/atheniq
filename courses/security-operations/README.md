@@ -9,7 +9,7 @@ team.
 | Course key | `course-v1:InnotelLabs+ITSP103+2026_T1` |
 | Track | `it-support` |
 | Grading | Homework 40% · Lab 20% · Final Exam 40% · pass at 70% |
-| Certificate | Open edX certificate, signed through Signara |
+| Certificate | AthenIQ certificate, signed through Signara |
 
 ## Outline
 

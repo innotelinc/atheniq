@@ -8,11 +8,11 @@ Cerulean) at production bring-up — `scripts/vault-migrate.py` moves this stack
 plaintext values into `cerulean/atheniq`, and `.env` must then carry the resolved
 values (see [docs/stack.md](stack.md)).
 
-## Tutor (Open edX) — the LMS core
+## Tutor — the LMS core
 
 **Upstream:** https://github.com/overhangio/tutor · AGPL-3.0
 
-Tutor is the Dockerized distribution of Open edX (LMS + Studio/CMS). AthenIQ
+Tutor is the Dockerized LMS distribution (LMS + Studio/CMS). AthenIQ
 uses it as the authoritative course engine: catalog, enrollment, courseware,
 assessments, grading, and learner records.
 
@@ -25,11 +25,16 @@ assessments, grading, and learner records.
   - **Domain/TLS** — set `LMS_HOST`, `CMS_HOST`, and the email/nginx settings so
     Cerulean-provisioned NGINX Proxy Manager hosts terminate TLS and forward.
   - **Storage** — point uploaded courseware at ONYX S3-compatible storage via
-    Open edX `DEFAULT_FILE_STORAGE` settings where media should not live on the
+    AthenIQ `DEFAULT_FILE_STORAGE` settings where media should not live on the
     LMS volume.
   - **Magnate** — paid enrollment uses Magnate webhooks → Authentik group
     membership → access in Tutor (same entitlement pattern as the rest of the
     stack).
+  - **White-label branding** — the LMS presents as AthenIQ: `PLATFORM_NAME`, the
+    [`contrib/atheniq-theme`](../contrib/atheniq-theme) footer/header/favicon
+    overrides applied with `make theme`, and the
+    [`contrib/tutor-atheniq-mfe`](../contrib/tutor-atheniq-mfe) plugin for the
+    learner-MFE footer (see [docs/Deployment.md](Deployment.md#branding--the-platform-is-atheniq)).
 - Tutor keeps its own upgrade path (`tutor local upgrade`); consult upstream
   release notes before major bumps.
 
@@ -40,7 +45,7 @@ assessments, grading, and learner records.
 OpenMAIC ("Open Multi-Agent Interactive Classroom") turns a topic or uploaded
 document into an interactive lesson: slides, quizzes, HTML simulations,
 project-based learning, and AI teachers/classmates. AthenIQ embeds OpenMAIC
-classrooms in courses and links them from Open edX units.
+classrooms in courses and links them from AthenIQ units.
 
 - Clone the upstream repo into `./services/OpenMAIC` at bring-up
   (`./setup.sh` prints the exact steps).
@@ -210,7 +215,7 @@ python3 scripts/magnate-entitlements.py check --user learner@x.edu --plan premiu
 - Cancellation and expiry need no separate plumbing: when Magnate reports
   `entitled: false` (or the user leaves `paid_users`), paid-course access ends.
 - **Enrolling the paid learner** — `scripts/paid-enrollment.py` turns the
-  entitlement into an Open edX enrollment (mode `PAID_ENROLLMENT_MODE`, default
+  entitlement into an AthenIQ enrollment (mode `PAID_ENROLLMENT_MODE`, default
   `verified`), idempotently, and revokes it with `--revoke`. It reaches the LMS
   through the Tutor MySQL container the same way the cert bridge does, and
   ledgers every grant in `atheniq_paid_enrollment`:
@@ -239,7 +244,7 @@ Completion → certificate flow (**implemented** by
 [`scripts/cert-bridge.py`](../scripts/cert-bridge.py) — see
 [docs/Deployment.md](Deployment.md#97-signara-signing-leg-cert-bridge)):
 
-1. Open edX issues a course certificate (a `downloadable`
+1. AthenIQ issues a course certificate (a `downloadable`
    `GeneratedCertificate` row) on course completion.
 2. The cert bridge reads the completion record from the LMS DB: learner
    identity, course, final score, completion date, issuer.
@@ -278,7 +283,7 @@ High-signal variables:
 | `ONYX_S3_BUCKET_FILES` / `ONYX_S3_BUCKET_EXPORTS` | Convex's ONYX buckets (default `atheniq-files` / `atheniq-exports`) |
 | `MAGNATE_API_URL` / `MAGNATE_ENTITLEMENTS_TOKEN` | Magnate base URL + shared entitlement/purchase bearer token |
 | `MAGNATE_PAID_PLAN` | Plan slug that gates paid courses/tracks |
-| `PAID_ENROLLMENT_MODE` | Open edX enrollment mode granted on entitlement (default `verified`) |
+| `PAID_ENROLLMENT_MODE` | AthenIQ enrollment mode granted on entitlement (default `verified`) |
 | `AUTHENTIK_API_URL` / `AUTHENTIK_API_TOKEN` | Authentik API access for the paid-access reconciler |
 | `OPEN_GENERATIVE_AI_URL` | Media studio API base |
 | `SIGNARA_API_URL` / `SIGNARA_API_KEY` | Certificate signing submission (machine auth via `X-API-Key`) |

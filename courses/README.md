@@ -1,6 +1,6 @@
 # Courses
 
-Authoring source for the courses AthenIQ delivers on the Tutor (Open edX) engine.
+Authoring source for the courses AthenIQ delivers on the Tutor engine.
 Course *content* lives here as **OLX** — the same Open Learning XML layout Studio
 exports and imports — so it is versioned, reviewable, and portable. The LMS remains
 the runtime; this directory is the source of truth for the courseware.
@@ -55,7 +55,7 @@ make check-syllabus
 
 Each course keeps its card as a **vector master** (`static/<slug>-course-card.svg`)
 and a rendered **raster** (`static/<slug>-course-card.png`). The PNG is the LMS-facing
-`course_image` because the Open edX course card, social unfurlers, and app icons do
+`course_image` because the AthenIQ course card, social unfurlers, and app icons do
 not render SVG.
 
 ```bash

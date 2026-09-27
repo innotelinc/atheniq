@@ -1,5 +1,5 @@
 [Unit]
-Description=AthenIQ -> LMS course import (converge courses/ into Open edX)
+Description=AthenIQ -> LMS course import (converge courses/ into AthenIQ)
 After=docker.service network-online.target
 Wants=network-online.target
 

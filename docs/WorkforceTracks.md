@@ -1,6 +1,6 @@
 # AthenIQ — Workforce Tracks
 
-A **track** is a named ladder of Open edX courses that share one audience, one
+A **track** is a named ladder of AthenIQ courses that share one audience, one
 target role, and (optionally) one credential — the unit a workforce-development
 or instructor program actually sells and reports on. Tracks are the curated
 layer *above* individual courses; they are not a second course engine.
@@ -57,7 +57,7 @@ It is a lint only — it never touches the LMS.
 
 | Track field | Lives in | Owned by |
 | --- | --- | --- |
-| `courses` | Tutor / Open edX (course runs) | LearningOps (AthenIQ) |
+| `courses` | Tutor / AthenIQ (course runs) | LearningOps (AthenIQ) |
 | `audience` | Authentik groups (`learners`, `instructors`) | Authentik |
 | `entitlement.plan` | Magnate plan entitlement | Magnate |
 | `credential` | Signed certificate (Signara) via `scripts/cert-bridge.py` | Signara |
@@ -75,14 +75,52 @@ constitute the credential.
 > Systems Support**, **ITSP103 Security Operations**, and **ITSP104 Capstone**.
 > The other tracks are seeded `draft`. Promoting a track to `active` means its
 > course runs exist in the LMS, its entitlement (if any) is wired, and — for a
-> track-level credential — a Signara signing flow for the track is configured.
-> Track-level credential issuance and in-LMS track gating are the remaining V2
-> work.
+> track-level credential — the gating below is applied and the credential can be
+> signed.
+
+## Gating: a ladder the LMS enforces
+
+A track's courses are listed in progression order; `scripts/track-gating.py`
+turns that order into each course's prerequisites and writes them to the LMS.
+Sequential (default) unlocks a course once the one before it is passed;
+`--cumulative` requires every earlier course.
+
+```bash
+make gating                 # print the derived plan
+make check-gating           # fail if the catalog cannot be gated cleanly (CI)
+make gating-apply           # write prerequisites through the running CMS
+python3 scripts/track-gating.py --apply --dry-run   # show the CMS snippet first
+```
+
+`--apply` goes through the CMS's own `CourseOverview` model (`./manage.py cms
+shell`), so the LMS's gating signals fire — it never edits the row behind Open
+edX's back. Nothing is written unless `--apply` is passed.
+
+## Track credential
+
+A completed ladder earns the track's `credential`, signed through Signara exactly
+like a course certificate. This happens **automatically**: the certificate bridge
+(`scripts/cert-bridge.py`, the same timer that signs course certificates) checks on
+every pass whether any learner's certificates now cover a whole track and signs the
+track credential then — no operator step. Disable it with `--no-track-credentials`.
+
+`scripts/track-credential.py` is the detector the bridge reuses, and stays useful
+on its own for reporting and on-demand signing: it reads the learner's downloadable
+course certificates, reports the tracks they complete, and — with `--sign` — renders
+a track-completion PDF and pushes it through the same Signara client. Outcomes are
+ledgered in `atheniq_track_credential` keyed on (track, learner), so re-runs (and
+the bridge's per-pass check) are idempotent.
+
+```bash
+python3 scripts/track-credential.py --learner learner@example.edu
+python3 scripts/track-credential.py --learner learner@example.edu --sign
+make track-credential-status
+```
 
 ## Where a track's courses live
 
 Courseware is authored in this repo under [`courses/`](../courses/README.md) as
-**OLX** — the layout Open edX Studio exports and imports — so it is versioned and
+**OLX** — the layout AthenIQ Studio exports and imports — so it is versioned and
 reviewable beside the catalog that references it. `scripts/check-course-olx.py`
 lints it (`make check-courses`) exactly as `check-workforce-tracks.py` lints the
 catalog; the LMS stays the runtime.

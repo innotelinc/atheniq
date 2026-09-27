@@ -6,7 +6,7 @@
 
 **Open-source learning platform (LMS) for universities, workforce development & training — self-hosted, Authentik-native, AI-classroom ready.**
 
-AthenIQ is an open learning platform built on **Tutor (Open edX)** and
+AthenIQ is an open learning platform built on **Tutor** and
 **OpenMAIC**, the multi-agent interactive classroom. One stack for course
 authoring, enrollment, delivery, and AI-assisted learning — with every course
 completion eligible for a **certificate signed through Signara** and trusted
@@ -19,7 +19,7 @@ through the Innotel Platform Stack.
 </div>
 
 > **About AthenIQ** — the self-hosted LMS for real institutions: the battle-tested
-> Open edX course engine (via [Tutor](https://github.com/overhangio/tutor)) meets
+> Course engine (via [Tutor](https://github.com/overhangio/tutor)) meets
 > [OpenMAIC](https://github.com/THU-MAIC/OpenMAIC)'s generative multi-agent
 > classrooms, with **Authentik** as the identity provider and **Signara**
 > certifying course certificates. **Landing page:**
@@ -41,7 +41,7 @@ through the Innotel Platform Stack.
 
 ## What it is
 
-- **LMS core (Tutor / Open edX)** — enrollments, courseware, assessments,
+- **LMS core (Tutor)** — enrollments, courseware, assessments,
   grading, learner records, and Studio authoring on the most widely deployed
   open LMS.
 - **Generative interactive classrooms (OpenMAIC)** — one prompt or uploaded
@@ -57,7 +57,7 @@ through the Innotel Platform Stack.
   CLI agent for authoring and operations — all models routed through one
   OpenAI-compatible gateway.
 - **Signed certificates (Signara, live)** — the cert bridge
-  (`scripts/cert-bridge.py`) watches Open edX for issued certificates and
+  (`scripts/cert-bridge.py`) watches the LMS for issued certificates and
   pushes each completion into Signara's signing workflow, producing
   audit-trailed, verifiable signed certificates.
 - **The whole Innotel stack behind it** — Authentik (identity), Cerulean Vault
@@ -71,7 +71,7 @@ cd atheniq
 ./setup.sh        # installs guard hooks, generates .env secrets, prints the checklist
 ```
 
-### 1. LMS core — Tutor (Open edX)
+### 1. LMS core — Tutor
 
 ```bash
 python3 -m pip install tutor
@@ -109,7 +109,7 @@ self-hosted backend are in [docs/Deployment.md](docs/Deployment.md) and
 
 | Layer | Technology |
 | --- | --- |
-| LMS core | Tutor (Dockerized Open edX — LMS, Studio/CMS, XBlocks) |
+| LMS core | Tutor (Dockerized LMS — Studio/CMS, XBlocks) |
 | AI classroom | OpenMAIC (multi-agent interactive classroom, MIT) |
 | Realtime state | Convex (self-hosted backend) |
 | Media generation | Open Generative AI (MuAPI studio) |
@@ -162,8 +162,11 @@ make onyx-check    # verify ONYX is ready for classroom media
 make magnate-probe # paid-course entitlement API reachable + token accepted
 make entitlement-status # Magnate -> Authentik paid-access reconciliation
 make check-tracks  # validate the workforce-tracks catalog
+make gating        # print the in-LMS track gating (prerequisite) plan
+make check-gating  # fail if the catalog cannot be gated cleanly
 make check-courses # validate the OLX course packages under courses/
 make images        # render the PNG brand + course-card assets (needs Pillow)
+make check-brand   # fail if the owl mark drifts between the generator and the SVGs
 make test          # unit tests (stdlib unittest)
 make check-commits
 make check-compose
@@ -176,7 +179,7 @@ make check-compose
 | **V1 — Foundation** | done | Repo scaffold, stack role, landing page, deployment runbook. |
 | **V1.1 — Bring-up** | done | Tutor LMS at `learn.innotel.us` and Studio at `studio.innotel.us` on Cerulean-provisioned hosts, Authentik OIDC for both (provider signing key, scope mappings, CMS TPA + redirect URIs reconciled live), OpenMAIC persistence Postgres. |
 | **V1.2 — Credentials** | done | Completion → Signara signing end to end: certificates issue on a passing grade, the bridge signs them on a 2-minute cadence, the learner's dashboard links the signed PDF. |
-| **V2 — Scale** | in progress | Realtime classrooms on self-hosted Convex (✓ version-pinnable profile), classroom media on ONYX (✓ bucket provisioning + verification), paid courses via Magnate entitlements (✓ entitlement/Checkout client), workforce tracks (✓ validated catalog), and a **course library authored as OLX and built into CI** — the four-course **IT Support Specialist certification** (ITSP101–104) and the **TEST101 demo course** (✓ in-LMS track gating next). |
+| **V2 — Scale** | in progress | Realtime classrooms on self-hosted Convex (✓ version-pinnable profile), classroom media on ONYX (✓ bucket provisioning + verification), paid courses via Magnate entitlements (✓ entitlement/Checkout client), workforce tracks (✓ validated catalog), and a **course library authored as OLX and built into CI** — the four-course **IT Support Specialist certification** (ITSP101–104) and the **TEST101 demo course** (✓ in-LMS track gating via prerequisites, ✓ track-level credentials signed through Signara). |
 
 The same ladder is on the [landing page](web/landing/index.html#roadmap), and each
 stage's operator steps live in [docs/Deployment.md](docs/Deployment.md).

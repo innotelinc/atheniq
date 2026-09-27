@@ -1,17 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="AthenIQ">
   <defs>
-    <linearGradient id="atheniq-chevron" x1="0" y1="1" x2="1" y2="0">
+    <linearGradient id="atheniq-owl" x1="0" y1="1" x2="1" y2="0">
       <stop offset="0" stop-color="#059669"/>
       <stop offset="0.55" stop-color="#10b981"/>
       <stop offset="1" stop-color="#34d399"/>
     </linearGradient>
   </defs>
   <rect width="64" height="64" rx="14" fill="#0b1220"/>
-  <ellipse cx="32" cy="31" rx="25" ry="9" transform="rotate(-18 32 31)"
-           fill="none" stroke="#34d399" stroke-opacity="0.5" stroke-width="1.6"/>
-  <circle cx="55" cy="24" r="2.4" fill="#6ee7b7"/>
-  <path d="M16 44 L32 28 L48 44" fill="none" stroke="url(#atheniq-chevron)"
-        stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M24 32 L32 24 L40 32" fill="none" stroke="url(#atheniq-chevron)"
-        stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <g transform="translate(-3.83 4.63) scale(1.12)">
+    <g fill="none" stroke="url(#atheniq-owl)" stroke-width="4.2" stroke-linecap="round">
+      <path d="M16 22 L11 12.5"/>
+      <path d="M48 22 L53 12.5"/>
+      <circle cx="22" cy="30.5" r="10.5"/>
+      <circle cx="42" cy="30.5" r="10.5"/>
+    </g>
+    <circle cx="22" cy="30.5" r="2.8" fill="#6ee7b7"/>
+    <circle cx="42" cy="30.5" r="2.8" fill="#6ee7b7"/>
+    <path d="M28.8 36.5 L35.2 36.5 L32 43.5 Z" fill="url(#atheniq-owl)"/>
+    <path d="M32 5.4 L34.6 11.6 L32 17.8 L29.4 11.6 Z" fill="#6ee7b7"/>
+  </g>
 </svg>

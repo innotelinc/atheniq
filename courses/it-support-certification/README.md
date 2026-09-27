@@ -10,7 +10,7 @@ homework, applied labs, and a final exam.
 | Track | `it-support` — *IT Support Specialist* (see [`config/workforce-tracks.json`](../../config/workforce-tracks.json)) |
 | Org / course / run | `Innotel` / `ITSP101` / `2026_T1` |
 | Grading | Homework 35% · Lab 25% · Final Exam 40% · pass at 70% |
-| Certificate | Open edX certificate, signed through Signara (`course-completion`) |
+| Certificate | AthenIQ certificate, signed through Signara (`course-completion`) |
 | Classroom | OpenMAIC generative classroom spec in [`openmaic/`](openmaic/classrooms.json) |
 
 ## Contents
@@ -18,7 +18,7 @@ homework, applied labs, and a final exam.
 ```
 it-support-certification/
 ├── README.md                # this file
-├── olx/                     # Open edX OLX — the importable course
+├── olx/                     # AthenIQ OLX — the importable course
 │   ├── course.xml           # root index (url_name, org, course)
 │   ├── course/2026_T1.xml   # the course block: settings + chapter refs
 │   ├── chapter/             # 7 sections
@@ -46,7 +46,7 @@ it-support-certification/
 | 6 | Help Desk Operations | Help desk operations · Ticketing & SLAs | Lab: Ticket triage |
 | 7 | Troubleshooting & Certification Prep | Troubleshooting methodology · Certification & next steps | Final Exam |
 
-The OLX is written in the exact layout Open edX Studio exports, including the
+The OLX is written in the exact layout AthenIQ Studio exports, including the
 chapter → sequential → vertical containment that the Studio outline requires
 (a vertical directly under a chapter crashes the authoring MFE).
 
@@ -63,7 +63,7 @@ each container reference resolves to a file of the right type, that html compone
 point at real `.html` content, that the containment chain is well-formed, and that a
 course key matches `course-v1:<org>+<course>+<run>`. It never touches the LMS.
 
-## Import into Open edX Studio
+## Import into AthenIQ Studio
 
 The `olx/` directory is the course data directory (it contains `course.xml`). Bundle
 it and import it — no server access is needed from CI.
@@ -100,5 +100,5 @@ completion → Signara signing leg is automatic once a learner passes (see
 [`openmaic/classrooms.json`](openmaic/classrooms.json) describes one generative
 classroom per chapter — prompt, objectives, agent roles, and activities. Feed it to
 OpenMAIC (directly or through the OpenClaw OpenMAIC skill) to generate interactive
-lessons, then link the resulting classroom from the matching Open edX unit. See
+lessons, then link the resulting classroom from the matching AthenIQ unit. See
 [`openmaic/README.md`](openmaic/README.md).

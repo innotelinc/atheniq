@@ -14,7 +14,7 @@ types correctly clears it comfortably.</p>
 <h4>What happens on a passing grade</h4>
 <ol>
   <li>The LMS recomputes the course grade and crosses the pass threshold.</li>
-  <li>Open edX's completion trigger enqueues certificate generation.</li>
+  <li>The AthenIQ completion trigger enqueues certificate generation.</li>
   <li>A <code>downloadable</code> certificate is issued and appears on the learner's
       dashboard.</li>
   <li>The certificate bridge pushes the completion into <strong>Signara</strong>,
@@ -22,7 +22,7 @@ types correctly clears it comfortably.</p>
 </ol>
 
 <h4>Why this matters</h4>
-<p>A certificate that nobody can trust is worthless. AthenIQ issues Open edX
+<p>A certificate that nobody can trust is worthless. AthenIQ issues course
 certificates and has them signed by the platform's DocumentOps surface, so the
 credential a learner shares is verifiable.</p>
 

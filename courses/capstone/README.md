@@ -8,7 +8,7 @@ learner on a simulated service desk and asks them to prove the whole ladder.
 | Course key | `course-v1:InnotelLabs+ITSP104+2026_T1` |
 | Track | `it-support` |
 | Grading | Homework 25% · Lab 35% · Final Exam 40% · pass at 70% |
-| Certificate | Open edX certificate, signed through Signara |
+| Certificate | AthenIQ certificate, signed through Signara |
 
 ## Outline
 

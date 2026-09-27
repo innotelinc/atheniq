@@ -9,6 +9,10 @@ page wins — update them together.
 
 - **AthenIQ** — one word, capital A, capital IQ, no space, no hyphen. The wordmark
   sets a terminal period in the accent colour: `AthenIQ.`
+- **The meaning** — a play on **Athene** (Athena), the Greek goddess of wisdom, and
+  **IQ**, a measure of intelligence. *Athene + IQ*: wisdom, amplified. Say it
+  "ATH-uh-nik". When the name is explained, keep the pairing — Athene **and** IQ —
+  and never badge it with another platform's name; AthenIQ **is** the platform.
 - **Innotel Labs** — the company. Use it in attribution: *"AthenIQ — an Innotel Labs
   product"* or *"© Innotel Labs"*.
 - **Innotel Platform Stack** — the wider platform AthenIQ belongs to. Keep the
@@ -16,8 +20,15 @@ page wins — update them together.
 
 ## Logo
 
-The mark is **ascending chevrons with an orbit** — progress and certification, in
-motion. Two nested chevrons rise through a slanted orbit ring with a trailing node.
+The mark is **Athene's owl, crowned by a spark**. Two large gradient eye-rings meet
+at the brow and ring bright accent pupils; two ear tufts rise from the brow, a solid
+beak sits between the eyes, and a four-point spark crowns the head — the owl for
+wisdom, the spark for the IQ in the name. Drawn as one bold monoline in the brand
+gradient, it stays legible from a favicon up to a hero. The 2026 refresh (much
+heavier stroke, big touching eyes, a solid four-point spark) is defined once in the
+`EYE_*` / `TUFTS` / `BEAK` / `SPARK` geometry in
+[`scripts/build-course-images.py`](../scripts/build-course-images.py) and mirrored
+exactly into every SVG — change them together.
 
 | Asset | Use |
 | --- | --- |
@@ -26,7 +37,7 @@ motion. Two nested chevrons rise through a slanted orbit ring with a trailing no
 | [`web/landing/assets/favicon.svg`](../web/landing/assets/favicon.svg) | Square tile, for favicons and app icons |
 
 The SVG files above are the **vector masters**. Several consumers do not render SVG
-— the Open edX course card, Open Graph / social unfurls, and iOS/Android home-screen
+— the LMS course card, Open Graph / social unfurls, and iOS/Android home-screen
 icons — so rendered **PNG** versions ship alongside them, produced by
 [`scripts/build-course-images.py`](../scripts/build-course-images.py) (`make images`,
 verified by `make check-images`). Pillow is the only dependency.
@@ -37,6 +48,10 @@ verified by `make check-images`). Pillow is the only dependency.
 | [`web/landing/assets/apple-touch-icon.png`](../web/landing/assets/apple-touch-icon.png) | 180×180 | Home-screen / app icon |
 | [`web/landing/assets/atheniq-og.png`](../web/landing/assets/atheniq-og.png) | 1200×630 | Social / Open Graph card |
 | `courses/<slug>/olx/static/<slug>-course-card.png` | 1200×675 | LMS course card (`course_image`) |
+
+The same owl is inlined directly in the course-card SVGs under
+`courses/<slug>/olx/static/`, each scaling the 64-unit geometry with its own gradient
+(`url(#g)`).
 
 When the mark, the palette, or the typography changes, regenerate the rasters with
 `make images` in the same change — the generator mirrors the tokens and the mark
@@ -49,7 +64,7 @@ and an inlined icon is cache-busted with the page itself, so it can never be ser
 stale from a separate URL. Update the SVG master and the embedded copy together;
 the tests fail if they diverge.
 
-**Clear space.** Leave at least the width of one chevron (≈ 1/4 of the mark) around
+**Clear space.** Leave at least the width of one eye-ring (≈ 1/3 of the mark) around
 the mark on every side. Do not stretch, rotate, recolour, or add effects.
 
 **Minimum size.** The mark is legible down to 20 px; below that use the favicon tile.
@@ -97,4 +112,19 @@ sans-serif`. Code and commands use a monospace stack. The wordmark is set heavy
 ## Changing the brand
 
 Update the three SVGs, the token block in the landing page, and this page in one
-change so the palette and the assets never drift apart.
+change so the palette and the assets never drift apart. Then regenerate the rasters
+and the pages that embed the favicon:
+
+```bash
+make images catalog syllabus   # rasters + generated pages
+make check-images check-brand check-catalog check-syllabus
+```
+
+`check-brand` is the guard that keeps the two copies honest: it rebuilds the
+expected SVG fragments from the geometry in
+[`scripts/build-course-images.py`](../scripts/build-course-images.py) and fails if
+any SVG — or the favicon's derived tile transform — has drifted.
+
+The live LMS takes its name from `PLATFORM_NAME` and its footer from
+[`contrib/atheniq-theme`](../contrib/atheniq-theme); keep them in step with this
+page (see [docs/Deployment.md](Deployment.md#branding--the-platform-is-atheniq)).

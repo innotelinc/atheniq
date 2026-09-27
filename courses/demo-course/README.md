@@ -9,7 +9,7 @@ out the other end.
 | --- | --- |
 | Course key | `course-v1:InnotelLabs+TEST101+2026_T1` |
 | Grading | Homework 40% · Final Exam 60% · pass at 50% |
-| Certificate | Open edX certificate, signed through Signara |
+| Certificate | AthenIQ certificate, signed through Signara |
 | Used by | The certificate bridge / paid-course examples in the runbook |
 
 ## What it demonstrates

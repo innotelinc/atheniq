@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """AthenIQ — bundle and import the OLX courses into the LMS.
 
-Every course under `courses/<slug>/olx/` is a self-contained Open edX course
+Every course under `courses/<slug>/olx/` is a self-contained AthenIQ course
 package. This tool finds them, validates their structure with
 `check-course-olx.py`, bundles each into a `.tar.gz`, and plans (or, with
 `--execute`, runs) the import into the Tutor CMS container.

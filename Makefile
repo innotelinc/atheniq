@@ -10,8 +10,9 @@ SHELL := /bin/bash
         openmaic-up openmaic-down convex-up convex-down convex-key \
         onyx-check onyx-buckets onyx-selftest magnate-probe \
         paid-status entitlement-status entitlement-sync \
-        check-commits check-compose check-tracks check-courses check-catalog check-syllabus check-images \
-        catalog syllabus images course-bundle course-import test tutor-quickstart
+        check-commits check-compose check-tracks check-courses check-catalog check-syllabus check-images check-brand \
+        catalog syllabus images course-bundle course-import test tutor-quickstart \
+        theme gating check-gating gating-apply track-credential-status
 
 help: ## Show this help message
 	@echo "AthenIQ — operator workflow"
@@ -79,6 +80,18 @@ magnate-probe: ## Check the Magnate entitlement API is reachable + creds accepte
 check-tracks: ## Validate the workforce-tracks catalog
 	python3 scripts/check-workforce-tracks.py
 
+check-gating: ## Fail if the catalog cannot be turned into a clean gating plan
+	python3 scripts/track-gating.py --check
+
+gating: ## Print the in-LMS track gating (prerequisite) plan
+	python3 scripts/track-gating.py
+
+gating-apply: ## Apply the track gating to the running LMS (operator action)
+	python3 scripts/track-gating.py --apply
+
+track-credential-status: ## Show the track-credential ledger health
+	python3 scripts/track-credential.py --status
+
 ## ---- Courses (OLX authoring source) ---------------------------------------
 
 check-courses: ## Validate the OLX course packages under courses/
@@ -101,6 +114,9 @@ images: ## Render the PNG brand + course-card assets (needs Pillow)
 
 check-images: ## Fail if a PNG raster is missing or mis-sized
 	python3 scripts/build-course-images.py --check
+
+check-brand: ## Fail if the owl mark drifts between the generator and the SVGs
+	python3 scripts/check-brand-mark.py
 
 course-bundle: ## Bundle each OLX course into dist/courses/*.tar.gz
 	python3 scripts/import-courses.py --bundle
@@ -134,7 +150,10 @@ check-compose: ## Validate every compose profile parses
 	docker compose --profile openmaic config --quiet
 	docker compose --profile convex config --quiet
 
-## ---- LMS core (Tutor / Open edX) -----------------------------------------
+## ---- LMS core (Tutor / AthenIQ) ------------------------------------------
 
 tutor-quickstart: ## First boot of the LMS (interactive Tutor bring-up)
 	tutor local quickstart
+
+theme: ## Apply the AthenIQ LMS branding (footer, header logo, favicon) to the running LMS
+	bash scripts/apply-atheniq-theme.sh

@@ -1,5 +1,5 @@
 [Unit]
-Description=AthenIQ -> Signara certificate bridge (auto-sign new Open edX course certificates)
+Description=AthenIQ -> Signara certificate bridge (auto-sign new AthenIQ course certificates)
 After=docker.service network-online.target
 Wants=network-online.target
 
@@ -9,6 +9,11 @@ Type=oneshot
 # the LMS MySQL container (docker) and Signara reachable. It resolves the LMS
 # MySQL root password via `sudo -u tutor`; if that is unavailable, set
 # LMS_DB_PASSWORD in the Environment line below.
+#
+# The same pass also issues workforce-track credentials: when a learner's
+# certificates cover every course in a track, the track credential is signed
+# then (detection lives in scripts/track-credential.py). Add
+# `--no-track-credentials` to ExecStart to run course certificates only.
 Environment=PYTHONUNBUFFERED=1
 ExecStart=/usr/bin/python3 /usr/src/projects/complete/atheniq/scripts/cert-bridge.py --once
 # Example override for hosts where `sudo -u tutor` is not available:

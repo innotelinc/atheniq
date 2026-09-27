@@ -12,7 +12,7 @@ It is an operator-run flow: nothing in CI connects to or deploys any server.
   style hosts under your zone (see [Cerulean DNS and TLS](#cerulean-dns-and-tls)).
 - **Authentik** tenant reachable for OIDC (IdentityOps) and **Cerulean Vault** for
   secrets (SecretOps), per the Innotel Platform Stack bring-up order.
-- Disk headroom: Open edX images + learner media + OpenMAIC models and builds
+- Disk headroom: AthenIQ images + learner media + OpenMAIC models and builds
   are large — plan for tens of GB on first boot.
 
 ## Stage 0 — bootstrap this repo
@@ -28,7 +28,7 @@ attribution guard hooks, and (first run only) creates `.env` from
 [.env.example](../.env.example) with generated secrets. It prints the stage
 checklist below.
 
-## Stage 1 — LMS core (Tutor / Open edX)
+## Stage 1 — LMS core (Tutor)
 
 ```bash
 python3 -m pip install tutor
@@ -40,9 +40,9 @@ tutor local launch            # idempotent full deployment on later runs
 - Tutor runs its own compose project and volumes under the tutor root; keep
   this repo for the ecosystem glue, not Tutor's internals.
 - Add the Authentik OIDC/SSO provider to the LMS per Stage 2.
-- For uploaded courseware that should live on **ONYX**, configure Open edX
+- For uploaded courseware that should live on **ONYX**, configure AthenIQ
   storage settings to the ONYX S3-compatible endpoint (see
-  [docs/Integrations.md](Integrations.md#tutor-open-edx--the-lms-core)).
+  [docs/Integrations.md](Integrations.md#tutor--the-lms-core)).
 - Upgrade path stays with Tutor: `tutor local upgrade` after reading upstream
   release notes.
 - Courseware authored in this repo under `courses/` imports into Studio as OLX;
@@ -83,7 +83,7 @@ Create OIDC applications in the Authentik admin for each public surface:
 | `atheniq-studio` | Media studio (optional) |
 
 **Realized (2026-09):** `atheniq-lms` is live on Cerulean's Authentik
-(`auth.cerulean.innotel.us`, client id `atheniq-lms`). Open edX is enabled via
+(`auth.cerulean.innotel.us`, client id `atheniq-lms`). AthenIQ is enabled via
 the Tutor plugin in [`contrib/tutor-ceruleansso`](../contrib/tutor-ceruleansso)
 (installed as `tutor-ceruleansso` in the tutor venv): it sets
 `FEATURES["ENABLE_THIRD_PARTY_AUTH"]`, registers python-social-auth's
@@ -101,6 +101,40 @@ Use the Authentik authorization/`userinfo` endpoints in `.env` (`OIDC_*`) and
 apply the same group claims (`learners`, `instructors`, `atheniq-admins`,
 `paid_users`) as the rest of the stack. See
 [docs/Integrations.md](Integrations.md#authentik--identity-identityops).
+
+### Branding — the platform is AthenIQ
+
+The platform presents as **AthenIQ** (see [docs/Brand.md](Brand.md)):
+
+```bash
+tutor config save --set PLATFORM_NAME=AthenIQ   # titles, emails, welcome, MFE SITE_NAME
+tutor local restart lms cms                       # apply the regenerated config
+```
+
+`PLATFORM_NAME` lands in the mounted `lms.env.yml` / `cms.env.yml`, so a restart
+applies it without an image rebuild. It also flows into the MFEs' runtime config
+(`/api/mfe_config/v1` reports `SITE_NAME: AthenIQ`).
+
+The Indigo theme additionally hard-codes "Powered by: Tutor + Open edX" in its
+footer and an edX trademark paragraph, and ships the upstream header logo and
+favicon. [`contrib/atheniq-theme`](../contrib/atheniq-theme) holds clean
+replacements — the footer/overlay templates plus the generated
+`logo.png` / `logo-white.png` / `favicon.ico` (render them with `make images`).
+Apply them to the running LMS with:
+
+```bash
+make theme        # == ./scripts/apply-atheniq-theme.sh
+```
+
+The copies live in the container's writable layer — re-run the script after a
+container recreate, or fold them into a Tutor theme plugin before a rebuild.
+
+> **The learner MFEs** (catalog, learning, profile) render their own footer from
+compiled JS bundles. Indigo installs its footer into the frontend-plugin-framework
+footer slot and that footer still prints the Tutor + Open edX logos. The
+[`contrib/tutor-atheniq-mfe`](../contrib/tutor-atheniq-mfe) plugin replaces that
+slot widget with the AthenIQ lockup; because the MFE footer is compiled, it needs
+`tutor images build mfe` (see [docs/Brand.md](Brand.md)).
 
 ## Stage 3 — AI classroom (OpenMAIC)
 
@@ -213,7 +247,7 @@ front of it, `:20129`.
 1. In the Signara portal, create the signature workflow/template for course
    certificates and an API token for AthenIQ.
 2. Set `SIGNARA_API_URL` and `SIGNARA_API_KEY` in `.env`.
-3. Completion events in Open edX flow to Signara and return signed certificates
+3. Completion events in AthenIQ flow to Signara and return signed certificates
    as described in [docs/Integrations.md](Integrations.md#signara--signed-course-certificates-documentops).
 
 ## Stage 8 — Paid courses (Magnate)
@@ -260,6 +294,31 @@ sudo systemctl daemon-reload && sudo systemctl enable --now atheniq-entitlement-
 make entitlement-status    # what it sees now, without writing
 ```
 
+## Stage 8b — workforce track gating and track credentials
+
+A workforce track is a ladder ([docs/WorkforceTracks.md](WorkforceTracks.md)).
+Two operator steps turn the catalog into enforcement and a credential:
+
+```bash
+make gating          # print the derived prerequisite chain (read-only)
+make gating-apply    # write it through the running CMS (course prerequisites)
+
+# once a learner has passed every course in a track, sign the track credential:
+python3 scripts/track-credential.py --learner learner@example.edu
+python3 scripts/track-credential.py --learner learner@example.edu --sign
+make track-credential-status
+```
+
+`gating-apply --dry-run` prints the CMS snippet instead of running it. The
+course-level certificate bridge (Stage 7) issues track credentials
+**automatically** on each pass — when a learner's certificates cover every course
+in a track, the track credential is signed then (disable with
+`--no-track-credentials`). On this deployment that pass is already driven by the
+`atheniq-cert-bridge.timer` unit (every 2 minutes, `--once`), so track
+credentials need no extra unit. The standalone `scripts/track-credential.py`
+remains for on-demand checks and the `--sign` path; `make track-credential-status`
+reads the ledger.
+
 ## Cerulean DNS and TLS
 
 Public hosts are provisioned through Cerulean as usual for stack platforms:
@@ -274,7 +333,7 @@ Canonical hosts for a reference deployment:
 | Host | Backend |
 | --- | --- |
 | `learn.<domain>` | Tutor LMS |
-| `studio.<domain>` | Open edX Studio |
+| `studio.<domain>` | AthenIQ Studio |
 | `classroom.<domain>` | OpenMAIC |
 | `cert.<domain>` | Signara portal (shared DocumentOps) |
 
@@ -298,7 +357,7 @@ re-apply (idempotent). Public HTTPS verified for all four hosts.
 
 > Scheme note: Tutor runs with `ENABLE_HTTPS=true` and `ENABLE_WEB_PROXY=false`
 > (its own caddy stays plain HTTP on `:18080`; NPM terminates TLS). This makes
-> Open edX emit `https://` absolute URLs — required, since the browser would
+> AthenIQ emit `https://` absolute URLs — required, since the browser would
 > otherwise block the MFEs' API calls as mixed content (this broke the catalog
 > MFE at `https://apps.learn.innotel.us/catalog/` until flipped). To re-apply
 > after a Tutor reinstall: `tutor config save --set ENABLE_HTTPS=true` then
@@ -418,7 +477,7 @@ disabled backend/provider`.
 
 **Root causes (four, all fixed in code + plugin):**
 
-1. **Redirect-uri scheme mismatch** — the Tutor Open edX plugin's CMS settings
+1. **Redirect-uri scheme mismatch** — the Tutor AthenIQ plugin's CMS settings
    template (`partials/common_cms.py`) hardcodes
    `SOCIAL_AUTH_REDIRECT_IS_HTTPS = False`, so the CMS builds the redirect_uri
    from the **request's scheme**. The CMS receives plain HTTP from the edge
@@ -426,7 +485,7 @@ disabled backend/provider`.
    `http://studio.innotel.us/auth/complete/oidc/` → does not match the
    registered `https://...` URI → `invalid_request`. The LMS is unaffected
    because its settings leave the flag unset (defaults to HTTPS).
-2. **CMS never had the TPA urls.** Stock Open edX ships the TPA urlconf
+2. **CMS never had the TPA urls.** Stock AthenIQ ships the TPA urlconf
    (`common.djangoapps.third_party_auth.urls`, which provides
    `/auth/login/<backend>/` and `/auth/complete/<backend>/`) in the **LMS
    only**; the CMS urlconf lacks it, so Studio's callback 404'd.
@@ -434,7 +493,7 @@ disabled backend/provider`.
    `INSTALLED_APPS`, `SOCIAL_AUTH_PIPELINE` is not defined there (LMS-only in
    `lms/envs/common.py`), and CMS lacks `TPA_PROVIDER_BURST_THROTTLE` /
    `TPA_PROVIDER_SUSTAINED_THROTTLE` / `PROFILE_MICROFRONTEND_URL`. Without the
-   TPA pipeline, social-auth's raw `create_user` crashes on Open edX profile
+   TPA pipeline, social-auth's raw `create_user` crashes on AthenIQ profile
    fields (`Column 'last_name' cannot be null`); with the pipeline but no
    client key/secret the provider looks disabled.
 4. **Do NOT use `ConfigurationModelStrategy` in the CMS.** Studio's own login
@@ -448,7 +507,7 @@ disabled backend/provider`.
 1. The Cerulean SSO plugin now ships the full CMS block in
    [`contrib/tutor-ceruleansso`](../contrib/tutor-ceruleansso):
    `SOCIAL_AUTH_REDIRECT_IS_HTTPS = True`, `third_party_auth` in
-   `INSTALLED_APPS` + its `ExceptionMiddleware`, the Open edX
+   `INSTALLED_APPS` + its `ExceptionMiddleware`, the AthenIQ
    `SOCIAL_AUTH_PIPELINE`, both TPA throttle settings, and
    `PROFILE_MICROFRONTEND_URL`. Re-render with `tutor config save` after any
    Tutor reinstall.
@@ -531,7 +590,7 @@ still returns the JSON payload.
 
 ### 9.6 TEST101 certificates enabled (LMS side)
 
-**Status (2026-09):** `course-v1:InnotelLabs+TEST101+2026_T1` issues real Open edX
+**Status (2026-09):** `course-v1:InnotelLabs+TEST101+2026_T1` issues real AthenIQ
 webview certificates, and the **Signara signing leg is live** via
 [`scripts/cert-bridge.py`](../scripts/cert-bridge.py) — see §9.7 below.
 
@@ -577,7 +636,7 @@ issue date) and the learner's dashboard shows the "certificate is ready" link.
 **Status (2026-09):** live. The bridge
 ([`scripts/cert-bridge.py`](../scripts/cert-bridge.py)) watches the LMS for
 `downloadable` certificates and pushes each completion through Signara's
-signing workflow, so every Open edX certificate also exists as a **signed
+signing workflow, so every AthenIQ certificate also exists as a **signed
 Signara document** with its audit/evidence trail (see
 [docs/Integrations.md](Integrations.md#signara--signed-course-certificates-documentops)).
 
@@ -660,7 +719,7 @@ cadence (last run seconds ago).
 
 ### 9.8 Automatic certificate issuance on passing (course-completion trigger)
 
-**Status (2026-09):** live. Open edX ships the completion trigger natively:
+**Status (2026-09):** live. AthenIQ ships the completion trigger natively:
 when a learner's grade is recomputed and crosses the course pass threshold
 (`GRADE_CUTOFFS`, 0.5 for TEST101), `CourseGradeFactory` emits
 `COURSE_GRADE_NOW_PASSED` and the certificates app enqueues the celery task

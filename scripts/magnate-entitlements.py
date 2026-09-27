@@ -242,7 +242,7 @@ def main():
     p.set_defaults(func=cmd_check)
 
     p = sub.add_parser("buy", help="create a hosted Checkout for a course")
-    p.add_argument("--course", help="Open edX course key (goes to metadata.course_key)")
+    p.add_argument("--course", help="AthenIQ course key (goes to metadata.course_key)")
     p.add_argument("--slug", default="course", help="item slug (default: course)")
     p.add_argument("--name", required=True, help="item name shown at checkout")
     p.add_argument("--amount-cents", type=int, required=True, dest="amount_cents")

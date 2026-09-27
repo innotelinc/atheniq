@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Enable automatic certificate issuance on a passing grade (Open edX).
+"""Enable automatic certificate issuance on a passing grade (AthenIQ).
 
-Open edX ships the full "course completion trigger" already: when a learner's
+AthenIQ ships the full "course completion trigger" already: when a learner's
 grade is recomputed and crosses the pass threshold, CourseGradeFactory emits
 COURSE_GRADE_NOW_PASSED, and the certificates app enqueues a celery task that
 writes a `downloadable` GeneratedCertificate — but only while the waffle switch

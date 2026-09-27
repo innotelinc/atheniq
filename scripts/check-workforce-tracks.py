@@ -43,7 +43,7 @@ CREDENTIAL_TYPES = {"certificate", "badge", "none"}
 
 
 def course_key_check(key):
-    # Open edX course keys are `course-v1:<org>+<course>+<run>`.
+    # AthenIQ course keys are `course-v1:<org>+<course>+<run>`.
     return bool(re.match(r"^course-v1:[^+\s]+\+[^+\s]+\+[^+\s]+$", key))
 
 

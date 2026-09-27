@@ -30,7 +30,7 @@ vertical placed directly under a chapter breaks the authoring outline.</p>
 </multiplechoiceresponse>
 
 <choiceresponse>
-<p>Which of these are valid ways to source video in Open edX? Select all that apply.</p>
+<p>Which of these are valid ways to source video in AthenIQ? Select all that apply.</p>
 <checkboxgroup>
 <choice correct="true"><div>Upload through the platform's video component</div></choice>
 <choice correct="true"><div>Embed an external HTML5 or YouTube source</div></choice>

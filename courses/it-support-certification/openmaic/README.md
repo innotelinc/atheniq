@@ -23,10 +23,10 @@ is routed through the platform's single OmniRoute gateway.
 3. Optionally drive the same requests from chat through **OpenClaw** with the
    OpenMAIC skill.
 
-## Link back to Open edX
+## Link back to the LMS
 
 Each classroom declares `linked_units` using the course's OLX `url_name`s. After
-generation, embed the classroom in the matching Open edX unit (an LTI or iframe
+generation, embed the classroom in the matching AthenIQ unit (an LTI or iframe
 component) so learners move from the static lesson to the interactive classroom
 inside the same course. The classroom aligns with, and does not replace, that
 chapter's graded activity.
