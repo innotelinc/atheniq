@@ -68,9 +68,14 @@ tutor local launch            # idempotent full deployment on later runs
   journalctl -u atheniq-course-import.service -n 20   # watch runs
   ```
 
-  The unit runs `scripts/import-courses.py --execute` (oneshot) each tick; an
-  invalid package is refused, and re-importing a course under the same
-  `course-v1:` key updates it in place.
+  The unit runs `scripts/import-courses.py --execute` **then**
+  `scripts/track-gating.py --apply` (oneshot) each tick; an invalid package is
+  refused, and re-importing a course under the same `course-v1:` key updates it in
+  place. The second step is required, not cosmetic: a (re-)import rebuilds the
+  course block from the OLX, which does not carry `pre_requisite_courses`, so an
+  import on its own clears the workforce-track gate. Doing both in one unit keeps
+  a re-import from silently un-gating the tracks — see
+  [docs/WorkforceTracks.md](WorkforceTracks.md#gating-a-ladder-the-lms-enforces).
 
 ## Stage 2 — Authentik OIDC applications
 

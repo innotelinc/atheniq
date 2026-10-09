@@ -7,10 +7,23 @@ gating (a prerequisite chain) so the LMS enforces it rather than a learner
 stumbling into course four first.
 
 The catalog (`config/workforce-tracks.json`) is the single source of truth — the
-chain is derived from the order courses are listed in, never hand-written. Open
-edX keeps a course's prerequisites on its course overview (`CourseOverview.
-prerequisites`, a list of course keys), which is what the LMS reads to show the
-"You must complete … first" gate.
+chain is derived from the order courses are listed in, never hand-written.
+
+Open edX spreads a course's prerequisites over three layers, and a real gate needs
+all three (verified against the running release):
+
+  1. the **course block** field `pre_requisite_courses` (`Scope.settings`) — the
+     course-about page and `get_prerequisite_courses_display()` read it directly;
+  2. `CourseOverview._pre_requisite_courses_json`, the **derived cache** the learner
+     dashboard and learner home read — regenerated from (1);
+  3. a **milestone** per prerequisite (`set_prerequisite_courses`), which is what
+     actually blocks access (`MilestoneAccessError` in `courseware/access.py`).
+
+Writing only the overview is a silent no-op: `CourseOverview.pre_requisite_courses`
+has a documented do-nothing setter, so assigning it and saving still reports
+success while persisting nothing. All three are also gated behind
+`ENABLE_PREREQUISITE_COURSES` and the `MILESTONES_APP` setting; `--apply` reports
+when either is off.
 
     python3 scripts/track-gating.py                  # human-readable plan
     python3 scripts/track-gating.py --json           # machine plan
@@ -20,10 +33,12 @@ prerequisites`, a list of course keys), which is what the LMS reads to show the
     python3 scripts/track-gating.py --apply          # write it (operator action)
     python3 scripts/track-gating.py --apply --dry-run
 
-`--apply` runs through the running CMS container's own model
-(`./manage.py cms shell`), so the LMS signals fire — it never edits the database
-row behind Open edX's back. It is an operator action: nothing here runs except
-when asked.
+`--apply` runs through the running CMS container's own models
+(`./manage.py cms shell`), writing the block exactly as Studio's course-details
+tab writes it and the milestones through `milestones_helpers`, so the LMS signals
+fire and the derived overviews are regenerated — it never edits a database row
+behind Open edX's back. It is an operator action: nothing here runs except when
+asked.
 """
 import argparse
 import json
@@ -91,48 +106,91 @@ def load_catalog(path):
 
 
 # --------------------------------------------------------------------------
-# apply (operator action, via the CMS model)
+# apply (operator action, in the CMS's own Django process)
 # --------------------------------------------------------------------------
+
+MISSING_PREFIX = "missing course: "
 
 APPLY_SNIPPET = """
 import json
+
+from django.contrib.auth import get_user_model
 from opaque_keys.edx.keys import CourseKey
-try:
-    from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
-except ImportError:  # older layouts
-    from course_overviews.models import CourseOverview
+
+from common.djangoapps.util.milestones_helpers import (
+    is_prerequisite_courses_enabled, set_prerequisite_courses,
+)
+from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
+from xmodule.modulestore.django import modulestore
 
 plan = json.loads({plan_json!r})
-keys = {{item["course"]: CourseKey.from_string(item["course"]) for item in plan}}
-by_id = {{str(o.id): o for o in CourseOverview.objects.filter(id__in=list(keys.values()))}}
-written = 0
+
+if not is_prerequisite_courses_enabled():
+    raise SystemExit(
+        "prerequisites are switched off on this LMS: set FEATURES"
+        "[ENABLE_PREREQUISITE_COURSES] and MILESTONES_APP, then restart.")
+
+# Settings writes are attributed to an editor in the modulestore history; use the
+# same kind of account Studio would have used.
+User = get_user_model()
+editor = (User.objects.filter(is_superuser=True, is_active=True).order_by("id").first()
+          or User.objects.filter(is_staff=True, is_active=True).order_by("id").first())
+if editor is None:
+    raise SystemExit("no active staff account to attribute the settings change to")
+
+store = modulestore()
+gated, changed, missing = [], [], []
 for item in plan:
-    overview = by_id.get(item["course"])
-    if overview is None:
-        print("missing course overview:", item["course"])
+    key = CourseKey.from_string(item["course"])
+    block = store.get_course(key)
+    if block is None:
+        missing.append(item["course"])
         continue
-    overview.prerequisites = item["prerequisites"]
-    overview.save()
-    written += 1
-print("prerequisites written for", written, "course(s)")
+    prerequisites = [str(prerequisite) for prerequisite in item["prerequisites"]]
+    # Layer 1: the course block field. Written exactly as Studio's course-details
+    # tab writes it, so the publish/update signals fire.
+    if list(block.pre_requisite_courses) != prerequisites:
+        block.pre_requisite_courses = prerequisites
+        store.update_item(block, editor.id)
+        changed.append(item["course"])
+    # Layer 3: the milestone the access check actually enforces. Idempotent — it
+    # clears this course's existing "requires" milestones before re-adding.
+    set_prerequisite_courses(key, prerequisites)
+    gated.append(key)
+
+# Layer 2: regenerate the derived overview rows the dashboard reads.
+CourseOverview.update_select_courses(sorted(gated, key=str), force_update=True)
+
+print("prerequisites set for", len(gated), "course(s):",
+      len(changed), "changed, editor", editor.username)
+for course in missing:
+    print("{missing_prefix}" + course)
 """
 
 
 def apply_plan(plan, container, dry_run):
+    """Run the gating snippet in the CMS. Returns the catalog courses it could not
+    find in the LMS (empty on a complete apply)."""
     plan_json = json.dumps([{k: v for k, v in item.items() if k != "track"} for item in plan])
-    snippet = APPLY_SNIPPET.format(plan_json=plan_json)
+    snippet = APPLY_SNIPPET.format(plan_json=plan_json, missing_prefix=MISSING_PREFIX)
     cmd = ["docker", "exec", "-i", container, "./manage.py", "cms", "shell", "-c", snippet]
     if dry_run:
         print("would run in", container, ":")
         print(snippet)
-        return 0
+        return []
     out = subprocess.run(cmd, capture_output=True, text=True)
     if out.stdout:
         print(out.stdout, end="")
     if out.returncode != 0:
-        sys.stderr.write(out.stderr[-2000:])
-        raise SystemExit(f"apply failed in {container}")
-    return out.returncode
+        if out.stdout.strip():
+            # The snippet's own message is already on stdout; only add the tail of
+            # the traceback when it said nothing useful.
+            sys.stderr.write(out.stderr[-400:])
+        else:
+            sys.stderr.write(out.stderr[-2000:])
+        raise SystemExit(f"apply failed in {container} (exit {out.returncode})")
+    return [line[len(MISSING_PREFIX):].strip() for line in out.stdout.splitlines()
+            if line.startswith(MISSING_PREFIX)]
 
 
 # --------------------------------------------------------------------------
@@ -193,7 +251,13 @@ def main():
 
     if args.apply:
         print()
-        apply_plan(plan, args.container, args.dry_run)
+        missing = apply_plan(plan, args.container, args.dry_run)
+        if missing:
+            for course in missing:
+                print(f"  not in the LMS: {course}", file=sys.stderr)
+            raise SystemExit(
+                f"{len(missing)} catalog course(s) are not in the LMS — "
+                "import them (make course-import) before gating.")
 
 
 if __name__ == "__main__":

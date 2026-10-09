@@ -1,16 +1,22 @@
 [Unit]
-Description=AthenIQ -> LMS course import (converge courses/ into AthenIQ)
+Description=AthenIQ -> LMS course import + track gating (converge courses/ into AthenIQ)
 After=docker.service network-online.target
 Wants=network-online.target
 
 [Service]
 Type=oneshot
-# Bundles every courses/*/olx package, validates it, and imports it into the
-# Tutor CMS container (docker), so the LMS converges on the repo's courseware.
-# Safe to re-run: importing a course under the same course-v1: key updates it
-# in place, and an invalid package is refused rather than imported.
+# Bundles every courses/*/olx package, validates it, imports it into the Tutor CMS
+# container (docker), then re-applies the workforce-track gating, so the LMS
+# converges on the repo's courseware.
+#
+# Safe to re-run: importing a course under the same course-v1: key updates it in
+# place, an invalid package is refused rather than imported, and gating is
+# idempotent. The second step is not optional: a (re-)import rebuilds the course
+# block from the OLX, which does not carry `pre_requisite_courses`, so importing
+# alone silently clears the gate that scripts/track-gating.py writes.
 Environment=PYTHONUNBUFFERED=1
 ExecStart=/usr/bin/python3 /usr/src/projects/complete/atheniq/scripts/import-courses.py --execute
+ExecStart=/usr/bin/python3 /usr/src/projects/complete/atheniq/scripts/track-gating.py --apply
 # If this unit's user cannot reach the docker socket, run it as a docker-capable
 # user (e.g. root) or add the user to the docker group:
 # User=root

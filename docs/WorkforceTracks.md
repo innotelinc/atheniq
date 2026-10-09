@@ -99,9 +99,30 @@ make gating-apply           # write prerequisites through the running CMS
 python3 scripts/track-gating.py --apply --dry-run   # show the CMS snippet first
 ```
 
-`--apply` goes through the CMS's own `CourseOverview` model (`./manage.py cms
-shell`), so the LMS's gating signals fire — it never edits the row behind Open
-edX's back. Nothing is written unless `--apply` is passed.
+`--apply` runs inside the CMS container's own Django process (`./manage.py cms
+shell`) and writes the gate where the LMS keeps it — three places, not one:
+
+| Layer | Written | Read by |
+| --- | --- | --- |
+| Course block `pre_requisite_courses` | `modulestore().update_item()`, exactly as Studio's course-details tab writes it | the course-about page, `get_prerequisite_courses_display()` |
+| `CourseOverview._pre_requisite_courses_json` | regenerated (`update_select_courses(force_update=True)`) | the learner dashboard and learner home |
+| a `requires` milestone per prerequisite | `set_prerequisite_courses()` | the real access check — `MilestoneAccessError` in `courseware/access.py` |
+
+Writing only the overview does nothing: `CourseOverview.pre_requisite_courses` has a
+documented do-nothing setter, so an assign-and-save reports success and persists
+nothing. The whole gate also needs `FEATURES[ENABLE_PREREQUISITE_COURSES]` and the
+`MILESTONES_APP` setting on; `--apply` stops with a clear message if either is off.
+Every catalog course must already be imported — a course the LMS does not have is
+reported and makes the run exit non-zero rather than passing quietly. Nothing is
+written unless `--apply` is passed, and re-running it is idempotent (a second run
+reports `0 changed` and adds no duplicate milestones).
+
+**Gating is applied after the import, every time.** A (re-)import rebuilds the
+course block from the OLX, and the OLX does not carry `pre_requisite_courses`, so
+importing on its own clears the block layer of the gate. The shipped
+`atheniq-course-import` unit therefore runs the import and then
+`track-gating.py --apply` in the same oneshot; if you import by another route
+(Studio, or `make course-import`), follow it with `make gating-apply`.
 
 ## Track credential
 
