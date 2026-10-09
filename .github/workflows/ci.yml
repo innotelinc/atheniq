@@ -49,6 +49,9 @@ jobs:
       - name: Validate the OLX course packages
         run: make check-courses
 
+      - name: Validate the classroom specs against the OLX
+        run: make check-classrooms
+
       - name: Validate the track gating plan
         run: make check-gating
 

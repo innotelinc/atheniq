@@ -1,0 +1,40 @@
+<h3>Querying with SELECT</h3>
+<p><code>SELECT</code> reads. Everything else — filtering, sorting, limiting — narrows
+or orders what it returns.</p>
+
+<h4>The shape of a query</h4>
+<table>
+  <tr><th>Clause</th><th>What it does</th></tr>
+  <tr><td><code>SELECT</code></td><td>Which columns (or expressions) to return</td></tr>
+  <tr><td><code>FROM</code></td><td>Which table (or join) to read</td></tr>
+  <tr><td><code>WHERE</code></td><td>Which rows to keep</td></tr>
+  <tr><td><code>GROUP BY</code></td><td>Collapse rows into groups</td></tr>
+  <tr><td><code>HAVING</code></td><td>Filter the groups</td></tr>
+  <tr><td><code>ORDER BY</code></td><td>Sort the result</td></tr>
+  <tr><td><code>LIMIT</code></td><td>Return only the first N rows</td></tr>
+</table>
+
+<p>Written order is not execution order. The engine reads <code>FROM</code>, filters
+with <code>WHERE</code>, groups, filters groups with <code>HAVING</code>, projects
+the <code>SELECT</code>, then sorts and limits — which is why a <code>WHERE</code>
+clause cannot use a <code>SELECT</code> alias.</p>
+
+<h4>Filtering</h4>
+<ul>
+  <li><code>WHERE status = 'open' AND priority IN ('high', 'urgent')</code></li>
+  <li><code>BETWEEN</code> is inclusive on both ends.</li>
+  <li><code>LIKE</code> matches patterns: <code>'%beta%'</code> anywhere,
+      <code>'beta%'</code> at the start.</li>
+  <li>Compare against <code>NULL</code> only with <code>IS NULL</code> /
+      <code>IS NOT NULL</code> — <code>= NULL</code> is never true, because
+      <code>NULL</code> means "unknown", not "empty".</li>
+</ul>
+
+<h4>Expressions and aliases</h4>
+<p>Compute in the query and name the result: <code>SELECT price * quantity AS
+line_total</code>. Aliases make output readable and let an outer query reference the
+value. Be explicit about rounding and units so the number means something.</p>
+
+<p>Select the columns you need rather than <code>SELECT *</code>: it is clearer, it
+survives a column being added, and it does not drag large unused data across the
+network.</p>

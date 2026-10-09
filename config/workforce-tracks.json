@@ -37,7 +37,7 @@
       "summary": "Spreadsheets to SQL: the data literacy every operations role now expects.",
       "audience": "workforce",
       "target_role": "Data / Operations Analyst",
-      "status": "draft",
+      "status": "active",
       "courses": [
         "course-v1:InnotelLabs+DATA101+2026_T1",
         "course-v1:InnotelLabs+SQL101+2026_T1"
@@ -63,7 +63,7 @@
       "summary": "Run generative AI classrooms: author with OpenMAIC, facilitate sessions, assess learners.",
       "audience": "instructors",
       "target_role": "AI Classroom Facilitator",
-      "status": "draft",
+      "status": "active",
       "courses": [
         "course-v1:InnotelLabs+MAIC101+2026_T1"
       ],

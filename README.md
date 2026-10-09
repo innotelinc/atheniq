@@ -132,7 +132,7 @@ self-hosted backend are in [docs/Deployment.md](docs/Deployment.md) and
 | [docs/Deployment.md](docs/Deployment.md) | Bring-up runbook, Cerulean DNS/TLS, production notes |
 | [docs/WorkforceTracks.md](docs/WorkforceTracks.md) | Workforce & instructor tracks: model, catalog, validation |
 | [docs/Brand.md](docs/Brand.md) | Logo, palette, and naming rules (Innotel Labs) |
-| [courses/README.md](courses/README.md) | Course library: OLX packages, the IT Support ladder, the demo course |
+| [courses/README.md](courses/README.md) | Course library: OLX packages for every track, plus the demo course |
 
 ## Repository layout
 
@@ -144,7 +144,8 @@ atheniq/
 ├── .githooks/                 # Local attribution guard (shared with CI)
 ├── docker-compose.yml         # AI + realtime services: OpenMAIC Postgres, Convex
 ├── scripts/                   # setup, cert bridge, ONYX buckets, Magnate client, checks
-├── courses/                   # OLX authoring source for delivered courses (ITSP101)
+├── courses/                   # OLX authoring source for delivered courses (ITSP · DATA · SQL · MAIC)
+│                              #   + openmaic/classrooms.json classroom specs
 ├── config/                    # workforce-tracks.json + course-prices.json catalogs
 ├── tests/                     # stdlib unit tests (make test)
 ├── .env.example               # Environment template (never commit .env)
@@ -165,6 +166,7 @@ make check-tracks  # validate the workforce-tracks catalog
 make gating        # print the in-LMS track gating (prerequisite) plan
 make check-gating  # fail if the catalog cannot be gated cleanly
 make check-courses # validate the OLX course packages under courses/
+make check-classrooms # validate the OpenMAIC classroom specs against the OLX
 make images        # render the PNG brand + course-card assets (needs Pillow)
 make check-brand   # fail if the owl mark drifts between the generator and the SVGs
 make test          # unit tests (stdlib unittest)
@@ -179,7 +181,7 @@ make check-compose
 | **V1 — Foundation** | done | Repo scaffold, stack role, landing page, deployment runbook. |
 | **V1.1 — Bring-up** | done | Tutor LMS at `learn.innotel.us` and Studio at `studio.innotel.us` on Cerulean-provisioned hosts, Authentik OIDC for both (provider signing key, scope mappings, CMS TPA + redirect URIs reconciled live), OpenMAIC persistence Postgres. |
 | **V1.2 — Credentials** | done | Completion → Signara signing end to end: certificates issue on a passing grade, the bridge signs them on a 2-minute cadence, the learner's dashboard links the signed PDF. |
-| **V2 — Scale** | in progress | Realtime classrooms on self-hosted Convex (✓ version-pinnable profile), classroom media on ONYX (✓ bucket provisioning + verification), paid courses via Magnate entitlements (✓ entitlement/Checkout client), workforce tracks (✓ validated catalog), and a **course library authored as OLX and built into CI** — the four-course **IT Support Specialist certification** (ITSP101–104) and the **TEST101 demo course** (✓ in-LMS track gating via prerequisites, ✓ track-level credentials signed through Signara). |
+| **V2 — Scale** | in progress | Realtime classrooms on self-hosted Convex (✓ version-pinnable profile), classroom media on ONYX (✓ bucket provisioning + verification), paid courses via Magnate entitlements (✓ entitlement/Checkout client), workforce tracks (✓ validated catalog), and a **course library authored as OLX and built into CI** — every active track's courses ship as importable packages: the four-course **IT Support Specialist certification** (ITSP101–104), **Data Foundations** (DATA101, SQL101), and **AI Classroom Facilitator** (MAIC101), alongside the **TEST101 demo course** (✓ in-LMS track gating via prerequisites, ✓ track-level credentials signed through Signara). |
 
 The same ladder is on the [landing page](web/landing/index.html#roadmap), and each
 stage's operator steps live in [docs/Deployment.md](docs/Deployment.md).

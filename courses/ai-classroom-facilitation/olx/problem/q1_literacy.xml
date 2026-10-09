@@ -1,0 +1,48 @@
+<problem display_name="Homework: AI Literacy" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>A generative model produces a fluent paragraph containing a plausible but invented
+citation. This is best described as:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Confabulation — fluent output that is not grounded in fact.</div></choice>
+<choice correct="false"><div>A perfect answer that needs no checking.</div></choice>
+<choice correct="false"><div>A sign the model is broken.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Generative systems optimise for plausible text, not truth. Every fact, number and
+citation must be verified before a learner sees it.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Which should never be pasted into a public generative AI tool?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Learner personal data and assessment records.</div></choice>
+<choice correct="false"><div>A published, public-domain textbook extract.</div></choice>
+<choice correct="false"><div>Your own lesson outline.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>What you paste may leave the institution. Personal and assessment data stays in
+systems accountable for it — the LMS, not a chat window.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<choiceresponse>
+<p>Which are sound uses of generative AI in a classroom? Select all that apply.</p>
+<checkboxgroup>
+<choice correct="true"><div>Drafting a set of practice questions for a facilitator to edit and verify.</div></choice>
+<choice correct="true"><div>Explaining one concept at three reading levels.</div></choice>
+<choice correct="false"><div>Deciding a learner's final grade without human review.</div></choice>
+<choice correct="true"><div>Letting a learner rehearse a role-play conversation.</div></choice>
+</checkboxgroup>
+<solution>
+<div class="detailed-solution">
+<p>AI is strong at drafting, reformatting and rehearsal. Decisions about a learner's
+progress stay with an accountable human.</p>
+</div>
+</solution>
+</choiceresponse>
+</problem>

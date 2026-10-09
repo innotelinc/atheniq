@@ -169,6 +169,29 @@ class RepositoryCourse(unittest.TestCase):
         for code in ("ITSP101", "ITSP102", "ITSP103", "ITSP104"):
             self.assertIn(f"course-v1:InnotelLabs+{code}+2026_T1", track["courses"])
 
+    def test_every_track_course_is_authored_as_olx(self):
+        """The catalog and the course library must not drift: a track may only
+        claim a course that ships as an importable OLX package."""
+        doc = json.loads((ROOT / "config" / "workforce-tracks.json").read_text())
+        authored = set()
+        for course in olx.find_courses(os.path.join(ROOT, "courses")):
+            _, _, summary = olx.validate_course(course)
+            authored.add(summary["course_key"])
+        for track in doc["tracks"]:
+            for key in track["courses"]:
+                self.assertIn(key, authored,
+                              f"track {track['id']} claims {key}, which has no OLX package")
+
+    def test_promoted_tracks_list_their_whole_ladder(self):
+        doc = json.loads((ROOT / "config" / "workforce-tracks.json").read_text())
+        tracks = {t["id"]: t for t in doc["tracks"]}
+        for tid, codes in (("data-foundations", ("DATA101", "SQL101")),
+                           ("ai-classroom-facilitator", ("MAIC101",))):
+            self.assertEqual(tracks[tid]["status"], "active", tid)
+            for code in codes:
+                self.assertIn(f"course-v1:InnotelLabs+{code}+2026_T1",
+                              tracks[tid]["courses"])
+
     def test_every_authored_course_has_a_workforce_key_shape(self):
         for course in olx.find_courses(os.path.join(ROOT, "courses")):
             _, _, summary = olx.validate_course(course)

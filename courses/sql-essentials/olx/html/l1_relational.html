@@ -1,0 +1,39 @@
+<h3>Relational Thinking</h3>
+<p>SQL is the standard language for asking questions of a relational database — data
+organised as tables with rows and named, typed columns, related to one another by
+keys.</p>
+
+<h4>The relational model</h4>
+<ul>
+  <li><strong>Table</strong> — one entity type: customers, orders, learners.</li>
+  <li><strong>Row</strong> — one instance of that entity.</li>
+  <li><strong>Column</strong> — one attribute, with one data type.</li>
+  <li><strong>Primary key</strong> — the column (or columns) that uniquely identify a
+      row.</li>
+  <li><strong>Foreign key</strong> — a column that references another table's primary
+      key, expressing the relationship.</li>
+</ul>
+
+<h4>Why normalise at all</h4>
+<p>Storing each fact once removes the three anomalies: an <em>insert</em> that cannot
+be made without inventing unrelated data, an <em>update</em> that has to be repeated
+in many places, and a <em>delete</em> that loses information you meant to keep.
+Normalisation trades a little complexity in querying for consistency in storage.</p>
+
+<h4>Relationships</h4>
+<table>
+  <tr><th>Cardinality</th><th>How it is modelled</th></tr>
+  <tr><td>One to many</td><td>A foreign key on the "many" side (order → customer)</td></tr>
+  <tr><td>Many to many</td><td>A join table holding both keys (learner ↔ course)</td></tr>
+  <tr><td>One to one</td><td>A foreign key that is also unique</td></tr>
+</table>
+
+<h4>Constraints are your friend</h4>
+<p><code>NOT NULL</code>, <code>UNIQUE</code>, <code>CHECK</code>, primary and foreign
+keys, and the data types themselves are the database enforcing your rules. A rule
+expressed as a constraint cannot be forgotten by the next application that writes
+to the table.</p>
+
+<p>Read a schema before you query it: which column is the key, which are nullable,
+what the types are, and how the tables connect. That is most of writing correct
+SQL.</p>

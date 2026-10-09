@@ -1,0 +1,42 @@
+<h3>Authoring with OpenMAIC</h3>
+<p>OpenMAIC is AthenIQ's multi-agent classroom engine. A classroom is authored as a
+spec — a scenario, a cast of agents, and the material they work from — and then run
+live.</p>
+
+<h4>The pieces of a classroom</h4>
+<ul>
+  <li><strong>Scenario</strong> — the situation the session is built around and the
+      outcome it is meant to reach.</li>
+  <li><strong>Agents</strong> — the roles participants (or the AI) play: a customer, a
+      site manager, a peer reviewer, a tutor.</li>
+  <li><strong>Source material</strong> — the course OLX lesson and any uploaded
+      documents the agents must stay faithful to.</li>
+  <li><strong>Activity</strong> — what the learners actually do in the session.</li>
+  <li><strong>Success criteria</strong> — how the session is judged to have worked.</li>
+</ul>
+
+<h4>Authoring from the courseware</h4>
+<p>Classroom specs live beside the course, under
+<code>courses/&lt;slug&gt;/openmaic/classrooms.xml</code> or
+<code>classrooms.json</code>, so the scenario and the lesson it dramatises are
+versioned together. The lesson supplies the content; the classroom supplies the
+situation that makes it matter.</p>
+
+<h4>Prompting for material</h4>
+<ol>
+  <li><strong>Give the context</strong> — the learner, the level, the outcome.</li>
+  <li><strong>Give the source</strong> — paste the lesson, not the whole syllabus.</li>
+  <li><strong>Constrain the format</strong> — "five questions, one correct answer
+      each, no 'all of the above'".</li>
+  <li><strong>Ask for the reasoning</strong> — why each distractor is plausible.</li>
+  <li><strong>Iterate</strong> — critique the draft and ask for the fix; do not
+      accept the first pass.</li>
+</ol>
+
+<h4>Storage and media</h4>
+<p>Classroom media — recordings, generated assets, learner uploads — is stored on the
+platform's ONYX object storage through AthenIQ, not written to the container. Keep
+the classroom's assets under the course's own prefix.</p>
+
+<p>Author the classroom for the session you can actually run: a tight ten-minute
+simulation with clear roles beats an elaborate scenario nobody has time to brief.</p>

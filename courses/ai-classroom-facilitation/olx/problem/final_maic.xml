@@ -1,0 +1,65 @@
+<problem display_name="Final Exam" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>Which assessment design best survives generative AI while still measuring
+understanding?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>A portfolio with a live defence, applying the concept to the learner's own context.</div></choice>
+<choice correct="false"><div>A take-home essay on a widely written topic.</div></choice>
+<choice correct="false"><div>A multiple-choice test the learner can search for online.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Assess process and transfer: a defence makes the understanding visible and personal,
+which a generic generated answer cannot supply.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>An AI-detection tool reports 80% confidence that a submission was machine-written.
+You should:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Treat it as a flag to investigate conversationally — detectors are unreliable alone.</div></choice>
+<choice correct="false"><div>Fail the learner immediately on that score.</div></choice>
+<choice correct="false"><div>Publish the score to the cohort.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>A probability score is not evidence. Investigate, talk to the learner, and apply
+the stated policy consistently and fairly.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<choiceresponse>
+<p>Which are equity considerations when introducing AI into a classroom? Select all
+that apply.</p>
+<checkboxgroup>
+<choice correct="true"><div>Not every learner has a paid model or a fast connection.</div></choice>
+<choice correct="true"><div>Automated feedback can encode bias about names or dialects.</div></choice>
+<choice correct="true"><div>A stated AI policy must be applied consistently to every learner.</div></choice>
+<choice correct="false"><div>AI removes the need for an institutional alternative.</div></choice>
+</checkboxgroup>
+<solution>
+<div class="detailed-solution">
+<p>Anything assuming paid tools or a personal device needs an institutional
+alternative, and generated comments should be read before they reach a learner.</p>
+</div>
+</solution>
+</choiceresponse>
+
+<multiplechoiceresponse>
+<p>Who should make the final decision about a learner's progress?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>An accountable human, informed — but not replaced — by the AI.</div></choice>
+<choice correct="false"><div>The model, because it is consistent.</div></choice>
+<choice correct="false"><div>Whichever is faster.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Use AI to scale feedback and practice. Judgement, and the responsibility for it,
+stays with a person who can answer for it.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+</problem>

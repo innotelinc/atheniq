@@ -1,0 +1,47 @@
+<h3>Aggregating &amp; Joining</h3>
+<p>Two ideas do most of the work in real reporting: collapsing many rows into a
+summary, and combining tables that share a key.</p>
+
+<h4>Aggregates</h4>
+<ul>
+  <li><code>COUNT</code>, <code>SUM</code>, <code>AVG</code>, <code>MIN</code>,
+      <code>MAX</code> — one value per group.</li>
+  <li><code>COUNT(*)</code> counts rows; <code>COUNT(column)</code> counts non-null
+      values in that column. They differ, and the difference is often the answer.</li>
+  <li><code>COUNT(DISTINCT column)</code> counts unique values — "how many learners",
+      not "how many enrolments".</li>
+</ul>
+
+<h4>GROUP BY</h4>
+<p>Every column in the <code>SELECT</code> that is not inside an aggregate must appear
+in the <code>GROUP BY</code>. Filter the groups afterwards with <code>HAVING</code>,
+not <code>WHERE</code> — <code>WHERE</code> runs before the grouping exists.</p>
+
+<h4>Joins</h4>
+<table>
+  <tr><th>Join</th><th>Keeps</th></tr>
+  <tr><td><code>INNER JOIN</code></td><td>Only rows matching on both sides</td></tr>
+  <tr><td><code>LEFT JOIN</code></td><td>Every left row; unmatched right columns are NULL</td></tr>
+  <tr><td><code>RIGHT JOIN</code></td><td>Every right row (mirror of LEFT)</td></tr>
+  <tr><td><code>FULL OUTER JOIN</code></td><td>Everything from both sides</td></tr>
+  <tr><td><code>CROSS JOIN</code></td><td>Every combination — use deliberately</td></tr>
+</table>
+
+<p>Choose the join by the question. "List every learner and their enrolment count,
+including learners with none" needs a <code>LEFT JOIN</code> and a
+<code>COUNT</code> of the right table's key; a plain <code>INNER JOIN</code> would
+silently drop exactly the learners you were asked about.</p>
+
+<h4>Traps</h4>
+<ul>
+  <li>A join that matches many-to-many multiplies rows and inflates every SUM.
+      Aggregate first, or confirm the grain before and after.</li>
+  <li>Putting a condition on the right table of a <code>LEFT JOIN</code> in
+      <code>WHERE</code> turns it back into an inner join — put it in the
+      <code>ON</code> clause to keep the unmatched rows.</li>
+  <li>Aggregating a column that is NULL-suffused: <code>AVG</code> ignores NULLs,
+      which can quietly change the denominator.</li>
+</ul>
+
+<p>Always check the row count after a join against the counts of the inputs. If it
+grew faster than the grain allows, the join is wrong.</p>

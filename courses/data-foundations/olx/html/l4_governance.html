@@ -1,0 +1,31 @@
+<h3>Data in the Organisation</h3>
+<p>Data lives in systems, and systems live in an organisation. Knowing where a number
+comes from — and who is allowed to change it — is part of being trusted with it.</p>
+
+<h4>Source of truth</h4>
+<p>For every important entity (customer, learner, ticket) name the one system that
+owns it. Other systems copy it. When a report disagrees with the source of truth, the
+report is wrong until proven otherwise — chase the pipeline, not the number.</p>
+
+<h4>Governance basics</h4>
+<ul>
+  <li><strong>Data dictionary</strong> — what each field means, its allowed values,
+      its owner, and its rules.</li>
+  <li><strong>Access</strong> — least privilege and a named owner per dataset. Access
+      to raw data is not the same as access to a report of it.</li>
+  <li><strong>Retention</strong> — keep what policy requires, delete what it says to
+      delete, and know which is which before someone asks.</li>
+  <li><strong>Lineage</strong> — where a number came from and what transformed it.</li>
+</ul>
+
+<h4>Privacy and personal data</h4>
+<p>Personal and sensitive data carries legal obligations: collect the minimum, use it
+only for the stated purpose, protect it, and delete it on schedule. Pseudonymising an
+identifier is not the same as anonymising it — re-identification is usually a join
+away. Do not move personal data into a personal spreadsheet, ever.</p>
+
+<h4>Quality is a habit, not a project</h4>
+<p>Assign an owner to each critical dataset, monitor a few quality checks on a
+schedule, and fix issues at the source rather than patching every report that
+consumes it. And watch for bias: a model, a ranking, or a dashboard trained on
+unrepresentative history will quietly repeat it.</p>

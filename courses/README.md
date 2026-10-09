@@ -12,6 +12,9 @@ the runtime; this directory is the source of truth for the courseware.
 | **ITSP102 — Networking & Systems Support** | `course-v1:InnotelLabs+ITSP102+2026_T1` | `it-support` | [`networking-systems-support/`](networking-systems-support/README.md) |
 | **ITSP103 — Security Operations Foundations** | `course-v1:InnotelLabs+ITSP103+2026_T1` | `it-support` | [`security-operations/`](security-operations/README.md) |
 | **ITSP104 — IT Support Capstone** | `course-v1:InnotelLabs+ITSP104+2026_T1` | `it-support` | [`capstone/`](capstone/README.md) |
+| **DATA101 — Data Foundations** | `course-v1:InnotelLabs+DATA101+2026_T1` | `data-foundations` | [`data-foundations/`](data-foundations/README.md) |
+| **SQL101 — SQL Essentials** | `course-v1:InnotelLabs+SQL101+2026_T1` | `data-foundations` | [`sql-essentials/`](sql-essentials/README.md) |
+| **MAIC101 — AI Classroom Facilitation** | `course-v1:InnotelLabs+MAIC101+2026_T1` | `ai-classroom-facilitator` | [`ai-classroom-facilitation/`](ai-classroom-facilitation/README.md) + [OpenMAIC classrooms](ai-classroom-facilitation/openmaic/README.md) |
 
 ## Bundle and import
 
@@ -69,6 +72,25 @@ landing page's `favicon-32.png`, `apple-touch-icon.png`, and `atheniq-og.png`. P
 is the only dependency (`pip install Pillow`), and the palette/geometry mirror
 [`docs/Brand.md`](../docs/Brand.md) — change the brand there first.
 
+## Classroom specs (OpenMAIC)
+
+A course may ship a **generative-classroom specification** beside its courseware at
+`courses/<slug>/openmaic/classrooms.json` — one entry per chapter describing the
+scenario OpenMAIC should generate (prompt, objectives, agent roles, activities) and
+the OLX units it links back to. See
+[`it-support-certification/openmaic/`](it-support-certification/openmaic/README.md)
+and [`ai-classroom-facilitation/openmaic/`](ai-classroom-facilitation/openmaic/README.md).
+
+```bash
+make check-classrooms   # CI: fail if a spec has drifted from the OLX outline
+```
+
+`scripts/check-classrooms.py` reads both sides and fails when they disagree: the
+`source_course` must have an OLX package here, each classroom's `chapter` must exist
+in that course's outline, and every `linked_units` entry must be a unit **of that
+chapter** — so a unit renamed, deleted, or moved between chapters is caught. It also
+warns when a chapter has no classroom.
+
 ## Adding a course
 
 1. Create `courses/<course-slug>/olx/` in the Studio export layout (root
@@ -76,11 +98,14 @@ is the only dependency (`pip install Pillow`), and the palette/geometry mirror
    `problem/`, `policies/`, `about/`, `info/`).
 2. Add the course key to [`config/workforce-tracks.json`](../config/workforce-tracks.json)
    (and [`config/course-prices.json`](../config/course-prices.json) if it is paid).
-3. Run the lints — they are wired into CI:
+3. Optionally author `courses/<course-slug>/openmaic/classrooms.json` for a live
+   multi-agent classroom in the course's own chapters.
+4. Run the lints — they are wired into CI:
 
    ```bash
    make images            # render the course card + brand PNGs
    make check-courses     # the OLX structure
+   make check-classrooms  # the classroom specs (if any) vs the OLX outline
    make check-tracks      # the workforce-track catalog
    make test              # unit tests
    ```

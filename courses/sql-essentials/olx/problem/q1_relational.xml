@@ -1,0 +1,48 @@
+<problem display_name="Homework: Relational Basics" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>A <strong>primary key</strong> is:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>The column(s) that uniquely identify each row in a table.</div></choice>
+<choice correct="false"><div>Any column that can be sorted.</div></choice>
+<choice correct="false"><div>The first column of the table.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>A primary key is the unique, non-null identifier for a row; other tables point at
+it with a foreign key.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>A learner can enrol in many courses, and a course has many learners. This is
+modelled as:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>A many-to-many relationship, via a join table holding both keys.</div></choice>
+<choice correct="false"><div>A single foreign key on the learners table.</div></choice>
+<choice correct="false"><div>A column listing every course in the learners row.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Many-to-many always needs a third table whose rows are the pairings — that is what
+the enrolment table is.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<choiceresponse>
+<p>Which are reasons to normalise? Select all that apply.</p>
+<checkboxgroup>
+<choice correct="true"><div>To avoid repeating the same fact in many rows.</div></choice>
+<choice correct="true"><div>To stop an update needing to be made in several places.</div></choice>
+<choice correct="false"><div>To make every query faster in every case.</div></choice>
+<choice correct="true"><div>To prevent losing unrelated information when deleting a row.</div></choice>
+</checkboxgroup>
+<solution>
+<div class="detailed-solution">
+<p>Normalisation removes the insert/update/delete anomalies by storing each fact once.
+It is not automatically faster — sometimes it trades joins for consistency.</p>
+</div>
+</solution>
+</choiceresponse>
+</problem>

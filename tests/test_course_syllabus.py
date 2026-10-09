@@ -10,9 +10,10 @@ olx = load("check-course-olx.py")
 class Outline(unittest.TestCase):
     def test_every_shipped_course_has_a_page(self):
         pages = syllabus.build_all(ROOT)
-        self.assertEqual(len(pages), 5)
+        self.assertEqual(len(pages), 8)
         for slug in ("demo-course", "it-support-certification",
-                     "networking-systems-support", "security-operations", "capstone"):
+                     "networking-systems-support", "security-operations", "capstone",
+                     "data-foundations", "sql-essentials", "ai-classroom-facilitation"):
             self.assertIn(slug, pages)
 
     def test_outline_counts_match_the_validator(self):

@@ -1,0 +1,47 @@
+<problem display_name="Lab: Author a Lesson" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>When asking a model to generate classroom material, the most important thing to
+supply is:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>The context and the source material the output must stay faithful to.</div></choice>
+<choice correct="false"><div>A very long prompt with no source.</div></choice>
+<choice correct="false"><div>The instruction "make it good".</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Ground the output in your own lesson and state the learner, level and outcome.
+Otherwise the model invents a syllabus.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Inside an OpenMAIC classroom, the <em>agents</em> are:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>The roles participants play — a customer, a peer reviewer, a tutor.</div></choice>
+<choice correct="false"><div>The database servers.</div></choice>
+<choice correct="false"><div>The learners' grades.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Agents dramatise the scenario so the lesson content has a situation to live in.
+The scenario, source material and success criteria are the other pieces.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>The first pass of generated material should be treated as:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>A draft — raw material to edit, verify and align to the outcome.</div></choice>
+<choice correct="false"><div>Ready to publish as-is.</div></choice>
+<choice correct="false"><div>Proof that the lesson is finished.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Generate, then edit. The facilitator's judgement is what turns a plausible draft
+into teaching material.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+</problem>

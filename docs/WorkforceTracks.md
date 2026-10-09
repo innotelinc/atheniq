@@ -68,15 +68,22 @@ certificate (see [docs/Deployment.md](Deployment.md#98-automatic-certificate-iss
 and the bridge signs it in Signara. The track records which courses together
 constitute the credential.
 
-> **Status (2026-09):** the catalog and its validation are live. The
-> `it-support` track is **active**, backed by a four-course certification ladder
-> authored in [`courses/`](../courses/README.md) as importable OLX (plus an
-> OpenMAIC classroom spec): **ITSP101 Foundations**, **ITSP102 Networking &
-> Systems Support**, **ITSP103 Security Operations**, and **ITSP104 Capstone**.
-> The other tracks are seeded `draft`. Promoting a track to `active` means its
-> course runs exist in the LMS, its entitlement (if any) is wired, and — for a
-> track-level credential — the gating below is applied and the credential can be
-> signed.
+> **Status (2026-10):** the catalog and its validation are live, and **all three
+> tracks are `active`** — every course a track claims ships as importable OLX in
+> [`courses/`](../courses/README.md), so the library and the catalog cannot
+> drift:
+>
+> - `it-support` — the four-course certification ladder **ITSP101 Foundations**,
+>   **ITSP102 Networking & Systems Support**, **ITSP103 Security Operations**,
+>   and **ITSP104 Capstone** (plus an OpenMAIC classroom spec).
+> - `data-foundations` — **DATA101 Data Foundations** and **SQL101 SQL
+>   Essentials**.
+> - `ai-classroom-facilitator` — **MAIC101 AI Classroom Facilitation** (plus an
+>   OpenMAIC classroom spec, since authoring classrooms is the subject it teaches).
+>
+> Promoting a track to `active` means its course runs exist in the LMS, its
+> entitlement (if any) is wired, and — for a track-level credential — the gating
+> below is applied and the credential can be signed.
 
 ## Gating: a ladder the LMS enforces
 

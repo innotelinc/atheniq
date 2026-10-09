@@ -10,7 +10,7 @@ SHELL := /bin/bash
         openmaic-up openmaic-down convex-up convex-down convex-key \
         onyx-check onyx-buckets onyx-selftest magnate-probe \
         paid-status entitlement-status entitlement-sync \
-        check-commits check-compose check-tracks check-courses check-catalog check-syllabus check-images check-brand \
+        check-commits check-compose check-tracks check-courses check-classrooms check-catalog check-syllabus check-images check-brand \
         catalog syllabus images course-bundle course-import test tutor-quickstart \
         theme gating check-gating gating-apply track-credential-status
 
@@ -96,6 +96,9 @@ track-credential-status: ## Show the track-credential ledger health
 
 check-courses: ## Validate the OLX course packages under courses/
 	python3 scripts/check-course-olx.py
+
+check-classrooms: ## Validate the OpenMAIC classroom specs against the OLX outlines
+	python3 scripts/check-classrooms.py
 
 catalog: ## Regenerate the static course catalog page from the config files
 	python3 scripts/build-course-catalog.py

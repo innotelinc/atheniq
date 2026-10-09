@@ -1,0 +1,38 @@
+<h3>Designing &amp; Changing Data</h3>
+<p>Reading is half of SQL. The other half creates the structures and keeps data
+correct as it changes.</p>
+
+<h4>DDL — defining structure</h4>
+<ul>
+  <li><code>CREATE TABLE</code> — columns, types, keys, constraints.</li>
+  <li><code>ALTER TABLE</code> — add, change or drop columns; add constraints.</li>
+  <li><code>CREATE INDEX</code> — make a lookup fast. Index the columns you filter
+      and join on; every index also costs writes and space.</li>
+</ul>
+
+<h4>DML — changing rows</h4>
+<ul>
+  <li><code>INSERT</code> adds rows; list the columns explicitly.</li>
+  <li><code>UPDATE ... SET ... WHERE ...</code> changes rows — and the
+      <code>WHERE</code> is the whole safety mechanism.</li>
+  <li><code>DELETE FROM ... WHERE ...</code> removes rows, with the same
+      warning.</li>
+</ul>
+
+<p><strong>Run the <code>SELECT</code> first.</strong> Before any
+<code>UPDATE</code> or <code>DELETE</code>, run the identical <code>WHERE</code>
+clause as a <code>SELECT</code> and count the rows. Wrap related statements in a
+transaction so they all apply or none do. An unguarded <code>UPDATE</code> has no
+undo.</p>
+
+<h4>Transactions and integrity</h4>
+<p>ACID — atomicity, consistency, isolation, durability — is what lets several
+statements be treated as one unit. Use <code>BEGIN</code> … <code>COMMIT</code> (and
+<code>ROLLBACK</code>) so a partial failure never leaves half-applied data. Let the
+database enforce uniqueness and foreign keys rather than trusting each application
+to check first.</p>
+
+<h4>Reading a schema and writing for others</h4>
+<p>Name things clearly, choose the narrowest correct type, comment the non-obvious,
+and format your SQL so the next person can read it. A query is a document as much as
+an instruction.</p>

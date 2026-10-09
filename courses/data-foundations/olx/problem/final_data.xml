@@ -1,0 +1,66 @@
+<problem display_name="Final Exam" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>Two reports give different numbers for "active learners". The first thing to do
+is:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Check the definition of the metric and the source of truth in both.</div></choice>
+<choice correct="false"><div>Average the two numbers.</div></choice>
+<choice correct="false"><div>Use the larger one, to be safe.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>A disagreement between reports is nearly always a definition or pipeline
+difference, not two views of one truth. Trace both back to the system that owns the
+data.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Which cleaning action is <em>not</em> safe to do silently?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Deleting records you consider to be outliers.</div></choice>
+<choice correct="false"><div>Trimming leading and trailing whitespace.</div></choice>
+<choice correct="false"><div>Standardising a date format.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>An outlier is a question, not an error. Removing records without recording it
+changes the answer and hides evidence of a data problem.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<choiceresponse>
+<p>Which are sound data-governance practices? Select all that apply.</p>
+<checkboxgroup>
+<choice correct="true"><div>A named owner for each critical dataset.</div></choice>
+<choice correct="true"><div>Keeping a data dictionary of field meanings and rules.</div></choice>
+<choice correct="false"><div>Copying personal data into a personal spreadsheet to work on it.</div></choice>
+<choice correct="true"><div>Retaining data only as long as policy requires.</div></choice>
+</checkboxgroup>
+<solution>
+<div class="detailed-solution">
+<p>Ownership, a dictionary and a retention rule are the backbone of governance.
+Personal data belongs in systems that are accountable for it, not in personal
+files.</p>
+</div>
+</solution>
+</choiceresponse>
+
+<multiplechoiceresponse>
+<p>Pseudonymising a learner ID (replacing the name with a code) does not make the
+data anonymous because:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>The record may still be re-identifiable by joining it with other data.</div></choice>
+<choice correct="false"><div>Codes are hard to type.</div></choice>
+<choice correct="false"><div>It reduces the row count.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Pseudonymised data keeps a consistent key, so it can often be linked back. True
+anonymisation removes the ability to re-identify.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+</problem>

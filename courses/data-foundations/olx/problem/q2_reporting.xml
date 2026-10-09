@@ -1,0 +1,47 @@
+<problem display_name="Homework: Reporting" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>You want to show how a metric changed month by month for two years. The right
+chart is:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>A line chart with time on the horizontal axis.</div></choice>
+<choice correct="false"><div>A pie chart of the twelve months.</div></choice>
+<choice correct="false"><div>A 3-D bar chart.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Change over time reads as a line. A pie of months has no order and no trend, and 3-D
+distorts every comparison.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>A bar chart comparing categories should normally:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Start the value axis at zero.</div></choice>
+<choice correct="false"><div>Start the axis just below the smallest value, to show the differences.</div></choice>
+<choice correct="false"><div>Use colour as the only way to tell the bars apart.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Truncating the axis exaggerates differences in a bar chart, because the reader
+judges bars by length. Colour used alone also excludes colour-blind readers.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>The denominator matters because:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>"12 failures" is meaningless without knowing out of how many.</div></choice>
+<choice correct="false"><div>Percentages are always better than counts.</div></choice>
+<choice correct="false"><div>It makes the chart look fuller.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>A rate needs a base. Report counts and the total together, and give both on the
+same chart when the base changes.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+</problem>

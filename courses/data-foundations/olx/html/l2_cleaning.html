@@ -1,0 +1,41 @@
+<h3>Cleaning &amp; Shaping Data</h3>
+<p>Cleaning is not the boring part before the real work — it <em>is</em> the work.
+Analysis is only as trustworthy as the table underneath it, and the same cleaning
+questions come back on every dataset.</p>
+
+<h4>Six dimensions of quality</h4>
+<table>
+  <tr><th>Dimension</th><th>The question</th></tr>
+  <tr><td>Completeness</td><td>Are the required values present?</td></tr>
+  <tr><td>Accuracy</td><td>Does the value match the world?</td></tr>
+  <tr><td>Consistency</td><td>Is the same thing written the same way everywhere?</td></tr>
+  <tr><td>Uniqueness</td><td>Is each entity recorded once?</td></tr>
+  <tr><td>Timeliness</td><td>Is it current enough to act on?</td></tr>
+  <tr><td>Validity</td><td>Does it obey the rules (ranges, formats, codes)?</td></tr>
+</table>
+
+<h4>A repeatable cleaning pass</h4>
+<ol>
+  <li><strong>Profile</strong> — count rows, count blanks, list distinct values in
+      each categorical column. Look before you touch.</li>
+  <li><strong>Standardise the shape</strong> — trim whitespace, fix capitalisation,
+      one format per date, one unit per measure.</li>
+  <li><strong>Handle duplicates</strong> — decide what makes a record unique, then
+      keep one. Record how many you dropped.</li>
+  <li><strong>Handle missing values</strong> — an empty cell, a zero, and "unknown"
+      mean three different things. Never let a tool turn one into another.</li>
+  <li><strong>Validate</strong> — ranges, allowed codes, date sanity. Flag, do not
+      silently delete.</li>
+  <li><strong>Document</strong> — keep the original, keep the steps, and write down
+      every judgement call you made.</li>
+</ol>
+
+<h4>Outliers and recoding</h4>
+<p>An outlier is a question, not an error: a bad entry, a genuine extreme, or a
+different population mixed into the same table. Investigate before you remove
+anything, and if you remove it, say so. Recode categories only where the mapping is
+unambiguous — "UK", "U.K." and "United Kingdom" are one place; "Georgia the country"
+and "Georgia the state" are not.</p>
+
+<p>Keep the raw file untouched. Cleaning is a recipe you can re-run, not an edit you
+make once.</p>

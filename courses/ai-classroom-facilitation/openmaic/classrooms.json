@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "provider": "openmaic",
+  "gateway": "OmniRoute",
+  "source_course": "course-v1:InnotelLabs+MAIC101+2026_T1",
+  "locale": "en",
+  "defaults": {
+    "teacher_persona": "An experienced learning designer who runs generative-AI classrooms and always names the risk before the reward.",
+    "classmates": [
+      "A subject-matter expert who is new to generative AI and openly sceptical of it",
+      "An instructor who has already tried a chatbot with a class and hit a problem"
+    ],
+    "interaction": "Workshop-style: the teacher models one move, then the peers attempt it and compare what they got.",
+    "assessment": "Each classroom ends with 3-5 checks aligned to the chapter's graded activity."
+  },
+  "classrooms": [
+    {
+      "id": "maic101-ch01-generative",
+      "chapter": "c1_generative",
+      "linked_units": ["u1_generative", "u2_check"],
+      "title": "What the Model Can and Cannot Do",
+      "prompt": "Demonstrate generative AI in a classroom: have it draft a lesson fragment with a deliberate factual error in it, then lead the peers through verifying the draft against source material and deciding what must never be pasted in.",
+      "objectives": [
+        "Match a teaching task to a strength of generative AI",
+        "Catch confabulation by verifying against a source",
+        "State what learner data must never leave the LMS"
+      ],
+      "activities": [
+        {"type": "slides", "title": "Strengths, limits, and the facilitation stance"},
+        {"type": "roleplay", "title": "The confident wrong answer"},
+        {"type": "quiz", "title": "AI literacy"}
+      ]
+    },
+    {
+      "id": "maic101-ch02-authoring",
+      "chapter": "c2_authoring",
+      "linked_units": ["u3_authoring", "u4_lab"],
+      "title": "Author a Classroom from the Courseware",
+      "prompt": "Take a real lesson from this course and build a classroom around it: choose the scenario, cast the agents, supply the source material, and constrain the format. Have the peers critique each other's specs and revise one.",
+      "objectives": [
+        "Turn a lesson outcome into a classroom scenario",
+        "Specify agents, source material, and success criteria",
+        "Prompt with context and constraints instead of asking for 'something good'"
+      ],
+      "activities": [
+        {"type": "slides", "title": "The pieces of a classroom"},
+        {"type": "simulation", "title": "Spec a classroom from the ITSP101 lesson"},
+        {"type": "lab", "title": "Author a lesson"}
+      ]
+    },
+    {
+      "id": "maic101-ch03-facilitation",
+      "chapter": "c3_facilitation",
+      "linked_units": ["u5_facilitation", "u6_check"],
+      "title": "Run It Live",
+      "prompt": "Facilitate a short live session with the agent in role, then have the agent fail in a plausible way. Let the peers practise the recovery: stop, question it in the open, keep the humans talking, and debrief against the success criteria.",
+      "objectives": [
+        "Brief a session and state the AI-use policy up front",
+        "Keep the discussion with the learners rather than the model",
+        "Recover in the open when the AI is wrong or breaks character"
+      ],
+      "activities": [
+        {"type": "slides", "title": "Before, during, after"},
+        {"type": "roleplay", "title": "The agent states something false — now what?"},
+        {"type": "lab", "title": "Facilitate and debrief"}
+      ]
+    },
+    {
+      "id": "maic101-ch04-assessment",
+      "chapter": "c4_assessment",
+      "linked_units": ["u7_assessment", "u8_final"],
+      "title": "Assess and Stay Fair",
+      "prompt": "Take one assessment from a peer's course and redesign it so it survives a learner using generative AI: assess the process, make the task personal, and require transfer. Then work a borderline case where a detector flags a submission.",
+      "objectives": [
+        "Redesign an assessment so it measures transfer, not recall",
+        "Write a disclosure requirement that supports learning",
+        "Handle a detector flag fairly and consistently"
+      ],
+      "activities": [
+        {"type": "slides", "title": "Assessment in an AI-present classroom"},
+        {"type": "roleplay", "title": "The 80% confidence flag"},
+        {"type": "quiz", "title": "Ethics and equity review"}
+      ]
+    }
+  ]
+}

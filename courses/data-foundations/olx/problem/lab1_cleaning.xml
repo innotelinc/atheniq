@@ -1,0 +1,49 @@
+<problem display_name="Lab: Clean a Dataset" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>You are handed a raw extract and asked to clean it. The correct first step is:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Keep the original untouched and profile it — row counts, blanks, distinct values.</div></choice>
+<choice correct="false"><div>Delete every row with an empty cell.</div></choice>
+<choice correct="false"><div>Sort it by the first column and start editing in place.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Cleaning is a re-runnable recipe. Preserve the raw file, look before you touch, and
+record what you change.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>A region column contains "UK", "U.K.", "United Kingdom" and "uk". This is a
+problem of:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Consistency — the same thing written several ways.</div></choice>
+<choice correct="false"><div>Completeness — values are missing.</div></choice>
+<choice correct="false"><div>Timeliness — the data is old.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Standardise to one code. Note that the same value text can mean different things
+in different contexts, so confirm the mapping before merging.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<choiceresponse>
+<p>Which statements about missing values are true? Select all that apply.</p>
+<checkboxgroup>
+<choice correct="true"><div>An empty cell, a zero, and "unknown" can mean three different things.</div></choice>
+<choice correct="true"><div>How you handle missing values should be documented.</div></choice>
+<choice correct="false"><div>Averaging the numeric columns is always a valid fix.</div></choice>
+<choice correct="true"><div>Dropping rows can bias the result if the missingness is not random.</div></choice>
+</checkboxgroup>
+<solution>
+<div class="detailed-solution">
+<p>Missingness carries meaning. Deciding how to treat it is an analytical judgement,
+so it must be recorded — and the reason it is missing often matters more than the
+gap itself.</p>
+</div>
+</solution>
+</choiceresponse>
+</problem>

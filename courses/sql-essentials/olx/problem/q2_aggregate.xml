@@ -1,0 +1,47 @@
+<problem display_name="Homework: Joins &amp; Aggregates" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>Which counts unique learners rather than enrolments?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div><code>COUNT(DISTINCT learner_id)</code></div></choice>
+<choice correct="false"><div><code>COUNT(*)</code></div></choice>
+<choice correct="false"><div><code>COUNT(learner_id)</code></div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p><code>COUNT(learner_id)</code> counts non-null enrolments; only
+<code>DISTINCT</code> collapses the repeats to unique learners.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>You want only groups whose total exceeds 100. You use:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div><code>HAVING SUM(amount) &gt; 100</code></div></choice>
+<choice correct="false"><div><code>WHERE SUM(amount) &gt; 100</code></div></choice>
+<choice correct="false"><div><code>ORDER BY SUM(amount) &gt; 100</code></div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p><code>WHERE</code> runs before grouping, so it cannot see an aggregate.
+<code>HAVING</code> is the filter for grouped results.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>After joining two tables you notice the row count is far higher than either input.
+The most likely cause is:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>A many-to-many match on the join key, multiplying rows.</div></choice>
+<choice correct="false"><div>The database is returning duplicates at random.</div></choice>
+<choice correct="false"><div>You forgot <code>DISTINCT</code>.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>If the join key is not unique on one side, each match multiplies. Check the grain
+before and after, and aggregate one side first where appropriate.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+</problem>

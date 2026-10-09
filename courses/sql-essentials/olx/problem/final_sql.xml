@@ -1,0 +1,65 @@
+<problem display_name="Final Exam" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>You must change a handful of rows in a large table. The safest procedure is:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Run the <code>WHERE</code> clause as a <code>SELECT</code> first, then <code>UPDATE</code> inside a transaction.</div></choice>
+<choice correct="false"><div>Run the <code>UPDATE</code> without a <code>WHERE</code> and re-insert the wrong rows.</div></choice>
+<choice correct="false"><div>Export the whole table, edit it in a spreadsheet, and re-import it.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Preview the affected rows, then act in a transaction so the change is atomic and
+can be rolled back. An <code>UPDATE</code> without a <code>WHERE</code> has no undo.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>A <code>LEFT JOIN</code> suddenly behaves like an <code>INNER JOIN</code>. The
+usual cause is:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>A condition on the right table placed in <code>WHERE</code> instead of <code>ON</code>.</div></choice>
+<choice correct="false"><div>The tables are too large.</div></choice>
+<choice correct="false"><div><code>COUNT</code> was used instead of <code>SUM</code>.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Filtering the right table in <code>WHERE</code> discards the NULL-extended rows, so
+the unmatched left rows disappear. Move the condition into the <code>ON</code>
+clause to keep them.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<choiceresponse>
+<p>Which statements about keys and constraints are true? Select all that apply.</p>
+<checkboxgroup>
+<choice correct="true"><div>A foreign key references another table's primary key.</div></choice>
+<choice correct="true"><div><code>NOT NULL</code> and <code>UNIQUE</code> are rules the database enforces.</div></choice>
+<choice correct="false"><div>Constraints are only advisory and can be ignored by writers.</div></choice>
+<choice correct="true"><div>Indexing the columns you filter and join on speeds up lookups.</div></choice>
+</checkboxgroup>
+<solution>
+<div class="detailed-solution">
+<p>Constraints are enforced by the engine, not by convention — that is their value.
+Indexes help reads at a cost in write time and space.</p>
+</div>
+</solution>
+</choiceresponse>
+
+<multiplechoiceresponse>
+<p><code>AVG(score)</code> can differ from what you expect when the column contains
+NULLs because:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>NULLs are ignored, so the denominator is the count of non-null values.</div></choice>
+<choice correct="false"><div>NULL is treated as zero.</div></choice>
+<choice correct="false"><div><code>AVG</code> rounds to the nearest integer.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Aggregates skip NULLs. If "no score" should count as zero, coalesce it explicitly —
+do not assume the engine agrees with you.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+</problem>

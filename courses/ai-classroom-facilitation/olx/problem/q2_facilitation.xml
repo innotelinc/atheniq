@@ -1,0 +1,49 @@
+<problem display_name="Homework: Facilitation" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>Five minutes into a live session the AI agent states something factually wrong.
+The best facilitation move is:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Stop, and have the group check it against the source — turn it into a teaching moment.</div></choice>
+<choice correct="false"><div>Ignore it and carry on, so the session keeps to time.</div></choice>
+<choice correct="false"><div>Pretend it was part of the plan.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Correcting the model in the open models exactly the critical stance you are
+teaching: verify, do not trust.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Before a live classroom session, you should always:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Test the run end to end and have a non-AI fallback ready.</div></choice>
+<choice correct="false"><div>Assume it will work and prepare nothing else.</div></choice>
+<choice correct="false"><div>Let the learners discover the roles as they go.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Rehearse on the real material and keep a plan B. A gateway or classroom outage
+should not cost the session.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<choiceresponse>
+<p>Which keep the humans at the centre of a facilitated session? Select all that
+apply.</p>
+<checkboxgroup>
+<choice correct="true"><div>Pausing the AI to discuss or question its output.</div></choice>
+<choice correct="true"><div>Assigning roles so a few voices do not dominate.</div></choice>
+<choice correct="false"><div>Letting the AI run the whole session unsupervised.</div></choice>
+<choice correct="true"><div>Offering a non-AI path for a learner who prefers it.</div></choice>
+</checkboxgroup>
+<solution>
+<div class="detailed-solution">
+<p>The AI is a foil for the learning, not the lesson. Facilitation is exactly the work
+of keeping the discussion with the people.</p>
+</div>
+</solution>
+</choiceresponse>
+</problem>

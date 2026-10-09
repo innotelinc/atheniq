@@ -1,0 +1,49 @@
+<problem display_name="Lab: Query Practice" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>Which query returns only open tickets with a high or urgent priority?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div><code>WHERE status = 'open' AND priority IN ('high','urgent')</code></div></choice>
+<choice correct="false"><div><code>WHERE status = 'open' OR priority = 'high'</code></div></choice>
+<choice correct="false"><div><code>HAVING status = 'open'</code></div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p><code>AND</code> requires both conditions; <code>OR</code> would let every open
+ticket through regardless of priority. <code>HAVING</code> filters groups and is
+meaningless without a <code>GROUP BY</code>.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Why is <code>WHERE assigned_to = NULL</code> wrong?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>NULL means "unknown", so any comparison with it is unknown — use <code>IS NULL</code>.</div></choice>
+<choice correct="false"><div>It works, but is slower.</div></choice>
+<choice correct="false"><div>You must write <code>= 'NULL'</code> as a string.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Comparisons with <code>NULL</code> evaluate to unknown, so no rows match. Use
+<code>IS NULL</code> / <code>IS NOT NULL</code>.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>"List every learner and how many courses they are enrolled in, including learners
+with none." The correct shape is:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>A <code>LEFT JOIN</code> from learners to enrolments, with <code>COUNT</code>.</div></choice>
+<choice correct="false"><div>An <code>INNER JOIN</code> from learners to enrolments.</div></choice>
+<choice correct="false"><div>A <code>CROSS JOIN</code> of learners and courses.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>An inner join drops learners with no enrolments — exactly the rows the question
+asks for. A left join keeps them, and <code>COUNT</code> of the enrolment key gives
+zero.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+</problem>

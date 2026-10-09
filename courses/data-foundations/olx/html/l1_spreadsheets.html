@@ -1,0 +1,44 @@
+<h3>Data Literacy &amp; Spreadsheets</h3>
+<p>Data literacy is the ability to read a table, ask a sensible question of it, and
+say clearly what the answer does and does not support. Almost every operations role
+now assumes it, and almost all of it happens in a spreadsheet before it happens
+anywhere else.</p>
+
+<h4>The vocabulary</h4>
+<ul>
+  <li><strong>Row</strong> — one observation: one ticket, one sale, one learner.</li>
+  <li><strong>Column</strong> — one variable measured the same way for every row.</li>
+  <li><strong>Categorical</strong> — a label from a fixed set (region, status).</li>
+  <li><strong>Numeric</strong> — a quantity you can add up (minutes, revenue).</li>
+  <li><strong>Ordinal</strong> — an ordered label (low / medium / high, a survey
+      scale). Order matters; the gaps may not.</li>
+</ul>
+
+<h4>Tidy data</h4>
+<p>One table, one row per observation, one column per variable — no totals rows in
+the middle of the data, no merged header cells, no colour used to carry meaning.
+A tidy table is what every later step (filter, pivot, chart, SQL) assumes.</p>
+
+<table>
+  <tr><th>Smell</th><th>Why it hurts</th></tr>
+  <tr><td>Merged cells / two header rows</td><td>Filters and pivots break or silently skip</td></tr>
+  <tr><td>Totals interleaved with data</td><td>A SUM double-counts</td></tr>
+  <tr><td>One column holding two facts</td><td>You cannot sort or group by either</td></tr>
+  <tr><td>Numbers stored as text</td><td>Maths and sorting go wrong, quietly</td></tr>
+</table>
+
+<h4>Spreadsheet essentials worth knowing cold</h4>
+<ul>
+  <li><strong>Relative vs absolute references</strong> — <code>A1</code> moves when
+      you fill; <code>$A$1</code> does not.</li>
+  <li><strong>Named ranges</strong> — a formula you can read six months later.</li>
+  <li><strong>Structured tables</strong> — ranges that grow with the data instead of
+      breaking at row 501.</li>
+  <li><strong>Filters and sorts</strong> — reversible views, not edits: filtering to
+      show a subset is safe, deleting the rest is not.</li>
+  <li><strong>Keyboard discipline</strong> — a huge share of spreadsheet errors are
+      paste-over-data and drag-fill accidents.</li>
+</ul>
+
+<p>Before you analyse anything, read the first twenty rows and the last twenty. Most
+mistakes are visible there.</p>

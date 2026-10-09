@@ -58,6 +58,14 @@ class ShippedCatalog(unittest.TestCase):
         self.assertEqual(len(gated), 3)
         self.assertEqual(gated[0]["prerequisites"], ["course-v1:InnotelLabs+ITSP101+2026_T1"])
 
+    def test_data_foundations_is_fully_sequenced(self):
+        doc = json.loads((ROOT / "config" / "workforce-tracks.json").read_text())
+        plan = gating.prerequisite_plan(doc, track_id="data-foundations")
+        self.assertEqual(len(plan), 2)
+        self.assertEqual(plan[0]["prerequisites"], [])
+        self.assertEqual(plan[1]["prerequisites"],
+                         ["course-v1:InnotelLabs+DATA101+2026_T1"])
+
 
 if __name__ == "__main__":
     unittest.main()

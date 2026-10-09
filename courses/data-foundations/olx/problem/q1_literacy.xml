@@ -1,0 +1,46 @@
+<problem display_name="Homework: Data Literacy" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>In a table, one <strong>row</strong> should represent:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>One observation — one record of the thing being measured.</div></choice>
+<choice correct="false"><div>One variable.</div></choice>
+<choice correct="false"><div>A summary total for the column.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Rows are observations, columns are variables. Mixing a totals row in with the
+observations breaks SUM, filters and pivots.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Which table is <em>tidy</em>?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>One row per observation, one column per variable, no totals interleaved.</div></choice>
+<choice correct="false"><div>Two merged header rows and a subtotal every ten rows.</div></choice>
+<choice correct="false"><div>A single column holding "name, region, and date joined".</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Tidy data is what every later tool assumes. Merged headers, interleaved totals and
+multi-fact columns all break filtering, pivoting and SQL.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>A column of revenue values will not sum. The most likely cause is:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>The numbers are stored as text (often with stray spaces or a currency symbol).</div></choice>
+<choice correct="false"><div>The sheet has too many rows.</div></choice>
+<choice correct="false"><div>The column needs to be sorted first.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Text-formatted numbers sort and calculate wrongly and silently. Convert the
+column — and check for the whitespace or symbol that caused it.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+</problem>

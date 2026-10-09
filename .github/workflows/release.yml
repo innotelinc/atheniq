@@ -90,7 +90,7 @@ jobs:
             "" \
             "**Artifact**" \
             "- atheniq-${VERSION#v}.tar.gz + sha256" \
-            "- OLX course packages: TEST101 demo + ITSP101-104 certification (dist/courses/, with SHA256SUMS)" \
+            "- OLX course packages: TEST101 demo + ITSP101-104, DATA101/SQL101, MAIC101 (dist/courses/, with SHA256SUMS)" \
             "" \
             "**See also**" \
             "- [docs/stack.md](https://github.com/innotelinc/atheniq/blob/main/docs/stack.md) — the owns/consumes map" \
