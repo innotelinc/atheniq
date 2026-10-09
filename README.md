@@ -81,14 +81,18 @@ tutor local quickstart        # interactive first boot of LMS + Studio
 Tutor owns its own containers; AthenIQ configures it for this ecosystem
 (domain, Authentik OIDC, theme). See [docs/Deployment.md](docs/Deployment.md).
 
-### 2. AI classroom — OpenMAIC (with server-backed persistence)
+### 2. AI classroom — OpenMAIC (server-backed persistence)
 
 ```bash
 git clone https://github.com/THU-MAIC/OpenMAIC.git ./services/OpenMAIC
 cd services/OpenMAIC
-cp .env.example .env.local    # add model providers, point at OmniRoute
-docker compose --profile server-persistence up --build
+cp .env.example .env.local    # point OPENAI_BASE_URL at OmniRoute, set ACCESS_CODE
+printf 'OPENMAIC_PORT=3000\nOPENMAIC_PUBLISH_ADDRESS=0.0.0.0\nPERSISTENCE_POSTGRES_PASSWORD=<alnum>\n' > .env
+docker compose up -d --build  # the bundled Postgres starts with the app
 ```
+
+`docker-compose.defaults.env` points the app at the bundled Postgres. To use this
+repo's instead, set `DATABASE_URL` in `.env.local` and `make openmaic-up`.
 
 ### 3. Realtime + AI services on this repo's compose
 
@@ -96,9 +100,9 @@ docker compose --profile server-persistence up --build
 cp .env.example .env
 docker compose --profile openmaic up -d      # OpenMAIC Postgres persistence
 # No gateway here: the model gateway is the platform's single OmniRoute
-# (Group 2). Callers dial its identity-aware door, :20129 — its own :20128
-# answers only on that host's loopback/bridge. Point OMNIROUTE_BASE_URL at
-# http://192.168.1.46:20129/v1 in .env.
+# (Group 2, in Cerulean's edge host). Callers dial its identity-aware door,
+# :20128 — the gateway's own listener answers only on that host's loopback and
+# bridge. Point OMNIROUTE_BASE_URL at http://192.168.1.71:20128/v1 in .env.
 ```
 
 Full bring-up order, Authentik/Cerulean/Signara wiring, and the Convex

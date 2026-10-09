@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "provider": "openmaic",
+  "gateway": "OmniRoute",
+  "source_course": "course-v1:InnotelLabs+ITSP104+2026_T1",
+  "locale": "en",
+  "defaults": {
+    "teacher_persona": "A service-desk lead who judges the reasoning, not the answer, and asks 'what did the user see?' before accepting any diagnosis.",
+    "classmates": [
+      "A candidate on their capstone who wants to be told the mark scheme rather than work it out",
+      "A peer reviewer playing a difficult end user while the candidate works the ticket"
+    ],
+    "interaction": "Assessment-style: the teacher hands over a ticket or an artefact, the candidate works it aloud, and the peers push back the way a real queue, user, or reviewer would.",
+    "assessment": "Each classroom ends with 3-5 checks aligned to the chapter's graded activity."
+  },
+  "classrooms": [
+    {
+      "id": "itsp104-ch01-brief",
+      "chapter": "c1_brief",
+      "linked_units": ["u1_brief", "u2_check"],
+      "title": "Prove You Can Run Support",
+      "prompt": "Unpack the capstone brief: a portfolio that shows reasoning, not just answers. Have the classmates draft the structure of their own portfolio, then rehearse the professional-practice expectations — documentation, handover notes, and honesty about what they did not know.",
+      "objectives": [
+        "Turn the capstone brief into a portfolio structure",
+        "Document a fix so another technician could repeat it",
+        "State the limits of your own knowledge without losing the room"
+      ],
+      "activities": [
+        {"type": "slides", "title": "The brief, the portfolio, the standard"},
+        {"type": "discussion", "title": "What makes a fix defensible?"},
+        {"type": "exercise", "title": "Draft your portfolio outline"}
+      ]
+    },
+    {
+      "id": "itsp104-ch02-simulation",
+      "chapter": "c2_simulation",
+      "linked_units": ["u3_simulation", "u4_lab"],
+      "title": "Work the Queue",
+      "prompt": "Run a live service desk: a queue of tickets with different impact and urgency, a knowledge base to write into, and a user waiting. The candidate must prioritise, communicate, fix, and update the ticket — while a peer plays a user who gives incomplete information and then escalates.",
+      "objectives": [
+        "Prioritise a queue by impact, urgency, and age",
+        "Ask the questions that turn a vague report into a reproducible fault",
+        "Keep the ticket and the user informed while you work"
+      ],
+      "activities": [
+        {"type": "roleplay", "title": "The queue at 09:00"},
+        {"type": "simulation", "title": "Work the tickets in order"},
+        {"type": "lab", "title": "Write the knowledge-base article"},
+        {"type": "discussion", "title": "Handover: what the next shift needs"}
+      ]
+    },
+    {
+      "id": "itsp104-ch03-review",
+      "chapter": "c3_review",
+      "linked_units": ["u5_review", "u6_final"],
+      "title": "The Whole Ladder, One Page",
+      "prompt": "Consolidate ITSP101 through ITSP104 into the one-page map of the track, then run a certification review built from the candidate's own weak spots: the teacher pulls questions from earlier chapters, the peers mark the reasoning, and the group names what still needs work before the final exam.",
+      "objectives": [
+        "Map each course in the track to its core skill",
+        "Answer a cross-track question using evidence from earlier chapters",
+        "Identify and close your own remaining gaps before the final exam"
+      ],
+      "activities": [
+        {"type": "slides", "title": "The track in one page"},
+        {"type": "quiz", "title": "Certification review"},
+        {"type": "discussion", "title": "My gap list, and what I do about it"}
+      ]
+    }
+  ]
+}

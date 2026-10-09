@@ -148,15 +148,24 @@ git clone https://github.com/THU-MAIC/OpenMAIC.git ./services/OpenMAIC
 cd services/OpenMAIC
 cp .env.example .env.local
 # point models at OmniRoute (Stage 6) or add provider keys as usual
-docker compose --profile server-persistence up --build
+docker compose up -d --build
 ```
 
+- Compose interpolation knobs live in `services/OpenMAIC/.env` —
+  `OPENMAIC_PORT`, `OPENMAIC_PUBLISH_ADDRESS`, `PERSISTENCE_POSTGRES_PASSWORD`.
+  Compose reads that file; `.env.local` is loaded into the container instead,
+  so a value set in the wrong one is silently ignored.
 - Persistence Postgres runs on this repo's compose (Stage 3b) or you can let
-  OpenMAIC's own profile manage it.
+  OpenMAIC's own bundled `postgres` service manage it, which is the default and
+  what `docker compose up -d --build` does.
 - Front OpenMAIC with NGINX Proxy Manager at `classroom.<domain>` (Cerulean
-  provisions the host + TLS). Set `ACCESS_CODE` for shared deployments.
+  provisions the host + TLS). Set `ACCESS_CODE` for shared deployments, and
+  publish beyond loopback (`OPENMAIC_PUBLISH_ADDRESS`) or the edge cannot reach
+  it — the two go together.
 
 ### Stage 3b — OpenMAIC persistence Postgres (this repo)
+
+Only needed when you point `DATABASE_URL` at it instead of the bundled service.
 
 ```bash
 docker compose --profile openmaic up -d
@@ -231,15 +240,18 @@ set `OPEN_GENERATIVE_AI_URL`. Keep it author-only (LAN or a proxied
 ## Stage 6 — Model gateway and agents
 
 AthenIQ starts no gateway. The platform runs ONE OmniRoute, in Group 2
-(`2-voice/`), on its own host — `192.168.1.46`. Its own port, `:20128`, is not a
-routable target: Cerulean SSO is the gateway's only gate, so that port answers on
-the gateway host's loopback and bridge alone. Everything else dials the proxy in
-front of it, `:20129`.
+(`2-voice/`), inside Cerulean's edge host — `192.168.1.71`. Its own listener,
+`:20128`, is not a routable target: Cerulean SSO is the gateway's only gate, so
+that port answers on the edge host's loopback and bridge alone. Everything else
+dials the identity-aware proxy in front of it, also `:20128`, whose `/v1` route
+is exempt for API clients.
 
-1. Open the OmniRoute dashboard at `http://192.168.1.46:20129` (the proxy sends
+1. Open the OmniRoute dashboard at `http://192.168.1.71:20128` (the proxy sends
    you through Cerulean Authentik first) and connect the provider accounts the
-   platform may use.
-2. Set `OMNIROUTE_BASE_URL=http://192.168.1.46:20129/v1`, `OMNIROUTE_API_KEY`, and
+   platform may use. The gateway accounts per API key, so create one per
+   consumer and store it as `cerulean/<slug>#OMNIROUTE_API_KEY` in Cerulean Vault
+   beside the rest of that project's secrets.
+2. Set `OMNIROUTE_BASE_URL=http://192.168.1.71:20128/v1`, `OMNIROUTE_API_KEY`, and
    `OMNIROUTE_MODEL` in `.env`. The proxy exempts `/v1` for API clients, so that
    route needs no session; the dashboard behind it still requires one.
 3. OpenMAIC reads the same endpoint, so classrooms and agents share the pool.
@@ -352,7 +364,7 @@ upstreams.
 `meilisearch.learn` (`innotel.us`) are live. DNS records are CNAMEs to the
 `innotel.us.` apex (A `73.68.203.71`, the NPM edge) in the authoritative BIND
 zone, written via TSIG `nsupdate` (key `cerulean`, BIND at `192.168.1.80`).
-NPM hosts forward to `http://192.168.1.46:18080` (Tutor caddy): `learn` and
+NPM hosts forward to `http://192.168.1.59:18080` (Tutor caddy): `learn` and
 `studio` attach the existing `*.innotel.us` wildcard (NPM cert 110);
 `apps.learn` and `meilisearch.learn` use single-name Let's Encrypt certs
 (HTTP-01) because NPM's own wildcard issuance (`rfc2136` DNS provider)

@@ -81,6 +81,11 @@ the OLX units it links back to. See
 [`it-support-certification/openmaic/`](it-support-certification/openmaic/README.md)
 and [`ai-classroom-facilitation/openmaic/`](ai-classroom-facilitation/openmaic/README.md).
 
+Every course in the library ships one — a classroom per chapter, so a track is
+classroom-ready end to end: `demo-course`, `it-support-certification`,
+`networking-systems-support`, `security-operations`, `capstone`,
+`data-foundations`, `sql-essentials`, `ai-classroom-facilitation`.
+
 ```bash
 make check-classrooms   # CI: fail if a spec has drifted from the OLX outline
 ```

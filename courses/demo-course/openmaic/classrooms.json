@@ -1,0 +1,103 @@
+{
+  "version": 1,
+  "provider": "openmaic",
+  "gateway": "OmniRoute",
+  "source_course": "course-v1:InnotelLabs+TEST101+2026_T1",
+  "locale": "en",
+  "defaults": {
+    "teacher_persona": "An AthenIQ onboarding guide who shows the platform by using it, and who names the component behind each thing the learner sees.",
+    "classmates": [
+      "A course author evaluating the platform and asking what each part costs to maintain",
+      "A learner who has used other LMSs and wants to know what is genuinely different here"
+    ],
+    "interaction": "Walkthrough: the teacher demonstrates one component, the classmates inspect it from their own angle, and the group agrees on when to reach for it in a real course.",
+    "assessment": "Each classroom ends with 3-5 checks aligned to the chapter's graded activity."
+  },
+  "classrooms": [
+    {
+      "id": "test101-ch01-welcome",
+      "chapter": "ch01_welcome",
+      "linked_units": ["u01_welcome", "u02_how_demo_works"],
+      "title": "What This Demo Is For",
+      "prompt": "Orient a new visitor: this is the platform's reference course, one chapter per component. Have the classmates map the chapters to the platform parts they inspect, and decide the order they would use it in when bringing a real course on board.",
+      "objectives": [
+        "Explain what the demo course is and is not",
+        "Map each chapter to the platform component it exercises",
+        "Plan a component-inspection order for a real course"
+      ],
+      "activities": [
+        {"type": "slides", "title": "The platform in one course"},
+        {"type": "discussion", "title": "What would you inspect first?"},
+        {"type": "quiz", "title": "Orientation"}
+      ]
+    },
+    {
+      "id": "test101-ch02-media",
+      "chapter": "ch02_media",
+      "linked_units": ["u03_text_components", "u04_video_lesson", "u05_images_links"],
+      "title": "Text, Video, Images, Links",
+      "prompt": "Show the media a course is actually made of: the HTML text component, hosted video, uploaded images, and links out to the platform. Have the classmates author a lesson fragment in a text component and critique each other's use of headings, tables, and callouts.",
+      "objectives": [
+        "Use the text component for headings, lists, tables, and callouts",
+        "Choose between hosted video and an embedded external source",
+        "Reference uploaded images and internal links correctly"
+      ],
+      "activities": [
+        {"type": "slides", "title": "The components a lesson is built from"},
+        {"type": "lab", "title": "Author a lesson fragment"},
+        {"type": "discussion", "title": "Critique: which rendering choice would age badly?"}
+      ]
+    },
+    {
+      "id": "test101-ch03-problems",
+      "chapter": "ch03_problems",
+      "linked_units": ["u06_multiple_choice", "u07_checkbox", "u08_dropdown", "u09_numerical", "u10_text_input", "u11_formula"],
+      "title": "Every Problem Type, and When to Use It",
+      "prompt": "Walk the problem types — multiple choice, checkbox, dropdown, numerical, text input, and formula — and for each one have the classmates name the outcome it actually measures. Then give them a learning objective and have them choose the type and defend it against a cheaper alternative.",
+      "objectives": [
+        "Match each problem type to the outcome it measures",
+        "Write a formula-graded question that cannot be gamed by guessing",
+        "Choose the cheapest problem type that still measures the objective"
+      ],
+      "activities": [
+        {"type": "slides", "title": "The problem-type toolbox"},
+        {"type": "exercise", "title": "Pick a type for this objective"},
+        {"type": "quiz", "title": "Assessment design"}
+      ]
+    },
+    {
+      "id": "test101-ch04-credentials",
+      "chapter": "ch04_credentials",
+      "linked_units": ["u12_grading_certificates"],
+      "title": "Grading and the Signed Certificate",
+      "prompt": "Explain the demo's grading policy — homework 40%, final 60%, with a pass threshold — and how a pass becomes a certificate signed through Signara. Have the classmates trace a learner who scores just under then just over the threshold and say what changes.",
+      "objectives": [
+        "Explain how weighted grading decides a pass",
+        "Describe the path from a passing grade to a signed certificate",
+        "Predict what a borderline learner sees at each step"
+      ],
+      "activities": [
+        {"type": "slides", "title": "Weights, thresholds, and the certificate leg"},
+        {"type": "simulation", "title": "The learner on the threshold"},
+        {"type": "quiz", "title": "Grading and credentials"}
+      ]
+    },
+    {
+      "id": "test101-ch05-final",
+      "chapter": "ch05_final",
+      "linked_units": ["u13_final_exam"],
+      "title": "Sitting the Final",
+      "prompt": "Run the final exam chapter as the closing walkthrough: what the exam covers, how the timed attempt and the grading behave, and what the learner is left with afterwards. Have the classmates review their own notes from the earlier chapters and name the one component they would still change.",
+      "objectives": [
+        "Describe what the final exam covers and how it is graded",
+        "Explain what a learner keeps after completing the demo",
+        "Name one platform change your own course would need"
+      ],
+      "activities": [
+        {"type": "slides", "title": "The final exam, end to end"},
+        {"type": "quiz", "title": "Demo review"},
+        {"type": "discussion", "title": "What would you change for your own course?"}
+      ]
+    }
+  ]
+}

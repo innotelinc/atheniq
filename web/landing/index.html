@@ -254,10 +254,10 @@
             </div>
           </div>
           <pre class="terminal"><span class="cmt"># how the platform composes</span>
-$ <span class="p">export</span> OMNIROUTE_BASE_URL=http://192.168.1.46:20129/v1  <span class="cmt"># gateway door</span>
+$ <span class="p">export</span> OMNIROUTE_BASE_URL=http://192.168.1.71:20128/v1  <span class="cmt"># gateway door</span>
 $ <span class="p">tutor</span> local launch                       <span class="cmt"># LMS + Studio</span>
 $ <span class="p">cd</span> services/OpenMAIC && docker compose \
-    --profile server-persistence up --build
+    up -d --build
 <span class="ok">enroll → learn → complete → signed certificate</span></pre>
         </div>
       </div>

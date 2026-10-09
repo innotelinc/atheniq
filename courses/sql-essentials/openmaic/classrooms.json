@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "provider": "openmaic",
+  "gateway": "OmniRoute",
+  "source_course": "course-v1:InnotelLabs+SQL101+2026_T1",
+  "locale": "en",
+  "defaults": {
+    "teacher_persona": "A database-minded analyst who insists the question is written in plain English before it becomes SQL, and who predicts the row count of a query before running it.",
+    "classmates": [
+      "A spreadsheet user moving to a real database who expects a formula and gets a join",
+      "An analyst who writes queries that work but cannot say what a NULL did to the result"
+    ],
+    "interaction": "Predict-then-run: the classmates write the English question, predict the shape and row count of the result, write the SQL, and reconcile the difference when they are wrong.",
+    "assessment": "Each classroom ends with 3-5 checks aligned to the chapter's graded activity."
+  },
+  "classrooms": [
+    {
+      "id": "sql101-ch01-relational",
+      "chapter": "c1_relational",
+      "linked_units": ["u1_relational", "u2_check"],
+      "title": "Tables, Keys, and Relationships",
+      "prompt": "Introduce the relational model on a small schema — customers, orders, order lines — and have the classmates identify primary keys, foreign keys, and where a one-to-many becomes a many-to-many. Then ask for one question the schema cannot answer, and why.",
+      "objectives": [
+        "Read a schema and identify keys and relationships",
+        "Explain what a foreign key enforces",
+        "Tell when a question needs a table the schema does not have"
+      ],
+      "activities": [
+        {"type": "slides", "title": "Tables, rows, typed columns, keys"},
+        {"type": "exercise", "title": "Read the schema, name the keys"},
+        {"type": "quiz", "title": "Relational basics"}
+      ]
+    },
+    {
+      "id": "sql101-ch02-select",
+      "chapter": "c2_select",
+      "linked_units": ["u3_select", "u4_lab"],
+      "title": "SELECT Reads; Everything Else Narrows",
+      "prompt": "Walk the shape of a query — SELECT, FROM, WHERE, ORDER BY, LIMIT — and have the classmates fix three broken queries: one selecting the wrong column, one filtering with a string against a number, and one where NULL quietly removes rows. Predict the row count before running each fix.",
+      "objectives": [
+        "Write a filtered, ordered query from a plain-English question",
+        "Explain how WHERE treats NULL and why the result was smaller than expected",
+        "Use LIMIT deliberately rather than to hide a wrong filter"
+      ],
+      "activities": [
+        {"type": "slides", "title": "The anatomy of a query"},
+        {"type": "lab", "title": "Fix three broken queries"},
+        {"type": "quiz", "title": "SELECT and filtering"}
+      ]
+    },
+    {
+      "id": "sql101-ch03-aggregate",
+      "chapter": "c3_aggregate",
+      "linked_units": ["u5_aggregate", "u6_check"],
+      "title": "Collapse Many Rows, Combine Tables",
+      "prompt": "Take the two ideas that do real reporting work: aggregates with GROUP BY and joins across a shared key. Have the classmates build a monthly revenue report by joining orders to customers, then compare an inner and a left join on the same query and explain the rows that appeared or vanished.",
+      "objectives": [
+        "Summarise a table with COUNT, SUM, and AVG per group",
+        "Join two tables on their key and know which rows survive",
+        "Choose between inner, left, and full joins for a reporting question"
+      ],
+      "activities": [
+        {"type": "slides", "title": "GROUP BY, aggregates, join types"},
+        {"type": "lab", "title": "Monthly revenue by customer segment"},
+        {"type": "discussion", "title": "Where did those rows go? inner vs left"}
+      ]
+    },
+    {
+      "id": "sql101-ch04-design",
+      "chapter": "c4_design",
+      "linked_units": ["u7_design", "u8_final"],
+      "title": "Creating and Changing Data Safely",
+      "prompt": "Move from reading to writing: CREATE TABLE with types, keys, and constraints, then ALTER and DML. Give the classmates a change request against a live-looking table and have them write it so that a bad row cannot get in — including the transaction they would wrap it in and the row count they would check afterwards.",
+      "objectives": [
+        "Define a table with the constraints that keep bad rows out",
+        "Change a schema or its data without losing what was there",
+        "Wrap a write in a transaction and verify the effect by count"
+      ],
+      "activities": [
+        {"type": "slides", "title": "DDL, constraints, DML, transactions"},
+        {"type": "lab", "title": "Apply a change request safely"},
+        {"type": "quiz", "title": "Design and change review"}
+      ]
+    }
+  ]
+}

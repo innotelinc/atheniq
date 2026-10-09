@@ -52,9 +52,10 @@ classrooms in courses and links them from AthenIQ units.
 - Run with server-backed persistence so sessions survive restarts:
 
   ```bash
-  cp .env.example .env.local
-  # DATABASE_URL / PERSISTENCE_DEV_TOKEN appended as documented upstream
-  docker compose --profile server-persistence up --build
+  cp .env.example .env.local      # models + ACCESS_CODE
+  # OPENMAIC_PORT / OPENMAIC_PUBLISH_ADDRESS / PERSISTENCE_POSTGRES_PASSWORD
+  # go in services/OpenMAIC/.env — the file compose interpolates from.
+  docker compose up -d --build    # bundled persistence Postgres starts with it
   ```
 
 - **Model providers:** OpenMAIC is provider-neutral. Point it at the OmniRoute
@@ -149,13 +150,13 @@ lesson media without leaving the platform.
 - **OmniRoute** — https://github.com/diegosouzapw/OmniRoute. The platform's
   OpenAI-compatible model gateway: one endpoint pools the provider accounts the
   operator connects. **AthenIQ runs none** — the single OmniRoute lives in Group 2
-  (`2-voice/`), on the gateway host `192.168.1.46`, and the door to it is the SSO
-  proxy in front (`:20129`); the gateway's own `:20128` answers on that host's
-  loopback and bridge alone. There is no container to start here:
+  (`2-voice/`), inside Cerulean's edge host `192.168.1.71`, and the door to it is
+  the SSO proxy in front (`:20128`); the gateway's own listener answers on that
+  host's loopback and bridge alone. There is no container to start here:
 
   ```bash
-  # in .env
-  OMNIROUTE_BASE_URL=http://192.168.1.46:20129/v1
+  # in .env — one key per consumer, created in the gateway dashboard
+  OMNIROUTE_BASE_URL=http://192.168.1.71:20128/v1
   ```
 
 - **OpenClaw** — https://github.com/openclaw/openclaw. Assistant gateway for

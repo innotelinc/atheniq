@@ -58,7 +58,7 @@ printf '%s\n' \
   "  1. Tutor LMS core:        pip install tutor && make tutor-quickstart" \
   "  2. AI classroom:          docs/Deployment.md — Stage 3 (OpenMAIC)" \
   "  3. Realtime:              docs/Deployment.md — Stage 4 (Convex, self-hosted)" \
-  "  4. Gateway + agents:      set OMNIROUTE_BASE_URL (platform OmniRoute door, :20129)" \
+  "  4. Gateway + agents:      set OMNIROUTE_BASE_URL (platform OmniRoute door, 192.168.1.71:20128)" \
   "  5. Signed certificates:   docs/Deployment.md — Stage 7 (Signara)" \
   "  6. Classroom media (ONYX): make onyx-check && make onyx-buckets" \
   "  7. Paid courses (Magnate):  make magnate-probe (Stage 8)" \

@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "provider": "openmaic",
+  "gateway": "OmniRoute",
+  "source_course": "course-v1:InnotelLabs+ITSP102+2026_T1",
+  "locale": "en",
+  "defaults": {
+    "teacher_persona": "A network engineer who draws the path a packet actually takes before naming any device, and who reaches for the command line rather than the manual.",
+    "classmates": [
+      "A service-desk technician moving up from desktop support and new to managed switches",
+      "A junior sysadmin who has inherited a Windows domain and a Linux box and is unsure which tool answers which question"
+    ],
+    "interaction": "Diagnostic: the teacher poses a failure, the classmates propose where to look, and the group narrows it down layer by layer until the command that proves it is named.",
+    "assessment": "Each classroom ends with 3-5 checks aligned to the chapter's graded activity."
+  },
+  "classrooms": [
+    {
+      "id": "itsp102-ch01-architecture",
+      "chapter": "c1_architecture",
+      "linked_units": ["u1_architecture", "u2_check"],
+      "title": "Describing a Network Before You Touch It",
+      "prompt": "Run a session on how support work describes a network: size (LAN/WAN), topology, and the layer that carries the data. Give the classmates a site description and have them classify it, then trace one request from a laptop to an internet service and name the layer each hop belongs to.",
+      "objectives": [
+        "Classify a network by size, topology, and the layers that carry data",
+        "Place a fault at a layer instead of guessing at a device",
+        "Walk a request end to end and name each hop"
+      ],
+      "activities": [
+        {"type": "slides", "title": "Size, topology, layers"},
+        {"type": "simulation", "title": "Where did the packet stop?"},
+        {"type": "quiz", "title": "Architecture foundations"}
+      ]
+    },
+    {
+      "id": "itsp102-ch02-routing",
+      "chapter": "c2_routing",
+      "linked_units": ["u3_routing", "u4_lab"],
+      "title": "Frames, Packets, and the Wireless Middle",
+      "prompt": "Contrast switching, routing, and wireless access, then debug a network where one VLAN cannot reach a printer on another. Have the classmates interpret a switch MAC table, an ARP cache, and a routing table in turn, and decide which one is actually wrong.",
+      "objectives": [
+        "Explain what a switch, a router, and an access point each decide",
+        "Read a VLAN, MAC table, and routing table well enough to localise a fault",
+        "Diagnose a wireless client that associates but cannot reach anything"
+      ],
+      "activities": [
+        {"type": "slides", "title": "Switching, VLANs, routing, wireless"},
+        {"type": "lab", "title": "One VLAN cannot reach the printer"},
+        {"type": "quiz", "title": "Routing and wireless"}
+      ]
+    },
+    {
+      "id": "itsp102-ch03-windows",
+      "chapter": "c3_windows",
+      "linked_units": ["u5_windows", "u6_check"],
+      "title": "The Domain Is the Backbone",
+      "prompt": "Work through Active Directory Domain Services as the identity and policy backbone: domain controllers, DNS, DHCP, file shares, and Group Policy. Then have the classmates troubleshoot a user who cannot log in, separating a DNS problem from a replication problem from a locked account, using the tools an admin would actually run.",
+      "objectives": [
+        "Describe the AD DS pieces and what each one is responsible for",
+        "Explain how DNS, DHCP, and Group Policy hang off the domain",
+        "Work a domain sign-in failure in the right order"
+      ],
+      "activities": [
+        {"type": "slides", "title": "Domain controllers, DNS, DHCP, GPO"},
+        {"type": "roleplay", "title": "The user who cannot log in"},
+        {"type": "quiz", "title": "Directory services"}
+      ]
+    },
+    {
+      "id": "itsp102-ch04-linux",
+      "chapter": "c4_linux",
+      "linked_units": ["u7_linux", "u8_final"],
+      "title": "The Shell and the Service Model",
+      "prompt": "Teach Linux server administration through the shell and systemd: navigate the filesystem, read logs, and manage a service. Then run a short incident where nginx is not serving, and have the classmates use systemctl and journalctl to prove whether the unit, the port, or the config is at fault.",
+      "objectives": [
+        "Navigate the Linux filesystem and read the logs that matter",
+        "Manage services with systemd instead of ad-hoc restarts",
+        "Diagnose a failed web service from status, journal, and socket"
+      ],
+      "activities": [
+        {"type": "slides", "title": "Shell, filesystem, systemd"},
+        {"type": "lab", "title": "nginx is down — prove why"},
+        {"type": "quiz", "title": "Linux administration review"}
+      ]
+    }
+  ]
+}

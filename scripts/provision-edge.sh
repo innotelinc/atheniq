@@ -5,7 +5,7 @@
 #   1. DNS: adds CNAME records (learn/studio/apps.learn/meilisearch.learn ->
 #      innotel.us apex) to the authoritative BIND zone via TSIG nsupdate.
 #   2. NPM edge: creates/updates the proxy hosts forwarding
-#      https://<domain> -> http://192.168.1.46:18080 (Tutor caddy).
+#      https://<domain> -> http://192.168.1.59:18080 (Tutor caddy).
 #   3. Certificates: learn/studio attach the existing *.innotel.us wildcard;
 #      apps.learn + meilisearch.learn get single-name Let's Encrypt certs via
 #      NPM (HTTP-01). NPM's own wildcard issuance (rfc2136) currently 500s, so
@@ -20,9 +20,11 @@ CERULEAN_ENV="${CERULEAN_ENV:-/usr/src/projects/complete/1-primary/cerulean/.env
 
 BIND_SERVER="${BIND_SERVER:-192.168.1.80}"
 BIND_TSIG_NAME="${BIND_TSIG_NAME:-cerulean}"
-FORWARD_HOST="${FORWARD_HOST:-192.168.1.46}"
+# The LMS (atheniq) and the NPM edge both moved off the retired .46 host:
+# the Tutor caddy answers on the atheniq container, the edge admin on proxy.
+FORWARD_HOST="${FORWARD_HOST:-192.168.1.59}"
 FORWARD_PORT="${FORWARD_PORT:-18080}"
-NPM_API_URL="${NPM_API_URL:-http://192.168.1.46:81}"
+NPM_API_URL="${NPM_API_URL:-http://192.168.1.71:81}"
 WILDCARD_CERT_ID="${WILDCARD_CERT_ID:-110}"   # *.innotel.us already on the edge
 ACME_EMAIL="${ACME_EMAIL:-admin@innotel.us}"
 DOMAINS=(learn.innotel.us studio.innotel.us apps.learn.innotel.us meilisearch.learn.innotel.us)

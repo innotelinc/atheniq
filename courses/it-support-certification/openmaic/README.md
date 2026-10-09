@@ -15,8 +15,10 @@ is routed through the platform's single OmniRoute gateway.
 
 ## Generate
 
-1. Bring OpenMAIC up with the server-backed profile and point it at OmniRoute
-   (`OMNIROUTE_BASE_URL` in `.env`).
+1. Bring OpenMAIC up against the platform's OmniRoute gateway: in
+   `services/OpenMAIC/.env.local`, set `OPENAI_BASE_URL` to
+   `$OMNIROUTE_BASE_URL` and `OPENAI_API_KEY` to this project's OmniRoute key
+   (`cerulean/atheniq#OMNIROUTE_API_KEY` in Cerulean Vault).
 2. For each entry in `classrooms.json`, submit `prompt`, `objectives`, and the
    `defaults` agent roles to OpenMAIC as the lesson brief. The `activities` list is
    the intended shape of the generated classroom.

@@ -75,11 +75,16 @@ constitute the credential.
 >
 > - `it-support` — the four-course certification ladder **ITSP101 Foundations**,
 >   **ITSP102 Networking & Systems Support**, **ITSP103 Security Operations**,
->   and **ITSP104 Capstone** (plus an OpenMAIC classroom spec).
+>   and **ITSP104 Capstone**.
 > - `data-foundations` — **DATA101 Data Foundations** and **SQL101 SQL
 >   Essentials**.
-> - `ai-classroom-facilitator` — **MAIC101 AI Classroom Facilitation** (plus an
->   OpenMAIC classroom spec, since authoring classrooms is the subject it teaches).
+> - `ai-classroom-facilitator` — **MAIC101 AI Classroom Facilitation**.
+>
+> Every course in the library — including the **TEST101** demo — also ships an
+> OpenMAIC classroom spec (`courses/<slug>/openmaic/classrooms.json`), one
+> classroom per chapter, validated against the OLX outline by
+> `make check-classrooms`. MAIC101's is the worked example, since authoring
+> classrooms is the subject it teaches.
 >
 > Promoting a track to `active` means its course runs exist in the LMS, its
 > entitlement (if any) is wired, and — for a track-level credential — the gating
