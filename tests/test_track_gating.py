@@ -124,7 +124,8 @@ class Apply(unittest.TestCase):
                "missing course: course-v1:O+Z+1\n"
                "missing course: course-v1:O+Y+1\n")
         fake = types.SimpleNamespace(returncode=0, stdout=out, stderr="")
-        with mock.patch.object(gating.subprocess, "run", return_value=fake):
+        with mock.patch.object(gating.subprocess, "run", return_value=fake), \
+                contextlib.redirect_stdout(io.StringIO()):
             missing = gating.apply_plan([], "some-cms", dry_run=False)
         self.assertEqual(missing, ["course-v1:O+Z+1", "course-v1:O+Y+1"])
 
@@ -132,7 +133,8 @@ class Apply(unittest.TestCase):
         fake = types.SimpleNamespace(
             returncode=0, stdout="prerequisites set for 1 course(s): 1 changed, editor x\n",
             stderr="")
-        with mock.patch.object(gating.subprocess, "run", return_value=fake):
+        with mock.patch.object(gating.subprocess, "run", return_value=fake), \
+                contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(gating.apply_plan([], "some-cms", dry_run=False), [])
 
     def test_a_failed_apply_raises_instead_of_claiming_success(self):
