@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""AthenIQ — fail if the owl mark drifts between the generator and the SVG masters.
+"""AthenIQ — fail if the mark drifts between the generator and the SVG masters.
 
 The mark is defined once, as geometry, in `scripts/build-course-images.py`
-(`EYE_*`, `TUFTS`, `BEAK`, `SPARK`). Every SVG — the three brand masters and each
-course card — is a hand-maintained copy of that geometry, and the **favicon tile
-transform** is derived from the same bounds. When one side changes without the
-other, the raster and vector logos silently disagree.
+(`CAP_BOARD`, `CAP_HEAD`, `TASSEL`, `KNOT`, `SPARK`). Every SVG — the three
+brand masters and each course card — is a hand-maintained copy of that geometry,
+and the **favicon tile transform** is derived from the same bounds. When one side
+changes without the other, the raster and vector logos silently disagree.
 
 This check rebuilds the expected SVG fragments from the geometry and asserts each
 SVG contains them (colours and `url(#…)` paint are normalised away, so a card may
-use `url(#g)` where a master uses `url(#atheniq-owl)`).
+use `url(#g)` where a master uses `url(#atheniq-mark)`).
 
     python3 scripts/check-brand-mark.py          # human output
     python3 scripts/check-brand-mark.py --json   # machine output
@@ -47,15 +47,12 @@ def _num(value):
 def expected_fragments():
     """The exact SVG substrings the shared geometry must produce."""
     frags = []
-    for (bx, by), (tx, ty) in IMAGES.TUFTS:
-        frags.append(f"M{_num(bx)} {_num(by)} L{_num(tx)} {_num(ty)}")
-    for cx, cy in IMAGES.EYE_RINGS:
-        frags.append(f'cx="{_num(cx)}" cy="{_num(cy)}" r="{_num(IMAGES.EYE_R)}"')
-    for cx, cy in IMAGES.EYE_RINGS:
-        frags.append(f'cx="{_num(cx)}" cy="{_num(cy)}" r="{_num(IMAGES.PUPIL_R)}"')
-    frags.append("M" + " L".join(f"{_num(x)} {_num(y)}" for x, y in IMAGES.BEAK) + " Z")
+    for path in IMAGES.MARK_STROKES:
+        frags.append("M" + " L".join(f"{_num(x)} {_num(y)}" for x, y in path))
     frags.append("M" + " L".join(f"{_num(x)} {_num(y)}" for x, y in IMAGES.SPARK) + " Z")
-    frags.append(f'stroke-width="{_num(IMAGES.EYE_STROKE)}"')
+    frags.append(f'cx="{_num(IMAGES.KNOT[0])}" cy="{_num(IMAGES.KNOT[1])}" '
+                 f'r="{_num(IMAGES.KNOT_R)}"')
+    frags.append(f'stroke-width="{_num(IMAGES.MARK_STROKE)}"')
     return frags
 
 

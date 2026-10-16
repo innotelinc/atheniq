@@ -20,13 +20,15 @@ page wins — update them together.
 
 ## Logo
 
-The mark is **Athene's owl, crowned by a spark**. Two large gradient eye-rings meet
-at the brow and ring bright accent pupils; two ear tufts rise from the brow, a solid
-beak sits between the eyes, and a four-point spark crowns the head — the owl for
-wisdom, the spark for the IQ in the name. Drawn as one bold monoline in the brand
-gradient, it stays legible from a favicon up to a hero. The 2026 refresh (much
-heavier stroke, big touching eyes, a solid four-point spark) is defined once in the
-`EYE_*` / `TUFTS` / `BEAK` / `SPARK` geometry in
+The mark is a **graduation cap crowned by a spark**. A bold monoline mortarboard
+and the head it caps are drawn as two open paths that settle clear of each other, a
+tassel hangs from the board's right point with a solid knot at its end, and a
+four-point spark sits above the peak — the cap for **training**, the spark for the
+**IQ** in the name, so the glyph reads as learning at an icon's size and as a
+trained eye at a hero's. Drawn as one bold monoline in the brand gradient plus one
+bright node, it stays legible from a favicon up to a hero. The 2026 refresh (a wide
+board, a settled head, one solid spark) is defined once in the
+`CAP_BOARD` / `CAP_HEAD` / `TASSEL` / `KNOT` / `SPARK` geometry in
 [`scripts/build-course-images.py`](../scripts/build-course-images.py) and mirrored
 exactly into every SVG — change them together.
 
@@ -49,7 +51,7 @@ verified by `make check-images`). Pillow is the only dependency.
 | [`web/landing/assets/atheniq-og.png`](../web/landing/assets/atheniq-og.png) | 1200×630 | Social / Open Graph card |
 | `courses/<slug>/olx/static/<slug>-course-card.png` | 1200×675 | LMS course card (`course_image`) |
 
-The same owl is inlined directly in the course-card SVGs under
+The same mark is inlined directly in the course-card SVGs under
 `courses/<slug>/olx/static/`, each scaling the 64-unit geometry with its own gradient
 (`url(#g)`).
 

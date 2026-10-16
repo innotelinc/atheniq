@@ -63,7 +63,7 @@ MFE_FOOTER_SIZE = (400, 120)
 FAVICON_ICO_SIZE = (64, 64)
 FAVICON_ICO_SIZES = [(16, 16), (32, 32), (48, 48), (64, 64)]
 # The favicon tile draws the mark at this fraction of the tile's height, so the
-# owl fills the icon without touching the rounded corners. `favicon_transform`
+# mark fills the icon without touching the rounded corners. `favicon_transform`
 # derives the matching SVG transform from it — the two must agree.
 FAVICON_MARK_HEIGHT = 0.74
 
@@ -74,7 +74,7 @@ TEXT = (238, 244, 248)     # --p-text      #eef4f8
 MUTED = (147, 164, 177)    # --p-text-muted #93a4b1
 ACCENT_HOVER = (52, 211, 153)   # --p-accent-hover #34d399
 ACCENT = (16, 185, 129)    # --p-accent    #10b981
-NODE = (110, 231, 183)     # IQ spark / owl pupils #6ee7b7
+NODE = (110, 231, 183)     # IQ spark / tassel knot #6ee7b7
 GRADIENT_STOPS = [(0.0, (5, 150, 105)), (0.55, (16, 185, 129)), (1.0, (52, 211, 153))]
 
 try:
@@ -163,24 +163,30 @@ def _gradient(size, stops=GRADIENT_STOPS):
     return small.resize(size, Image.BILINEAR)
 
 
-# --- The mark (Athene's owl: eye rings, beak, tufts, IQ spark) -------------
+# --- The mark (a graduation cap crowned by the IQ spark) -------------------
 
 # Mark geometry in 64-unit space; mirrored exactly by the SVG masters.
-# The 2026 refresh: a bolder owl — two large eye rings that touch at the brow,
-# a heavy monoline, a solid beak and a four-point IQ spark, so the mark reads as
-# one bold glyph from favicon to hero. Keep this block and every SVG in step
-# (docs/Brand.md).
-EYE_RINGS = ((22.0, 30.5), (42.0, 30.5))
-EYE_R = 10.5
-EYE_STROKE = 4.2
-# The pupil is deliberately smaller than the ring's inner radius: at favicon
-# sizes the gap has to survive as a visible ring, so the pupil is a dot, not a
-# disc. Keep >= ~1px of gap at 20px (asserted by tests/test_course_images.py).
-PUPIL_R = 2.8
-TUFTS = (((16.0, 22.0), (11.0, 12.5)), ((48.0, 22.0), (53.0, 12.5)))
-BEAK = ((28.8, 36.5), (35.2, 36.5), (32.0, 43.5))
-# A four-point spark crowning the owl.
-SPARK = ((32.0, 5.4), (34.6, 11.6), (32.0, 17.8), (29.4, 11.6))
+# The 2026 refresh replaces the owl with the platform's own glyph: a bold
+# monoline **mortarboard** over the head it caps, a tassel at its right point,
+# and a four-point spark above the peak — the cap for training, the spark for
+# the IQ in the name. Mathematic and closed, so it survives from a 20px favicon
+# to a hero unchanged. Keep this block and every SVG in step (docs/Brand.md).
+#
+# `CAP_BOARD` and `CAP_HEAD` are each drawn as ONE path whose last point repeats
+# its first, rather than as a closed path with `Z`: the checker compares point
+# for point, and a repeated point needs no closepath to be a closed shape. The
+# head and the tassel stop clear of the board's own edges (38 below a board that
+# bottoms out at 36), so the two shapes read apart at a favicon's size instead of
+# crossing into one busy knot.
+MARK_STROKE = 4.6
+CAP_BOARD = ((32.0, 14.0), (56.0, 25.0), (32.0, 36.0), (8.0, 25.0), (32.0, 14.0))
+CAP_HEAD = ((22.0, 38.0), (22.0, 45.0), (32.0, 50.0), (42.0, 45.0), (42.0, 38.0))
+TASSEL = ((56.0, 25.0), (56.0, 38.0))
+MARK_STROKES = (CAP_BOARD, CAP_HEAD, TASSEL)
+# The tassel's knot, and the four-point spark crowning the cap.
+KNOT = (56.0, 40.6)
+KNOT_R = 2.6
+SPARK = ((32.0, 3.6), (34.6, 7.3), (32.0, 11.0), (29.4, 7.3))
 
 
 def mark_bounds():
@@ -189,13 +195,11 @@ def mark_bounds():
     Derived from the geometry above so a shape tweak can never leave the
     centring maths (favicon tile, LMS logo, footer lockup) behind.
     """
-    xs = ([cx - EYE_R for cx, _ in EYE_RINGS] + [cx + EYE_R for cx, _ in EYE_RINGS]
-          + [p[0] for tuft in TUFTS for p in tuft] + [p[0] for p in SPARK]
-          + [p[0] for p in BEAK])
-    ys = ([cy - EYE_R for _, cy in EYE_RINGS] + [cy + EYE_R for _, cy in EYE_RINGS]
-          + [p[1] for tuft in TUFTS for p in tuft] + [p[1] for p in SPARK]
-          + [p[1] for p in BEAK])
-    half = EYE_STROKE / 2
+    xs = [p[0] for stroke in MARK_STROKES for p in stroke] + [p[0] for p in SPARK]
+    ys = [p[1] for stroke in MARK_STROKES for p in stroke] + [p[1] for p in SPARK]
+    xs += [KNOT[0] - KNOT_R, KNOT[0] + KNOT_R]
+    ys += [KNOT[1] - KNOT_R, KNOT[1] + KNOT_R]
+    half = MARK_STROKE / 2
     return (min(xs) - half, min(ys) - half, max(xs) + half, max(ys) + half)
 
 
@@ -229,7 +233,7 @@ def _place_mark(base, cx, cy, height):
 
 
 def _draw_mark(base, ox, oy, scale):
-    """Draw the AthenIQ owl mark at (ox, oy) in 64-unit space, scaled by `scale`."""
+    """Draw the AthenIQ mark at (ox, oy) in 64-unit space, scaled by `scale`."""
     size = int(round(64 * scale))
     pad = int(round(10 * scale))
     side = size + 2 * pad
@@ -237,21 +241,18 @@ def _draw_mark(base, ox, oy, scale):
     def pt(x, y):
         return (pad + x * scale, pad + y * scale)
 
-    # Gradient pass: the two eye rings, the ear tufts and the beak. Round the
-    # tuft caps by stamping circles at both ends (Pillow lines have no caps).
-    stroke = max(2, round(EYE_STROKE * scale))
+    # Gradient pass: the cap's board, the head beneath it and the tassel. Round
+    # the ends and the corners by stamping a disc at every point, because a
+    # Pillow line has no caps of its own.
+    stroke = max(2, round(MARK_STROKE * scale))
     mask = Image.new("L", (side, side), 0)
     mask_draw = ImageDraw.Draw(mask)
-    for (base_xy, tip_xy) in TUFTS:
-        mask_draw.line([pt(*base_xy), pt(*tip_xy)], fill=255, width=stroke)
-        for x, y in (pt(*base_xy), pt(*tip_xy)):
+    for path in MARK_STROKES:
+        points = [pt(*v) for v in path]
+        mask_draw.line(points, fill=255, width=stroke, joint="curve")
+        for x, y in points:
             r = stroke / 2
             mask_draw.ellipse([x - r, y - r, x + r, y + r], fill=255)
-    for cx0, cy0 in EYE_RINGS:
-        cx, cy = pt(cx0, cy0)
-        r = EYE_R * scale
-        mask_draw.ellipse([cx - r, cy - r, cx + r, cy + r], outline=255, width=stroke)
-    mask_draw.polygon([pt(*v) for v in BEAK], fill=255)
 
     gradient = Image.new("RGBA", (side, side), (0, 0, 0, 0))
     gradient.paste(_gradient((side, side)).convert("RGBA"), (0, 0), mask)
@@ -259,13 +260,13 @@ def _draw_mark(base, ox, oy, scale):
     tile = Image.new("RGBA", (side, side), (0, 0, 0, 0))
     tile.alpha_composite(gradient)
 
-    # Solid pass: the pupils and the IQ spark, both in the bright accent node.
+    # Solid pass: the IQ spark above the peak and the tassel's knot, both in
+    # the bright accent node.
     solid = ImageDraw.Draw(tile)
-    for cx0, cy0 in EYE_RINGS:
-        cx, cy = pt(cx0, cy0)
-        r = PUPIL_R * scale
-        solid.ellipse([cx - r, cy - r, cx + r, cy + r], fill=NODE)
     solid.polygon([pt(*v) for v in SPARK], fill=NODE)
+    kx, ky = pt(*KNOT)
+    r = KNOT_R * scale
+    solid.ellipse([kx - r, ky - r, kx + r, ky + r], fill=NODE)
 
     base.paste(tile, (int(round(ox - pad)), int(round(oy - pad))), tile)
 
@@ -333,7 +334,7 @@ def render_lms_logo(white=False):
 
     Indigo's asset is 66×112 with the visible mark centred in a 48px band, and
     the header CSS pins the image to `height: 48px`. Matching that canvas keeps
-    the header layout byte-for-byte identical; the owl's emerald gradient reads
+    the header layout byte-for-byte identical; the mark's emerald gradient reads
     on both the light and the dark header, so the two files are the same art.
     """
     _require_pil()

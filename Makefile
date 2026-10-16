@@ -118,7 +118,7 @@ images: ## Render the PNG brand + course-card assets (needs Pillow)
 check-images: ## Fail if a PNG raster is missing or mis-sized
 	python3 scripts/build-course-images.py --check
 
-check-brand: ## Fail if the owl mark drifts between the generator and the SVGs
+check-brand: ## Fail if the brand mark drifts between the generator and the SVGs
 	python3 scripts/check-brand-mark.py
 
 course-bundle: ## Bundle each OLX course into dist/courses/*.tar.gz

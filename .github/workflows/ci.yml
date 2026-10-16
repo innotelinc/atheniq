@@ -64,7 +64,7 @@ jobs:
       - name: Validate the PNG assets are current
         run: make check-images
 
-      - name: Validate the owl mark is in sync across the SVGs
+      - name: Validate the brand mark is in sync across the SVGs
         run: make check-brand
 
       - name: Validate compose (default)
