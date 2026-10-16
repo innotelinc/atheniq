@@ -15,6 +15,21 @@
 <% footer = get_footer(is_secure=is_secure) %>
 <% icp_license_info = getattr(settings, 'ICP_LICENSE_INFO', {})%>
 <%namespace name='static' file='static_content.html'/>
+##
+## The Unity skin. AthenIQ is the LearningOps platform of the Innotel Platform
+## Stack, where every product wears one theme (the platform stack's `standards/
+## unity`, vendored per product as `theme/unity-theme.css`). Indigo is a Tutor
+## theme, not a platform one, so the palette is layered on top of it from here —
+## with the family's `desk` register, which is the training range's own. The file
+## itself is `contrib/atheniq-theme/lms/static/atheniq/`; the footer is the one
+## template this overlay owns on every LMS page, so this is where it is linked.
+##
+## Served through `/theming/asset/`, which resolves to the *collected* copy — so
+## it survives an asset re-collection and never 404s the way a hand-written
+## `/static/...` path does.
+##
+<link rel="stylesheet" href="/theming/asset/atheniq/unity-light.css">
+<link rel="stylesheet" href="/theming/asset/atheniq/unity-dark.css" media="(prefers-color-scheme: dark)">
 <!-- NEW IN INDIGO update footer -->
 % if uses_bootstrap:
 <div class="wrapper wrapper-footer">

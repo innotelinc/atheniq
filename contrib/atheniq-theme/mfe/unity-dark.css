@@ -1,0 +1,98 @@
+/* AthenIQ — the dark half of the **Unity** skin.
+ *
+ * WHY THIS FILE EXISTS. AthenIQ is the LearningOps platform of the Innotel
+ * Platform Stack, and every platform in that stack wears one theme, Unity
+ * (`theme/unity-theme.css`): a palette of *semantic* tokens, two axes (mode and
+ * scheme), and no product that starts from its own dashboard template. The
+ * Tutor/Indigo stack the LMS foundation comes from ships its own theme either
+ * way, so this file is the seam that puts Unity back on top of it.
+ *
+ * WHAT IT IS. Two layers in one stylesheet:
+ *
+ *   1. **Paragon variables** (`--pgn-*`) — the learner MFEs (catalog, learning,
+ *      account, ...) paint from these. Loaded as the Paragon theme's
+ *      `brandOverride`, this recolours every MFE without rebuilding a bundle.
+ *   2. **Surface rules** — the LMS's own pages, and the one thing this platform
+ *      will not print: another platform's badge. Indigo's footer draws a
+ *      "Powered by Open edX" logo whose hover text is the image's `alt`;
+ *      AthenIQ is the platform, so the badge goes.
+ *
+ * The palette is Unity's, transcribed from `theme/unity-theme.css` (the
+ * canonical copy) rather than invented here. Change it there first.
+ *
+ * SCOPE. Colour and brand only, nothing structural: a stylesheet cannot rename
+ * a template, and Indigo's compiled SCSS still owns geometry and spacing.
+ */
+:root {
+  /* surfaces — Unity `--canvas` / `--surface` / `--surface-muted` */
+  --pgn-color-bg-base: #100c22;
+  --pgn-color-body-bg: #100c22;
+  /* left to the theme: --pgn-color-dark-base is Paragon's dark-surface palette */
+  /* text — Unity `--ink` / `--ink-soft` */
+  --pgn-color-text-base: #f5f3ff;
+  --pgn-color-gray-900: #f5f3ff;
+  --pgn-color-gray-700: #c3bce0;
+  --pgn-color-gray-100: #221a40;
+  /* brand — Unity `--brand`, with its tint/shade scale */
+  --pgn-color-primary-100: #100d1a;
+  --pgn-color-primary-200: #2b2547;
+  --pgn-color-primary-300: #514485;
+  --pgn-color-primary-400: #7664c2;
+  --pgn-color-primary-500: #9b83ff;
+  --pgn-color-primary-600: #8571db;
+  --pgn-color-primary-700: #705eb8;
+  --pgn-color-primary-800: #60519e;
+  --pgn-color-primary-900: #514485;
+  --pgn-color-primary-base: #9b83ff;
+  --pgn-color-primary-light: #100c22;
+  /* links follow the brand, as Unity's do */
+  --pgn-color-link-base: var(--pgn-color-primary-500);
+  --pgn-color-link-hover: #514485;
+  --pgn-color-link-inline-base: var(--pgn-color-primary-500);
+  --pgn-color-link-inline-hover-base: #514485;
+  --pgn-color-link-brand-base: var(--pgn-color-primary-500);
+  --pgn-color-link-brand-hover: #514485;
+  /* status — Unity `--ok` / `--info` / `--attention` / `--bad` */
+  --pgn-color-success-base: #5ed37a;
+  --pgn-color-info-base: #6cc0ff;
+  --pgn-color-warning-base: #ffc157;
+  --pgn-color-danger-base: #ff8a80;
+  --pgn-color-accent-a: #6cc0ff;
+  --pgn-color-accent-b: #ffc157;
+}
+
+/* ------------------------------------------------------------------ brand -- */
+
+/* The mark is the platform's own. Nothing else signs the page. */
+img[alt="Powered by Open edX"],
+img[alt="Runs on Tutor"],
+a:has(> img[alt="Powered by Open edX"]),
+a:has(> img[alt="Runs on Tutor"]),
+.footer .logo-list,
+.powered-area {
+  display: none !important;
+}
+
+/* The header mark's hover label. An MFE takes its logo's `alt` from SITE_NAME
+ * ("AthenIQ"); this states the full attribution the brand page asks for, on the
+ * mark alone, until the MFE plugin's lockup ships with a rebuild. */
+header a[href$="/dashboard"] { position: relative; }
+header a[href$="/dashboard"]:hover::after {
+  content: "AthenIQ by Innotel Labs";
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 20;
+  padding: 4px 10px; border-radius: 8px; white-space: nowrap;
+  background: #191430; color: #ffffff;
+  font-size: 12px; line-height: 1.4; letter-spacing: 0.02em;
+}
+
+/* -------------------------------------------------------------- LMS pages -- */
+
+.wrapper-footer { background: #221a40 !important; border-top: 1px solid #332a55; }
+.wrapper-footer a { color: #9b83ff; }
+.btn-primary, .btn-brand, button.btn-primary {
+  background-color: #9b83ff !important;
+  border-color: #9b83ff !important;
+  color: #14102a !important;
+}
+.btn-primary:hover, .btn-brand:hover, button.btn-primary:hover { filter: brightness(1.06); }
+a { color: #9b83ff; }

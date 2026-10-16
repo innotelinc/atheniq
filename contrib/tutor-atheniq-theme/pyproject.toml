@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tutor-atheniq-theme"
+version = "0.1.0"
+description = "AthenIQ branding and the Unity skin for a Tutor/Open edX deployment"
+dependencies = ["tutor>=19,<23"]
+
+[project.entry-points."tutor.plugin.v0"]
+atheniqtheme = "atheniqtheme.plugin"
+
+[tool.setuptools]
+packages = ["atheniqtheme"]
