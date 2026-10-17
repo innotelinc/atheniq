@@ -10,7 +10,7 @@ SHELL := /bin/bash
         openmaic-up openmaic-down convex-up convex-down convex-key \
         onyx-check onyx-buckets onyx-selftest magnate-probe \
         paid-status entitlement-status entitlement-sync \
-        check-commits check-compose check-tracks check-courses check-classrooms check-catalog check-syllabus check-images check-brand \
+        check-commits check-compose check-tracks check-courses check-classrooms check-catalog check-syllabus check-images check-brand cert-check \
         catalog syllabus images course-bundle course-import test tutor-quickstart \
         theme gating check-gating gating-apply track-credential-status
 
@@ -152,6 +152,9 @@ check-compose: ## Validate every compose profile parses
 	docker compose config --quiet
 	docker compose --profile openmaic config --quiet
 	docker compose --profile convex config --quiet
+
+cert-check: ## Verify the public names' certificates (coverage, chain, expiry) -- needs network
+	python3 scripts/cert-check.py
 
 ## ---- LMS core (Tutor / AthenIQ) ------------------------------------------
 

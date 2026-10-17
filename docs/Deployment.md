@@ -429,6 +429,24 @@ DNS record, the certificate, and the NPM host; `DRY_RUN=1` prints the plan.
 > `docker compose -p tutor_local -f docker-compose.yml -f
 > docker-compose.prod.yml restart lms cms mfe caddy`.
 
+Each public name carries `Strict-Transport-Security: max-age=63072000; preload`
+(`lms`, `apps.lms`, `atheniq`); `includeSubDomains` is deliberately off, because a
+sticky rule covering every subdomain would outlive any one host's certificate.
+
+The edge is one step removed from this repo, so it has a check of its own:
+
+```bash
+make cert-check          # or: python3 scripts/cert-check.py lms.innotel.us
+```
+
+For every name it verifies the handshake against the system trust store, that the
+certificate's SAN list covers the name (wildcards cover exactly one label), that
+the **served chain carries an issuer as well as the leaf** — the failure this was
+written after: a leaf-only chain verifies wherever the intermediate is already in
+the store and shows as "not secure" everywhere else — and that the certificate is
+not expired, warning inside 21 days. Exit status is 1 on any failure, so it gates
+[`scripts/deploy.sh`](../scripts/deploy.sh).
+
 ## Stage 9 — Known fixes applied on this deployment (2026-09)
 
 These were diagnosed live and must be re-applied after a Tutor reinstall or
@@ -880,7 +898,15 @@ required for the outline to render — the policy can be anything.
 - **Logs:** `docker compose logs -f` for this repo's services; `tutor local
   logs` for the LMS; retain learner-access audit trails per your policy.
 - **Health:** check `/healthz` surfaces where available; confirm NPM hosts and
-  certificate renewal via Cerulean's compliance view.
+  certificate renewal via Cerulean's compliance view, and that every public name
+  still has a valid certificate of its own with `make cert-check`.
+- **Host deploys:** run [`scripts/deploy.sh`](../scripts/deploy.sh) from the
+  host's checkout. It refuses to pull over a dirty tree, fast-forwards, reports
+  the commits it crossed, `docker compose up -d --remove-orphans`, and finishes
+  with the certificate gate. `--no-pull` restarts what is on disk;
+  `--no-cert-check` skips the gate. The checkout is a normal `git clone` (its
+  `.env` is gitignored and copied in once), which is what keeps
+  `docker-compose.yml` and `web/landing/` from drifting away from the repo.
 - **Upgrades:** Tutor has its own upgrade command; OpenMAIC, Convex, OmniRoute,
   and the agent layer follow upstream releases. Test on a staging host first.
 - **Rollback:** keep previous container images and DB dumps; restore =

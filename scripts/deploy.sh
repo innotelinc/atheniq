@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+# deploy.sh — bring this host's checkout up to main and restart what it runs.
+#
+# WHY THIS EXISTS. Part of an AthenIQ host is not in a container: `web/landing/`
+# is mounted into the landing service, and `docker-compose.yml` is what tells
+# that host what to run at all. Those files used to reach the host by hand
+# (rsync, or a `cp` after a fix), which is how the landing page came to exist in
+# the repository and in only one of the running hosts. Running this instead
+# makes the host's state a function of a commit.
+#
+# WHAT IT DOES. Refuses to pull over a dirty tree; fast-forwards; reports the
+# commits it moved across; brings up the compose services this repo owns; and
+# finishes with scripts/cert-check.py, because a host that restarted cleanly
+# onto a name whose certificate no longer covers it has not deployed.
+#
+# USAGE
+#   ./scripts/deploy.sh                  # pull, restart, verify TLS
+#   ./scripts/deploy.sh --no-pull        # restart what is on disk as-is
+#   ./scripts/deploy.sh --no-cert-check  # skip the certificate gate
+#   DIR=/srv/atheniq ./scripts/deploy.sh
+#
+# `.env` is gitignored, so a fresh clone has none: copy the host's `.env` in
+# first (or the script reports that compose is running on its defaults). Profiles
+# stay opt-in, exactly as in the Makefile — set COMPOSE_PROFILES to bring up
+# openmaic/convex as well.
+set -euo pipefail
+
+DIR="${DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+PULL=1
+CERT_CHECK=1
+
+for arg in "$@"; do
+  case "$arg" in
+    --no-pull) PULL=0 ;;
+    --no-cert-check) CERT_CHECK=0 ;;
+    -h|--help) sed -n '2,23p' "$0"; exit 0 ;;
+    *) echo "unknown argument: $arg" >&2; exit 2 ;;
+  esac
+done
+
+cd "$DIR"
+[ -f docker-compose.yml ] || { echo "not an AthenIQ checkout: $DIR" >&2; exit 1; }
+
+if [ "$PULL" = 1 ]; then
+  git rev-parse --git-dir >/dev/null 2>&1 \
+    || { echo "$DIR is not a git clone — re-clone it, or pass --no-pull to restart what is here" >&2; exit 1; }
+
+  if [ -n "$(git status --porcelain)" ]; then
+    echo "refusing to pull: $DIR has changes that a pull would carry or collide with" >&2
+    git status --short >&2
+    exit 1
+  fi
+
+  before="$(git rev-parse --short HEAD)"
+  git pull --ff-only
+  after="$(git rev-parse --short HEAD)"
+  if [ "$before" = "$after" ]; then
+    echo "already at $after"
+  else
+    echo "updated $before -> $after"
+    git log --oneline "$before..$after"
+  fi
+fi
+
+if [ -f .env ]; then
+  echo "using .env"
+else
+  echo "note: no .env in $DIR — compose is running on its built-in defaults" >&2
+fi
+
+docker compose up -d --remove-orphans
+docker compose ps
+
+if [ "$CERT_CHECK" = 1 ]; then
+  echo
+  if ! python3 scripts/cert-check.py; then
+    echo "deployed, but the edge is not serving a valid certificate for a platform name" >&2
+    exit 1
+  fi
+fi
+
+echo "deploy ok"

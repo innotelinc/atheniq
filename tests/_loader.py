@@ -7,6 +7,7 @@ out of the way.
 """
 import importlib.util
 import pathlib
+import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SCRIPTS = ROOT / "scripts"
@@ -17,5 +18,13 @@ def load(script_name):
     module_name = pathlib.Path(script_name).stem.replace("-", "_")
     spec = importlib.util.spec_from_file_location(module_name, path)
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    # Register the module while it runs: `@dataclass` (and pickling, and
+    # anything else that looks itself up by `__module__`) reads `sys.modules`,
+    # which a bare spec.loader.exec_module() leaves empty for this name.
+    sys.modules[module_name] = module
+    try:
+        spec.loader.exec_module(module)
+    except BaseException:
+        sys.modules.pop(module_name, None)
+        raise
     return module
