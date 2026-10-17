@@ -266,7 +266,7 @@ evidence. Signara remains the sole DocumentOps surface of the stack.
 ## Cerulean — DNS, hosts, TLS (TrustOps)
 
 As usual for stack platforms, public hosts are provisioned through Cerulean:
-DNS records into BIND, NGINX Proxy Manager proxy hosts, and Let's Encrypt
+DNS records into Technitium, NGINX Proxy Manager proxy hosts, and Let's Encrypt
 (wildcard) certificates. See [docs/Deployment.md](Deployment.md#cerulean-dns-and-tls).
 
 ## Environment reference

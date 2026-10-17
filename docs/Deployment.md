@@ -7,7 +7,7 @@ It is an operator-run flow: nothing in CI connects to or deploys any server.
 
 - A Linux host (Debian/Ubuntu recommended) with Docker + Compose plugin,
   `python3`, `openssl`, `git`, and `curl`.
-- A domain you control with a zone managed by **Cerulean** (BIND) so records
+- A domain you control with a zone managed by **Cerulean** (Technitium) so records
   and TLS are provisioned automatically. Reference DNS: `*.learn.<domain>`
   style hosts under your zone (see [Cerulean DNS and TLS](#cerulean-dns-and-tls)).
 - **Authentik** tenant reachable for OIDC (IdentityOps) and **Cerulean Vault** for
@@ -340,8 +340,9 @@ reads the ledger.
 
 Public hosts are provisioned through Cerulean as usual for stack platforms:
 
-- Cerulean writes DNS records (A/CNAME) into your BIND zone and requests
-  Let's Encrypt certificates (regular or wildcard via DNS-01).
+- Cerulean writes DNS records (A/CNAME) into the zone it serves from
+  Technitium (`/api/domains/:id/records`) and requests Let's Encrypt
+  certificates (regular or wildcard) with DNS-01 through that same zone.
 - NGINX Proxy Manager hosts are created automatically for each canonical
   subdomain, with TLS termination at NPM.
 
@@ -349,7 +350,8 @@ Canonical hosts for a reference deployment:
 
 | Host | Backend |
 | --- | --- |
-| `learn.<domain>` | Tutor LMS |
+| `lms.<domain>` | Tutor LMS, students' entry point |
+| `learn.<domain>` | Tutor LMS, canonical name (MFE absolute URLs) |
 | `studio.<domain>` | AthenIQ Studio |
 | `classroom.<domain>` | OpenMAIC |
 | `cert.<domain>` | Signara portal (shared DocumentOps) |
@@ -360,17 +362,26 @@ Cerulean provisioning. Docker/LAN addresses are never published to DNS; only
 the public WAN address is used for records and the LAN address for NPM
 upstreams.
 
-**Realized (2026-09):** `learn`, `studio`, `apps.learn`, and
-`meilisearch.learn` (`innotel.us`) are live. DNS records are CNAMEs to the
-`innotel.us.` apex (A `73.68.203.71`, the NPM edge) in the authoritative BIND
-zone, written via TSIG `nsupdate` (key `cerulean`, BIND at `192.168.1.80`).
-NPM hosts forward to `http://192.168.1.59:18080` (Tutor caddy): `learn` and
-`studio` attach the existing `*.innotel.us` wildcard (NPM cert 110);
-`apps.learn` and `meilisearch.learn` use single-name Let's Encrypt certs
-(HTTP-01) because NPM's own wildcard issuance (`rfc2136` DNS provider)
-currently returns 500 — request a `*.learn.innotel.us` wildcard once that is
-fixed. Run [`scripts/provision-edge.sh`](../scripts/provision-edge.sh) to
-re-apply (idempotent). Public HTTPS verified for all four hosts.
+**Realized (2026-09, `lms` 2026-10):** `lms`, `learn`, `studio`, `apps.learn`,
+and `meilisearch.learn` (`innotel.us`) are live. DNS records are CNAMEs to the
+`innotel.us.` apex (A `73.68.203.71`, the edge's WAN address), written through
+Cerulean's Technitium plane — the old TSIG/`nsupdate` BIND zone at
+`192.168.1.80` is retired. The edge (nginx proxy manager, admin API on
+`192.168.1.71:81`) forwards every host to `http://192.168.1.59:18080` (Tutor
+caddy) and terminates TLS; each host carries its own Let's Encrypt certificate
+issued by Cerulean (`lms` has `CN=lms.innotel.us`).
+
+`lms.<domain>` is the students' name for the same LMS the staff use at
+`learn.<domain>`: the edge sends both to the Tutor caddy, so the caddy needs a
+site block for the new name and the LMS must allow the host
+(`ALLOWED_HOSTS` + `CSRF_TRUSTED_ORIGINS`). The LMS still builds absolute URLs
+from `LMS_ROOT_URL` (`learn`), so `/` and `/courses/` hand the visitor to the
+MFE at `apps.learn`; a canonical rename of the student host would mean moving
+`LMS_HOST`, the MFE hosts and the SSO redirect URIs together.
+
+Run [`scripts/provision-edge.sh`](../scripts/provision-edge.sh) to re-apply
+(idempotent; pass hostnames to narrow it). It drives Cerulean's API for the
+DNS record, the certificate, and the NPM host; `DRY_RUN=1` prints the plan.
 
 > Scheme note: Tutor runs with `ENABLE_HTTPS=true` and `ENABLE_WEB_PROXY=false`
 > (its own caddy stays plain HTTP on `:18080`; NPM terminates TLS). This makes
