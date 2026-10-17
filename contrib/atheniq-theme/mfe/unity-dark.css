@@ -85,6 +85,81 @@ header a[href$="/dashboard"]:hover::after {
   font-size: 12px; line-height: 1.4; letter-spacing: 0.02em;
 }
 
+/* ------------------------------------------------------- the learner home -- */
+
+/* WHAT THIS IS. `/` is the catalog MFE's home page: a banner, the course
+ * search, and the course list. The last two are the platform's already; the
+ * banner is not, and it is the first thing anybody sees.
+ *
+ * WHY IT IS DONE HERE. The banner's copy and its artwork are compiled into the
+ * MFE bundle — the heading and the "{title} / It works! Powered by the Open
+ * edX® Platform" placeholder are translated defaults, and the background is a
+ * stock photograph the MFE ships. Neither is reachable from an LMS template or
+ * from `MFE_CONFIG`; both are reachable from the skin the MFEs already load as
+ * Paragon's brand override, so the page is finished here rather than left
+ * waiting on a bundle rebuild. `contrib/tutor-atheniq-mfe` is the door for the
+ * parts this cannot do.
+ *
+ * The palette is the dark register of the same rule in `unity-light.css`; keep
+ * the two in step. */
+
+/* The placeholder line goes. A learner's first page cannot greet them with
+ * "It works!" — that is a build report, not a welcome. The heading above it
+ * already names the platform, so nothing replaces the sentence. */
+.home-banner p.lead {
+  display: none !important;
+}
+
+/* The banner is the platform's front door, so it is painted as one: Unity's
+ * dark canvas under a study surface — graph-paper squares at 32px, ruled lines
+ * at 28px, the brand's violet glowing down from the top edge — instead of the
+ * stock photograph underneath. The MFE draws it in `.home-banner:before` from
+ * two custom properties plus `background-size: cover`, so every layer is set
+ * here explicitly (a size per layer is not expressible through the properties
+ * alone). */
+.home-banner:before {
+  background-color: #100c22 !important;
+  background-image:
+    linear-gradient(to right, rgba(245, 243, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(245, 243, 255, 0.05) 1px, transparent 1px),
+    repeating-linear-gradient(to bottom, transparent 0 27px, rgba(155, 131, 255, 0.18) 27px 28px),
+    radial-gradient(120% 90% at 50% -20%, #2b2154 0%, #1a1436 45%, #100c22 100%) !important;
+  background-size: 32px 32px, 32px 32px, 100% 28px, cover !important;
+  background-position: 0 0, 0 0, 0 0, center !important;
+  background-repeat: repeat, repeat, repeat, no-repeat !important;
+}
+
+/* The masthead. This heading is the page's header — there is no other — so it
+ * gets the treatment a title earns: a kicker naming the platform it belongs
+ * to, weight, and a shadow that keeps it legible over the glow. */
+.home-banner .animation-wrapper::before {
+  content: "LearningOps · Innotel Platform Stack";
+  display: inline-block;
+  margin-bottom: 0.75rem;
+  padding: 0.3rem 0.75rem;
+  border: 1px solid rgba(245, 243, 255, 0.28);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #f5f3ff;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.home-banner h1.display-1 {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.55);
+}
+
+/* The site header above it, in the same register: the brand along its bottom
+ * edge. The surface stays as the MFE sets it (white), because the logo in the
+ * header is drawn for it in both schemes. */
+header {
+  border-bottom: 3px solid #9b83ff;
+  box-shadow: none;
+}
+
 /* -------------------------------------------------------------- LMS pages -- */
 
 .wrapper-footer { background: #221a40 !important; border-top: 1px solid #332a55; }
