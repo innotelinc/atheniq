@@ -16,8 +16,13 @@
 # USAGE
 #   ./scripts/deploy.sh                  # pull, restart, verify TLS
 #   ./scripts/deploy.sh --no-pull        # restart what is on disk as-is
+#   ./scripts/deploy.sh --recreate       # force new containers
 #   ./scripts/deploy.sh --no-cert-check  # skip the certificate gate
 #   DIR=/srv/atheniq ./scripts/deploy.sh
+#
+# --recreate matters when a bind-mounted directory is replaced rather than
+# edited: a running container keeps the path it resolved at creation, so the
+# files the landing service reads would silently stay on the old directory.
 #
 # `.env` is gitignored, so a fresh clone has none: copy the host's `.env` in
 # first (or the script reports that compose is running on its defaults). Profiles
@@ -28,12 +33,14 @@ set -euo pipefail
 DIR="${DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 PULL=1
 CERT_CHECK=1
+RECREATE=0
 
 for arg in "$@"; do
   case "$arg" in
     --no-pull) PULL=0 ;;
     --no-cert-check) CERT_CHECK=0 ;;
-    -h|--help) sed -n '2,23p' "$0"; exit 0 ;;
+    --recreate) RECREATE=1 ;;
+    -h|--help) sed -n '2,28p' "$0"; exit 0 ;;
     *) echo "unknown argument: $arg" >&2; exit 2 ;;
   esac
 done
@@ -68,7 +75,9 @@ else
   echo "note: no .env in $DIR — compose is running on its built-in defaults" >&2
 fi
 
-docker compose up -d --remove-orphans
+compose_up=(docker compose up -d --remove-orphans)
+[ "$RECREATE" = 1 ] && compose_up+=(--force-recreate)
+"${compose_up[@]}"
 docker compose ps
 
 if [ "$CERT_CHECK" = 1 ]; then
