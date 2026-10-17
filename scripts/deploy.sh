@@ -68,6 +68,17 @@ if [ "$PULL" = 1 ]; then
     echo "updated $before -> $after"
     git log --oneline "$before..$after"
   fi
+
+  # A script that pulls can pull a new version of itself, and bash is already
+  # reading the old one: this run would finish with the checks it started with.
+  # Hand over to the version on disk instead, once.
+  if [ "${DEPLOY_REEXEC:-0}" != 1 ] && git diff --name-only "$before" "$after" | grep -qx scripts/deploy.sh; then
+    echo "deploy.sh itself changed in that pull — re-running it"
+    reexec=()
+    [ "$RECREATE" = 1 ] && reexec+=(--recreate)
+    [ "$CERT_CHECK" = 0 ] && reexec+=(--no-cert-check)
+    exec env DEPLOY_REEXEC=1 "$0" --no-pull ${reexec[@]+"${reexec[@]}"}
+  fi
 fi
 
 if [ -f .env ]; then
