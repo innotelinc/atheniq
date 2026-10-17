@@ -10,8 +10,9 @@
 #
 # WHAT IT DOES. Refuses to pull over a dirty tree; fast-forwards; reports the
 # commits it moved across; brings up the compose services this repo owns; and
-# finishes with scripts/cert-check.py, because a host that restarted cleanly
-# onto a name whose certificate no longer covers it has not deployed.
+# finishes with scripts/cert-check.py --http, because a host that restarted
+# cleanly onto a name whose certificate no longer covers it — or whose backend
+# never came back and answers 502 — has not deployed.
 #
 # USAGE
 #   ./scripts/deploy.sh                  # pull, restart, verify TLS
@@ -82,8 +83,9 @@ docker compose ps
 
 if [ "$CERT_CHECK" = 1 ]; then
   echo
-  if ! python3 scripts/cert-check.py; then
-    echo "deployed, but the edge is not serving a valid certificate for a platform name" >&2
+  if ! python3 scripts/cert-check.py --http; then
+    echo "deployed, but a platform name is not answering: see the certificate and" >&2
+    echo "HTTP lines above (the edge, its upstream, or the certificate behind it)" >&2
     exit 1
   fi
 fi

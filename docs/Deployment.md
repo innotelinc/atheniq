@@ -437,6 +437,7 @@ The edge is one step removed from this repo, so it has a check of its own:
 
 ```bash
 make cert-check          # or: python3 scripts/cert-check.py lms.innotel.us
+python3 scripts/cert-check.py --http    # also GET / and fail on a 5xx (the deploy gate)
 ```
 
 For every name it verifies the handshake against the system trust store, that the
@@ -444,8 +445,10 @@ certificate's SAN list covers the name (wildcards cover exactly one label), that
 the **served chain carries an issuer as well as the leaf** — the failure this was
 written after: a leaf-only chain verifies wherever the intermediate is already in
 the store and shows as "not secure" everywhere else — and that the certificate is
-not expired, warning inside 21 days. Exit status is 1 on any failure, so it gates
-[`scripts/deploy.sh`](../scripts/deploy.sh).
+not expired, warning inside 21 days. `--http` adds the other half of "the name
+works": a request for `/` that fails on a 5xx or on no answer, which is how a
+host left disabled or a container that never came back looks from outside. Exit
+status is 1 on any failure, so it gates [`scripts/deploy.sh`](../scripts/deploy.sh).
 
 ## Stage 9 — Known fixes applied on this deployment (2026-09)
 

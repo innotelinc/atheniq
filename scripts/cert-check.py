@@ -8,24 +8,26 @@ commit: a name can lose its host, keep a certificate that covers a *different*
 name, or — the failure this was written after — be served a **chain with only
 the leaf in it**. A leaf-only chain verifies for every client whose trust store
 already holds the issuer and for none whose does not, so curl on a machine with
-the intermediate cached says "ok" while a browser shows "not secure".
-
-WHAT IT CHECKS. For each name: the TLS handshake verifies against the system
+the intermediate cached says "ok" while a browser shows "not secure".WHAT IT CHECKS. For each name: the TLS handshake verifies against the system
 trust store (which catches an untrusted, expired or mismatched certificate, and
 a leaf-only chain), the certificate's own SAN list covers the name, the served
 chain carries at least an issuer as well as the leaf, and the certificate is not
-expired — with a warning window before it is.
+expired — with a warning window before it is. With `--http` it also asks for `/`,
+because a certificate can be perfect while nothing answers behind it (a host
+left disabled, or a container that never came back up) and that is the other half
+of "the name works".
 
     make cert-check                       # the platform's public names
     python3 scripts/cert-check.py lms.innotel.us studio.innotel.us
-    python3 scripts/cert-check.py --json --warn-days 30
+    python3 scripts/cert-check.py --http --json --warn-days 30
 
 Exit status is 0 when every name passes and 1 when any does not, so it can gate
-a deploy (scripts/deploy.sh runs it) or a cron.
+a deploy (scripts/deploy.sh runs it, with --http) or a cron.
 """
 from __future__ import annotations
 
 import argparse
+import http.client
 import json
 import socket
 import ssl
@@ -53,6 +55,9 @@ WARN_DAYS = 21
 #: Chain depth a complete chain has: the leaf plus at least its issuer.
 MIN_CHAIN = 2
 
+#: Statuses that mean the edge answered but its backend did not.
+SERVER_ERROR = 500
+
 
 @dataclass
 class Result:
@@ -64,6 +69,7 @@ class Result:
     chain: int | None = None
     days_left: float | None = None
     subject: str = ""
+    status: int | None = None
     failures: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
 
@@ -71,8 +77,9 @@ class Result:
         state = "FAIL" if self.failures else ("WARN" if self.warnings else "OK")
         chain = "?" if self.chain is None else str(self.chain)
         days = "?" if self.days_left is None else f"{self.days_left:.0f}d"
+        http = "" if self.status is None else f" http={self.status}"
         note = "; ".join(self.failures + self.warnings) or self.detail
-        return f"{state:<4} {self.host:<30} chain={chain:<2} expires={days:<5} {note}".rstrip()
+        return (f"{state:<4} {self.host:<30} chain={chain:<2} expires={days:<5}{http} {note}").rstrip()
 
 
 def host_matches(pattern: str, host: str) -> bool:
@@ -131,8 +138,37 @@ def chain_depth(host: str, port: int, timeout: float, pem_text: str) -> int | No
     return count_certificates(out) or None
 
 
+def http_failure(status: int | None) -> str | None:
+    """Whether an HTTP verdict means someone else's problem than the certificate.
+
+    A redirect or a 4xx is the edge doing its job (several of these names answer
+    301 to their canonical host, and `/` is not a page on all of them), so only a
+    5xx, or no response at all after a successful handshake, is a failure.
+    """
+    if status is None:
+        return "no HTTP response"
+    if status >= SERVER_ERROR:
+        return f"HTTP {status} — the edge answered, the backend did not"
+    return None
+
+
+def check_http(host: str, port: int = 443, timeout: float = 15.0) -> int | None:
+    """GET `/` over a verified connection; the status, or None if nothing came back."""
+    context = ssl.create_default_context()
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
+    try:
+        conn = http.client.HTTPSConnection(host, port, timeout=timeout, context=context)
+        try:
+            conn.request("GET", "/", headers={"User-Agent": "atheniq-cert-check"})
+            return conn.getresponse().status
+        finally:
+            conn.close()
+    except (ssl.SSLError, http.client.HTTPException, OSError):
+        return None
+
+
 def check_host(host: str, port: int = 443, timeout: float = 15.0,
-               warn_days: float = WARN_DAYS) -> Result:
+               warn_days: float = WARN_DAYS, http: bool = False) -> Result:
     """Verify one name end to end. Never raises: a failure is a Result."""
     result = Result(host=host)
     context = ssl.create_default_context()
@@ -154,11 +190,11 @@ def check_host(host: str, port: int = 443, timeout: float = 15.0,
     except ssl.SSLCertVerificationError as exc:
         result.failures.append(f"TLS verification failed: {exc.verify_message}")
         result.detail = "handshake rejected the certificate"
-        return _finish(result, host, port, timeout, warn_days, pem)
+        return _finish(result, host, port, timeout, warn_days, pem, http=http)
     except (ssl.SSLError, socket.timeout, OSError) as exc:
         result.failures.append(f"{type(exc).__name__}: {exc}")
         result.detail = "unreachable"
-        return _finish(result, host, port, timeout, warn_days, pem)
+        return _finish(result, host, port, timeout, warn_days, pem, http=http)
 
     san = cert.get("subjectAltName", ())
     if not san:
@@ -167,11 +203,11 @@ def check_host(host: str, port: int = 443, timeout: float = 15.0,
         names = ", ".join(value for _, value in san)
         result.failures.append(f"certificate does not cover {host} (SAN: {names})")
 
-    return _finish(result, host, port, timeout, warn_days, pem, cert)
+    return _finish(result, host, port, timeout, warn_days, pem, cert, http=http)
 
 
 def _finish(result: Result, host: str, port: int, timeout: float, warn_days: float,
-            pem: str, cert: dict | None = None) -> Result:
+            pem: str, cert: dict | None = None, http: bool = False) -> Result:
     result.chain = chain_depth(host, port, timeout, pem)
     if result.chain is None:
         result.warnings.append("chain depth unknown (no openssl)")
@@ -190,6 +226,12 @@ def _finish(result: Result, host: str, port: int, timeout: float, warn_days: flo
                 result.failures.append(f"expired {abs(left):.0f}d ago")
             elif left < warn_days:
                 result.warnings.append(f"renews in {left:.0f}d")
+
+    if http:
+        result.status = check_http(host, port, timeout)
+        complaint = http_failure(result.status)
+        if complaint:
+            result.failures.append(complaint)
 
     result.ok = not result.failures
     if result.ok and not result.detail:
@@ -216,14 +258,17 @@ def main(argv=None) -> int:
     parser.add_argument("--warn-days", type=float, default=WARN_DAYS,
                         help="report a renewal this many days out (default: %(default)s)")
     parser.add_argument("--json", action="store_true", help="machine-readable output")
+    parser.add_argument("--http", action="store_true",
+                        help="also GET / and fail on a 5xx or no answer")
     args = parser.parse_args(argv)
 
     hosts = args.hosts or list(PLATFORM_HOSTS)
-    results = [check_host(h, port=args.port, timeout=args.timeout, warn_days=args.warn_days)
+    results = [check_host(h, port=args.port, timeout=args.timeout, warn_days=args.warn_days,
+                          http=args.http)
                for h in hosts]
     if args.json:
         print(json.dumps([{
-            "host": r.host, "ok": r.ok, "chain": r.chain,
+            "host": r.host, "ok": r.ok, "chain": r.chain, "status": r.status,
             "days_left": None if r.days_left is None else round(r.days_left, 1),
             "subject": r.subject, "failures": r.failures, "warnings": r.warnings,
         } for r in results], indent=2))

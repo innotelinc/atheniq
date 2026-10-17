@@ -111,6 +111,46 @@ class Expiry(unittest.TestCase):
         self.assertTrue(any("renews in" in w for w in result.warnings))
 
 
+class HttpVerdicts(unittest.TestCase):
+    """Only a dead backend fails: these names redirect, and `/` is not a page on all."""
+
+    def test_a_redirect_is_not_a_failure(self):
+        self.assertIsNone(cert.http_failure(301))
+        self.assertIsNone(cert.http_failure(302))
+
+    def test_a_successful_page_is_not_a_failure(self):
+        self.assertIsNone(cert.http_failure(200))
+
+    def test_a_missing_page_is_not_a_failure(self):
+        self.assertIsNone(cert.http_failure(404))
+
+    def test_a_server_error_fails(self):
+        self.assertIn("502", cert.http_failure(502) or "")
+        self.assertIsNotNone(cert.http_failure(500))
+
+    def test_no_response_fails(self):
+        self.assertIsNotNone(cert.http_failure(None))
+
+    def test_the_http_status_is_reported_in_the_line(self):
+        result = cert.Result(host="lms.innotel.us", ok=True, chain=3, days_left=90.0,
+                             subject="lms.innotel.us", status=301)
+        self.assertIn("http=301", result.line())
+
+    def test_the_http_verdict_fails_the_run(self):
+        """A 502 is a failure the certificate alone would have called a pass."""
+        result = cert.Result(host="atheniq.innotel.us", chain=3, days_left=57.0,
+                             failures=[cert.http_failure(502)])
+        self.assertFalse(result.ok)
+        self.assertTrue(result.line().startswith("FAIL"))
+        out = io.StringIO()
+        with redirect_stdout(out):
+            status = cert.summarize([result])
+        self.assertEqual(status, 1)
+
+    def test_an_unreachable_http_probe_returns_none(self):
+        self.assertIsNone(cert.check_http("cert-check.invalid", timeout=2.0))
+
+
 class Reporting(unittest.TestCase):
     def test_the_line_names_the_state_and_the_measurements(self):
         ok = cert.Result(host="lms.innotel.us", ok=True, chain=3, days_left=90.4,
