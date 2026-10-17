@@ -51,7 +51,7 @@ if 'common.djangoapps.third_party_auth.middleware.ExceptionMiddleware' not in MI
     MIDDLEWARE = list(MIDDLEWARE) + ['common.djangoapps.third_party_auth.middleware.ExceptionMiddleware']
 TPA_PROVIDER_BURST_THROTTLE = '10/min'
 TPA_PROVIDER_SUSTAINED_THROTTLE = '50/hr'
-PROFILE_MICROFRONTEND_URL = 'https://apps.learn.innotel.us/profile/u/'
+PROFILE_MICROFRONTEND_URL = 'https://{{ MFE_HOST }}/profile/u/'
 SOCIAL_AUTH_LOGIN_ERROR_URL = '/'
 SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/home'
 SOCIAL_AUTH_SANITIZE_REDIRECTS = False

@@ -25,6 +25,10 @@ The list is data, not code: drop a host from `config.yml` and `tutor config
 save`, and that name stops answering. The canonical host is not listed — Tutor
 already emits it.
 
+Both lists ship empty, so a fresh install answers only on its canonical
+hostnames. Keeping an old name alive is a deliberate `--set` (and, for public
+reachability, its own edge host), not something the plugin does on its own.
+
 INSTALL
 
     pip install -e contrib/tutor-atheniq-hosts
@@ -39,19 +43,20 @@ from __future__ import annotations
 
 from tutor import hooks
 
-#: Hostnames the LMS still answers for after the rename. `learn.<domain>` is the
-#: name the platform was built under; a deployment that never renamed it keeps an
-#: empty list, and the plugin then does nothing at all.
+#: Hostnames the LMS still answers for after the rename. Empty by default: a
+#: name is only kept while something still links to it, and the list is data, so
+#: naming a host is a deliberate decision rather than a leftover of the move.
 hooks.Filters.CONFIG_DEFAULTS.add_item(
-    ("ATHENIQ_LEGACY_LMS_HOSTS", ["learn.innotel.us"])
+    ("ATHENIQ_LEGACY_LMS_HOSTS", [])
 )
 
 #: Hostnames the learner MFEs still answer on. They are served by the `mfe`
 #: container, not the LMS, so they need their own blocks — an MFE reached on a
 #: stale hostname still loads, and it reads its configuration from the LMS, so
-#: it follows the rename without being rebuilt.
+#: it follows the rename without being rebuilt. Empty by default, like the list
+#: above.
 hooks.Filters.CONFIG_DEFAULTS.add_item(
-    ("ATHENIQ_LEGACY_MFE_HOSTS", ["apps.learn.innotel.us"])
+    ("ATHENIQ_LEGACY_MFE_HOSTS", [])
 )
 
 #: Django-side: the host is answerable and its forms are trusted. Appended rather

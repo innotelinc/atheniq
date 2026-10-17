@@ -96,7 +96,7 @@ the Tutor plugin in [`contrib/tutor-ceruleansso`](../contrib/tutor-ceruleansso)
 `SOCIAL_AUTH_OIDC_OIDC_ENDPOINT` at
 `https://auth.cerulean.innotel.us/application/o/atheniq-lms`. The TPA
 `ProviderConfig` row (site = default, backend `oidc`) holds the client id/secret;
-Authentik redirect URIs are `https://learn.innotel.us/auth/complete/oidc/` and
+Authentik redirect URIs are `https://lms.innotel.us/auth/complete/oidc/` and
 `https://studio.innotel.us/auth/complete/oidc/` (strict). LMS verified:
 auth entry redirects to Authentik authorize and returns to the login flow; the
 container reaches Authentik discovery over the edge. Full browser sign-in needs
@@ -381,19 +381,21 @@ and `meilisearch.lms`, the Authentik provider's redirect URI
 (`https://lms.<domain>/auth/complete/oidc/`), and the `django.contrib.sites`
 row (still `learn` until it is updated, which is what course emails use).
 
-`learn.<domain>` and `apps.learn.<domain>` keep answering through
-[`contrib/tutor-atheniq-hosts`](../contrib/tutor-atheniq-hosts), which appends
-them to `ALLOWED_HOSTS` / `CSRF_TRUSTED_ORIGINS` and gives each a caddy site
-block. They are configuration, not hand edits: `tutor config save` regenerates
-the LMS settings and the Caddyfile, and the plugin puts them back.
+`learn.<domain>` and `apps.learn.<domain>` were retired once nothing still
+linked to them: their NPM hosts and edge certificates are gone, so the old
+names no longer reach the platform. The
+[`contrib/tutor-atheniq-hosts`](../contrib/tutor-atheniq-hosts) plugin remains
+the door for a future rename, but both of its lists are empty now — Django
+therefore neither trusts nor answers the old hosts. Because the lists are data,
+`tutor config save` cannot resurrect them.
 
 ```bash
 pip install -e contrib/tutor-atheniq-hosts
 tutor plugins enable atheniqhosts
 tutor config save \
   --set LMS_HOST=lms.<domain> \
-  --set 'ATHENIQ_LEGACY_LMS_HOSTS=["learn.<domain>"]' \
-  --set 'ATHENIQ_LEGACY_MFE_HOSTS=["apps.learn.<domain>"]'
+  --set 'ATHENIQ_LEGACY_LMS_HOSTS=[]' \
+  --set 'ATHENIQ_LEGACY_MFE_HOSTS=[]'
 tutor local restart caddy lms cms
 ```
 
@@ -405,7 +407,7 @@ DNS record, the certificate, and the NPM host; `DRY_RUN=1` prints the plan.
 > (its own caddy stays plain HTTP on `:18080`; NPM terminates TLS). This makes
 > AthenIQ emit `https://` absolute URLs — required, since the browser would
 > otherwise block the MFEs' API calls as mixed content (this broke the catalog
-> MFE at `https://apps.learn.innotel.us/catalog/` until flipped). To re-apply
+> MFE at `https://apps.lms.innotel.us/catalog/` until flipped). To re-apply
 > after a Tutor reinstall: `tutor config save --set ENABLE_HTTPS=true` then
 > `docker compose -p tutor_local -f docker-compose.yml -f
 > docker-compose.prod.yml restart lms cms mfe caddy`.
