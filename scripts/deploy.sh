@@ -25,6 +25,9 @@
 # edited: a running container keeps the path it resolved at creation, so the
 # files the landing service reads would silently stay on the old directory.
 #
+# A pull that updates this script hands the rest of the run over to the version
+# it pulled, so the checks below are never the ones a previous release shipped.
+#
 # `.env` is gitignored, so a fresh clone has none: copy the host's `.env` in
 # first (or the script reports that compose is running on its defaults). Profiles
 # stay opt-in, exactly as in the Makefile — set COMPOSE_PROFILES to bring up
