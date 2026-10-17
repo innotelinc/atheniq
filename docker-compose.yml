@@ -127,6 +127,39 @@ services:
       convex:
         condition: service_healthy
 
+  # ------------------------------------------------------------------
+  # Product landing page — `atheniq.<domain>`.
+  #
+  # `web/landing/` is the AthenIQ site (index, /catalog/, /courses/*). It is
+  # static, so the smallest honest way to serve it on the product's own name is
+  # a file server in front of the directory that is already in the repo: no
+  # build step, no second copy to drift, and the same files CI publishes to
+  # GitHub Pages. TLS and the public name belong to the edge (NPM), which is why
+  # this listens on plain HTTP and is pointed at by the `atheniq.<domain>` NPM
+  # host — the same arrangement as the LMS behind its own host.
+  #
+  # Bound to LANDING_BIND (the host's LAN address) rather than loopback: the NPM
+  # edge runs on a different machine. See docs/Deployment.md §"Cerulean DNS and
+  # TLS".
+  # ------------------------------------------------------------------
+  landing:
+    image: caddy:2.11.4
+    container_name: atheniq-landing
+    restart: unless-stopped
+    # Memory posture (docs/service-audit.md): static files, nothing to cache.
+    mem_limit: 128m
+    memswap_limit: 128m
+    command: ["caddy", "file-server", "--root", "/srv", "--listen", ":80"]
+    ports:
+      - "${LANDING_BIND:-0.0.0.0}:${LANDING_PORT:-8085}:80"
+    volumes:
+      - ./web/landing:/srv:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
 volumes:
   openmaic-postgres-data:
   convex-data:

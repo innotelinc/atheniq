@@ -350,10 +350,10 @@ Canonical hosts for a reference deployment:
 
 | Host | Backend |
 | --- | --- |
+| `atheniq.<domain>` | Product landing page — the `landing` compose service serving `web/landing/` |
 | `lms.<domain>` | Tutor LMS — `LMS_HOST`, the canonical name |
 | `apps.lms.<domain>` | Learner MFEs (`apps.<LMS_HOST>`) |
-| `learn.<domain>` | Legacy LMS name, still answered by `contrib/tutor-atheniq-hosts` |
-| `apps.learn.<domain>` | Legacy MFE name, same plugin |
+| `learn.<domain>` | Alias of `lms.<domain>` (NPM host, certificate, zone CNAME) |
 | `studio.<domain>` | AthenIQ Studio |
 | `classroom.<domain>` | OpenMAIC |
 | `cert.<domain>` | Signara portal (shared DocumentOps) |
@@ -364,8 +364,17 @@ Cerulean provisioning. Docker/LAN addresses are never published to DNS; only
 the public WAN address is used for records and the LAN address for NPM
 upstreams.
 
-**Realized (2026-09, `lms` 2026-10):** `lms`, `learn`, `studio`, `apps.learn`,
-and `meilisearch.learn` (`innotel.us`) are live. DNS records are CNAMEs to the
+`atheniq.<domain>` is the product's own name and it has to answer with the
+product: `web/landing/` is the site (index, `/catalog/`, `/courses/*`), and the
+`landing` service in [`docker-compose.yml`](../docker-compose.yml) serves that
+directory straight out of the repo with Caddy's file server on
+`LANDING_BIND:LANDING_PORT` (`192.168.1.59:8085` on this deployment). NPM
+publishes it under the name with Cerulean's `atheniq.<domain>` certificate, and
+the zone already carries the CNAME. The pages' canonical and Open Graph URLs are
+the product domain rather than the GitHub Pages preview CI also publishes.
+
+**Realized (2026-09, `lms` 2026-10):** `atheniq`, `lms`, `learn`, `studio`,
+`apps.lms`, and `meilisearch.lms` (`innotel.us`) are live. DNS records are CNAMEs to the
 `innotel.us.` apex (A `73.68.203.71`, the edge's WAN address), written through
 Cerulean's Technitium plane — the old TSIG/`nsupdate` BIND zone at
 `192.168.1.80` is retired. The edge (nginx proxy manager, admin API on
