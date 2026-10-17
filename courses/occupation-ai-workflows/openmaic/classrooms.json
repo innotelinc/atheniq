@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "provider": "openmaic",
+  "gateway": "OmniRoute",
+  "source_course": "course-v1:InnotelLabs+FAI104+2026_T4",
+  "locale": "en",
+  "defaults": {
+    "teacher_persona": "A process-improvement lead who automates only what the team has already mapped, measured, and agreed how to check.",
+    "classmates": [
+      "A practitioner whose daily work is the process being changed",
+      "A quality reviewer who tests whether the new workflow fails safely"
+    ],
+    "interaction": "Build-along: the teacher maps and tests one workflow, then the peers build theirs in the same structure and review each other's failure modes.",
+    "assessment": "Each classroom ends with 3-5 checks aligned to the chapter's graded activity."
+  },
+  "classrooms": [
+    {
+      "id": "fai104-ch01-map",
+      "chapter": "c1_map_work",
+      "linked_units": ["u1_lesson", "u2_graded"],
+      "title": "Map the Work Before You Automate",
+      "prompt": "Take one recurring workplace process (an intake request, a report, a customer reply) and map it: trigger, steps, handoffs, decisions, exceptions, and where it currently fails. The teacher demonstrates the map on a real example, then challenges the class to find the step that only exists because of a legacy rule. The peers map their own process and mark the three steps most likely to break if an AI did them. Include slides on process mapping, a roleplay where a manager wants to 'AI the whole thing' before the map exists, and a quiz on which step is safe to assist first.",
+      "objectives": [
+        "Map a recurring process including exceptions",
+        "Find steps that exist only by habit",
+        "Choose the first step safe to assist"
+      ],
+      "activities": [
+        {"type": "slides", "title": "Trigger, steps, handoffs, exceptions"},
+        {"type": "roleplay", "title": "AI the whole thing"},
+        {"type": "lab", "title": "Map your own process"}
+      ]
+    },
+    {
+      "id": "fai104-ch02-build",
+      "chapter": "c2_build_workflow",
+      "linked_units": ["u3_lesson", "u4_graded"],
+      "title": "Build the Workflow: Inputs, Steps, Checks",
+      "prompt": "Build one assisted workflow end to end: the input contract, the prompt or tool step, the output format, the human check, the escalation path, and what happens when the tool is unavailable. The teacher builds a first version with the class and then breaks it on purpose (missing field, ambiguous instruction, wrong source) so the peers see which check catches which failure. Include slides on failure modes, a roleplay where the workflow silently drops a customer request, and a quiz on where the human gate belongs.",
+      "objectives": [
+        "Specify inputs, outputs, and a human check",
+        "Design an escalation path and an offline fallback",
+        "Test a workflow against its failure modes"
+      ],
+      "activities": [
+        {"type": "slides", "title": "The five parts of an assisted workflow"},
+        {"type": "simulation", "title": "Break it on purpose"},
+        {"type": "lab", "title": "Build and test"}
+      ]
+    },
+    {
+      "id": "fai104-ch03-client",
+      "chapter": "c3_client_work",
+      "linked_units": ["u5_lesson", "u6_graded"],
+      "title": "Client- and Customer-Facing Work",
+      "prompt": "Work the highest-risk case: AI-assisted communication with a customer or client. The teacher covers tone, factual accuracy, commitments, disclosure, and the escalation trigger, then shows an AI reply that invents a policy and one that sounds rude while being accurate. The peers revise both and decide which needs a manager before sending. Include slides on commitments and disclosure, a roleplay with an angry customer and a confident chatbot, and a quiz on which reply may be sent as written. Emphasise: the AI drafts, a person owns the promise.",
+      "objectives": [
+        "Catch invented policies and commitments",
+        "Disclose AI assistance where the employer requires it",
+        "Know when a reply must escalate"
+      ],
+      "activities": [
+        {"type": "slides", "title": "Tone, facts, promises"},
+        {"type": "roleplay", "title": "The invented policy"},
+        {"type": "quiz", "title": "Send, revise, or escalate"}
+      ]
+    },
+    {
+      "id": "fai104-ch04-pilot",
+      "chapter": "c4_pilot",
+      "linked_units": ["u7_lesson", "u8_graded"],
+      "title": "Pilot, Measure, Hand Over",
+      "prompt": "Plan a four-week pilot of the workflow the class built: a baseline, two or three measures (time, rework, error rate, customer response), a stopping rule, and a handover pack (runbook, owner, training, rollback). The teacher shows a pilot that 'worked' because nobody measured rework, and the peers design measures that would have caught it. Include slides on honest pilot metrics, a roleplay where the sponsor wants a success story by Friday, and a short assessment on which pilot plan is trustworthy. Close with the handover checklist.",
+      "objectives": [
+        "Set a baseline and honest pilot measures",
+        "Write a stopping rule before the pilot starts",
+        "Hand over with a runbook, owner, and rollback"
+      ],
+      "activities": [
+        {"type": "slides", "title": "Measure rework, not applause"},
+        {"type": "roleplay", "title": "A success story by Friday"},
+        {"type": "quiz", "title": "Which pilot plan holds up"}
+      ]
+    }
+  ]
+}

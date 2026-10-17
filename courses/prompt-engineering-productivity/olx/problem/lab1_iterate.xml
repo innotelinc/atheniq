@@ -1,0 +1,63 @@
+<problem display_name="Lab: Three Rounds on One Draft" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>Your revision fixed the missing total but reintroduced an error you had already
+corrected. What is the right next move?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Stop iterating; take the best draft and edit it yourself, keeping a record of what is fixed.</div></choice>
+<choice correct="false"><div>Ask for another full rewrite with "be more careful".</div></choice>
+<choice correct="false"><div>Accept the draft because the total is now right.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Regression is the signal that the loop has stopped converging. Human editing is the
+cheaper, safer finish.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Which critique is most useful to give the model?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>"The risk section names no owner; add one named role and keep the rest unchanged."</div></choice>
+<choice correct="false"><div>"This isn't quite right, try again."</div></choice>
+<choice correct="false"><div>"Make it better."</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Specific, bounded, and scoped to one change. Unbounded feedback invites a rewrite of
+what already worked.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Why log each iteration round?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>So you can see which instruction actually caused the improvement and avoid repeating failures.</div></choice>
+<choice correct="false"><div>Because the tool requires a log to run.</div></choice>
+<choice correct="false"><div>To prove the model was used.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>The log converts trial and error into a method you can reuse on the next task.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<choiceresponse>
+<p>Which are signs that further iteration is not helping? Select all that apply.</p>
+<checkboxgroup>
+<choice correct="true"><div>The output grows longer without new information.</div></choice>
+<choice correct="true"><div>Previously fixed errors return.</div></choice>
+<choice correct="true"><div>You cannot state what "more natural" would mean.</div></choice>
+<choice correct="true"><div>You have stopped checking facts and are only wordsmithing.</div></choice>
+<choice correct="false"><div>The draft is shorter than the previous one.</div></choice>
+</checkboxgroup>
+<solution>
+<div class="detailed-solution">
+<p>Drift, regressions, vague goals and abandoned verification mean the loop is done.
+Length alone says nothing.</p>
+</div>
+</solution>
+</choiceresponse>
+</problem>

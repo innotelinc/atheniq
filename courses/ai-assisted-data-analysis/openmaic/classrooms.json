@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "provider": "openmaic",
+  "gateway": "OmniRoute",
+  "source_course": "course-v1:InnotelLabs+FAI103+2026_T4",
+  "locale": "en",
+  "defaults": {
+    "teacher_persona": "An analyst who builds decision support for operations teams and refuses to ship a number without its definition and its uncertainty.",
+    "classmates": [
+      "A business manager who wants a single number to act on",
+      "A data steward who worries about where the data came from and who cleaned it"
+    ],
+    "interaction": "Case-based: the teacher works one real question end to end, then the peers repeat the move on their own data question.",
+    "assessment": "Each classroom ends with 3-5 checks aligned to the chapter's graded activity."
+  },
+  "classrooms": [
+    {
+      "id": "fai103-ch01-question",
+      "chapter": "c1_question_to_data",
+      "linked_units": ["u1_lesson", "u2_graded"],
+      "title": "From a Question to a Measurable Spec",
+      "prompt": "Start from three fuzzy business questions ('are we losing customers?', 'which shift is slowest?', 'did the training help?'). The teacher turns the first into a measurable spec: decision, population, time window, metric definition, exclusions, and what answer would change the decision. The classmates do the same for the other two, then challenge each other's definitions. Include slides on why a metric needs an owner and a definition, a roleplay where two teams report different numbers for 'churn', and a quiz on which question is answerable with the available data. Close with the spec template.",
+      "objectives": [
+        "Turn a vague question into a measurable spec",
+        "Define a metric, its population, and its exclusions",
+        "Spot when a question cannot be answered with the data at hand"
+      ],
+      "activities": [
+        {"type": "slides", "title": "Decision, population, metric"},
+        {"type": "roleplay", "title": "Two churn numbers"},
+        {"type": "quiz", "title": "Answerable or not"}
+      ]
+    },
+    {
+      "id": "fai103-ch02-ml-limits",
+      "chapter": "c2_ml_limits",
+      "linked_units": ["u3_lesson", "u4_graded"],
+      "title": "What a Model Can and Cannot Tell You",
+      "prompt": "Use a simple, concrete case: a model that predicts which customers will leave. The teacher separates prediction from explanation and from causation, shows why a base rate matters, and demonstrates how a model can be accurate overall and useless for the small group the team cares about. The peers examine a supplied confusion matrix and decide where the model helps and where it must not be used. Include slides on correlation versus cause, a roleplay where a vendor claims the model 'proves' the training worked, and a quiz on which claim the evidence supports.",
+      "objectives": [
+        "Distinguish prediction, explanation, and causation",
+        "Read a confusion matrix and a base rate",
+        "Refuse a causal claim the evidence does not support"
+      ],
+      "activities": [
+        {"type": "slides", "title": "Prediction is not explanation"},
+        {"type": "roleplay", "title": "The model proves it"},
+        {"type": "lab", "title": "Where may this model be used"}
+      ]
+    },
+    {
+      "id": "fai103-ch03-analysis",
+      "chapter": "c3_analysis",
+      "linked_units": ["u5_lesson", "u6_graded"],
+      "title": "Cleaning, Describing, Charting — With Checks",
+      "prompt": "Run an assisted analysis on a supplied messy table: the teacher shows how to profile the data, list the cleaning decisions, describe the distribution, and choose a chart that answers the question. Then the AI produces a confident summary with one wrong total and one misleading chart. The peers find both, recompute the total from the table, and rewrite the caption. Include slides on checkable analysis steps, a roleplay where an AI-generated chart hides an excluded group, and a quiz on which summary sentence is supported by the data. Emphasise: recompute every number that will be quoted.",
+      "objectives": [
+        "Profile a messy table before analysing it",
+        "Record cleaning decisions so the result is reproducible",
+        "Recompute any number that will be quoted"
+      ],
+      "activities": [
+        {"type": "slides", "title": "Make every step checkable"},
+        {"type": "simulation", "title": "Find the wrong total"},
+        {"type": "lab", "title": "Clean, describe, chart"}
+      ]
+    },
+    {
+      "id": "fai103-ch04-reporting",
+      "chapter": "c4_reporting",
+      "linked_units": ["u7_lesson", "u8_graded"],
+      "title": "Reporting for a Decision",
+      "prompt": "Turn an analysis into a one-page decision memo. The teacher shows the structure (decision, evidence, uncertainty, options, recommendation, what would change our mind) and rewrites a rambling AI summary into it. The peers draft a memo from a supplied result set, then swap and red-team each other's uncertainty statements. Include slides on honest uncertainty and on charts that survive a screenshot, a roleplay where an executive asks for a single number and no caveats, and a short assessment on which memo is decision-ready.",
+      "objectives": [
+        "Write a decision memo with evidence and uncertainty",
+        "State what would change the recommendation",
+        "Resist dropping caveats under pressure"
+      ],
+      "activities": [
+        {"type": "slides", "title": "A memo that supports a decision"},
+        {"type": "roleplay", "title": "Just give me the number"},
+        {"type": "quiz", "title": "Which memo is ready"}
+      ]
+    }
+  ]
+}

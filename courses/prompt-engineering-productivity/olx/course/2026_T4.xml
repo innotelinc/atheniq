@@ -1,0 +1,4 @@
+<course cert_html_view_enabled="true" certificates_display_behavior="CertificatesDisplayBehaviors.END" display_name="FAI102 — Prompt Engineering &amp; AI Productivity" enrollment_end="2027-12-31T00:00:00Z" enrollment_start="2026-09-01T00:00:00Z" language="en" start="2026-10-19T00:00:00Z">
+<chapter url_name="c1_context"/><chapter url_name="c2_iteration"/><chapter url_name="c3_suite"/><chapter url_name="c4_library"/>
+<wiki slug="InnotelLabs.FAI102.2026_T4"/>
+</course>

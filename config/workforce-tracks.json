@@ -58,6 +58,39 @@
       ]
     },
     {
+      "id": "fast-ai",
+      "title": "FAST AI — Applied AI Skills",
+      "summary": "The Focused AI Skills Training ladder: applied AI foundations, prompting and productivity, AI-assisted analysis, occupation-specific workflows, AI for managers, and governance. Built for incumbent workers, aligned to the CommCorp FAST AI training priorities.",
+      "audience": "workforce",
+      "target_role": "AI-Ready Professional",
+      "status": "active",
+      "courses": [
+        "course-v1:InnotelLabs+FAI101+2026_T4",
+        "course-v1:InnotelLabs+FAI102+2026_T4",
+        "course-v1:InnotelLabs+FAI103+2026_T4",
+        "course-v1:InnotelLabs+FAI104+2026_T4",
+        "course-v1:InnotelLabs+FAI105+2026_T4",
+        "course-v1:InnotelLabs+FAI106+2026_T4"
+      ],
+      "credential": {
+        "type": "certificate",
+        "title": "FAST AI — Applied AI Skills",
+        "signara_template": "course-completion"
+      },
+      "entitlement": {
+        "plan": "premium"
+      },
+      "skills": [
+        "AI literacy",
+        "prompt engineering",
+        "AI productivity",
+        "AI-assisted analysis",
+        "workflow automation",
+        "AI for managers",
+        "AI governance and risk"
+      ]
+    },
+    {
       "id": "ai-classroom-facilitator",
       "title": "AI Classroom Facilitator",
       "summary": "Run generative AI classrooms: author with OpenMAIC, facilitate sessions, assess learners.",

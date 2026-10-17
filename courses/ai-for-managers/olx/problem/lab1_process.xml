@@ -1,0 +1,63 @@
+<problem display_name="Lab: Cost the Change" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>A workflow saves 10 minutes and adds 15 minutes of review. What should the manager
+conclude?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>It is a net loss; redesign the check or do not proceed.</div></choice>
+<choice correct="false"><div>It is a success because the automated step is faster.</div></choice>
+<choice correct="false"><div>The team should skip the review.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>The process, not the step, is the unit of improvement. Skipping review transfers risk
+to someone else.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Where is most elapsed time usually lost in a process?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Waiting in queues and handoffs.</div></choice>
+<choice correct="false"><div>Typing speed.</div></choice>
+<choice correct="false"><div>The model's response time.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Assistants compress actual work, not queues. Measure before assuming where the gain
+is.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>A vendor claims a 40% time saving. Which question is most useful?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Faster at which step, for which cases, against what baseline, including whose review time?</div></choice>
+<choice correct="false"><div>Which model does it use?</div></choice>
+<choice correct="false"><div>How many customers use it?</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>A percentage without scope is marketing. The four questions locate the claim.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<choiceresponse>
+<p>Which costs belong in the change calculation? Select all that apply.</p>
+<checkboxgroup>
+<choice correct="true"><div>Review labour added by the new output.</div></choice>
+<choice correct="true"><div>Expected rework.</div></choice>
+<choice correct="true"><div>Licence and implementation.</div></choice>
+<choice correct="true"><div>Training time.</div></choice>
+<choice correct="false"><div>The vendor's conference sponsorship.</div></choice>
+</checkboxgroup>
+<solution>
+<div class="detailed-solution">
+<p>Net gain includes review, rework, licence, implementation and training. Unrelated
+spending is not part of the case.</p>
+</div>
+</solution>
+</choiceresponse>
+</problem>

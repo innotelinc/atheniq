@@ -1,0 +1,45 @@
+<h3>Critique, Revise, Constrain</h3>
+<p>A first draft is raw material. The difference between a mediocre result and a usable
+one is usually two or three focused rounds — not a longer prompt written in advance.</p>
+
+<h4>The loop</h4>
+<ol>
+  <li><strong>Critique against criteria.</strong> Name what is wrong in specific terms:
+      "the second paragraph answers a question the reader did not ask", "the total is
+      not in the text".</li>
+  <li><strong>Ask for a revision that fixes only those points.</strong> Unbounded
+      "make it better" invites the model to rewrite what was already right.</li>
+  <li><strong>Constrain the format.</strong> If the output must fit a form, a slide, or a
+      three-line reply, say so and show it.</li>
+  <li><strong>Log the change.</strong> One line per round: what you asked, what moved,
+      what broke. The log is how you learn which instruction actually works.</li>
+</ol>
+
+<h4>When to stop</h4>
+<p>Iteration converges, then drifts. Signs you have passed the useful point:</p>
+<ul>
+  <li>The model fixes the named issue but reintroduces one you already fixed.</li>
+  <li>Each round makes the text longer without adding information.</li>
+  <li>You are asking for "more natural" and cannot say what that means.</li>
+  <li>You have stopped checking facts because you are focused on wording.</li>
+</ul>
+<p>At that point, take the best draft and edit it yourself. Human editing is cheaper than
+another round of negotiation, and you keep authorship of the result.</p>
+
+<h4>Constrain the shape, not just the words</h4>
+<p>If the output goes into a fixed structure — a ticket, a status update, a slide — give
+the structure. A short template in the prompt prevents the reformatting pass later:</p>
+<pre>Status: green | amber | red
+Change since last week: one sentence
+Risk: one sentence
+Next step and owner: one sentence</pre>
+
+<h4>Try this</h4>
+<p>Take one draft and run three rounds, logging each. Then count how many of the fixes
+survived to the final version. Most learners find the first round does most of the work
+and the third mostly undoes the second.</p>
+
+<!-- openmaic:begin fai102-ch02-iteration -->
+<p><em>This chapter also runs as a live OpenMAIC classroom on
+classroom.innotel.us; the embed appears here once the classroom is published.</em></p>
+<!-- openmaic:end fai102-ch02-iteration -->

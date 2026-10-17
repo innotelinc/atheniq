@@ -1,0 +1,63 @@
+<problem display_name="Lab: Triage a Week of Work" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>An AI tool drafts replies to billing questions. An agent checks the account facts and
+sends. Which tier is this?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Use with review — cheap to check, costly if wrong, reversible until send.</div></choice>
+<choice correct="false"><div>Use now — the draft is just text.</div></choice>
+<choice correct="false"><div>Do not use — billing is always off limits.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>The work is assisted, but a named person verifies account facts before the reply
+leaves. That review is the control.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>The same assistant is allowed to issue refunds without review. What changed?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Cost and reversibility — the output now acts before a person can catch it.</div></choice>
+<choice correct="false"><div>Nothing; the text task is unchanged.</div></choice>
+<choice correct="false"><div>The model became less accurate.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Task tier follows consequence, not the kind of output. Issuing money is a decision
+with immediate, hard-to-reverse effect, so it is not delegated.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Which task belongs in "do not use" for an AI assistant?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Deciding whether an employee's performance meets the standard for dismissal.</div></choice>
+<choice correct="false"><div>Outlining a training session from your own notes.</div></choice>
+<choice correct="false"><div>Rewriting a paragraph for clarity.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Decisions about a person's rights or livelihood must be made and owned by people,
+with evidence and a process — not generated.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<choiceresponse>
+<p>Which questions belong in a task-fit triage? Select all that apply.</p>
+<checkboxgroup>
+<choice correct="true"><div>What does a wrong answer cost?</div></choice>
+<choice correct="true"><div>Can the output be withdrawn before it acts?</div></choice>
+<choice correct="true"><div>How long does it take a person to check the result?</div></choice>
+<choice correct="false"><div>How impressive does the output look to a client?</div></choice>
+</checkboxgroup>
+<solution>
+<div class="detailed-solution">
+<p>Triage is about consequence, reversibility and the cost of verification. Appearance
+is not a control.</p>
+</div>
+</solution>
+</choiceresponse>
+</problem>

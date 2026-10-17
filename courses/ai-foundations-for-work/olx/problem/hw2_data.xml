@@ -1,0 +1,64 @@
+<problem display_name="Homework: Data Boundaries" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>A colleague asks a public AI chat to summarise a document containing customer
+addresses and account numbers. What is the core problem?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Restricted data has left the organisation's systems.</div></choice>
+<choice correct="false"><div>The summary might be inaccurate.</div></choice>
+<choice correct="false"><div>The document was too long for the tool.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Accuracy is secondary here: the paste itself is the transfer. Restricted data stays
+in the system that owns it.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>You delete the conversation after pasting. What have you actually controlled?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Your copy in the interface — not the transfer or any provider retention.</div></choice>
+<choice correct="false"><div>The provider's copy, which is removed with the chat.</div></choice>
+<choice correct="false"><div>Nothing at all, so deleting is pointless.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Deletion is a tidy-up, not a data-retention control. The decision has to be made
+before the paste.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Which is the safest way to draft a reply about a specific customer complaint?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Replace identifying detail with placeholders, draft, then fill in details inside the owning system.</div></choice>
+<choice correct="false"><div>Paste the complaint with the name removed but the account number kept.</div></choice>
+<choice correct="false"><div>Paste it into a personal account so it is not linked to work.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Placeholders remove the data while keeping the shape of the task. A personal account
+makes the exposure worse, not better.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<choiceresponse>
+<p>Which items are restricted and must not be pasted into a chat tool? Select all that apply.</p>
+<checkboxgroup>
+<choice correct="true"><div>Employee performance notes.</div></choice>
+<choice correct="true"><div>Customer account and payment data.</div></choice>
+<choice correct="true"><div>Credentials and API keys.</div></choice>
+<choice correct="true"><div>Health or safeguarding records.</div></choice>
+<choice correct="false"><div>A published annual report.</div></choice>
+</checkboxgroup>
+<solution>
+<div class="detailed-solution">
+<p>Personal, financial, health, safeguarding and credential data are restricted. A
+published report is public.</p>
+</div>
+</solution>
+</choiceresponse>
+</problem>

@@ -1,0 +1,64 @@
+<problem display_name="Homework: Map Your Process" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>Which step should be the first candidate for AI assistance?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>A frequent, bounded, text-heavy step with an existing human check.</div></choice>
+<choice correct="false"><div>The decision point where judgement sets the outcome.</div></choice>
+<choice correct="false"><div>The exception path that only one person understands.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Start where the work is frequent, bounded, and already checked. Decisions and
+exceptions stay with people.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Why map the process with the people who do the work?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>They know the workarounds and exceptions the official document omits.</div></choice>
+<choice correct="false"><div>They are required to approve the budget.</div></choice>
+<choice correct="false"><div>They will use the tool more willingly.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>The workarounds and exceptions are exactly where an automation breaks, so they belong
+in the map.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>A step exists only because an old system required it. What should happen before any AI
+work?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Consider removing the step; removing work is cheaper and safer than automating it.</div></choice>
+<choice correct="false"><div>Automate it, since it is clearly inefficient.</div></choice>
+<choice correct="false"><div>Leave it and automate the rest.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Automation preserves the process as designed. Deleting a step that no longer has a
+purpose is usually the better improvement.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<choiceresponse>
+<p>Which belong in a process map? Select all that apply.</p>
+<checkboxgroup>
+<choice correct="true"><div>The trigger.</div></choice>
+<choice correct="true"><div>Handoffs between people.</div></choice>
+<choice correct="true"><div>Exceptions and who handles them.</div></choice>
+<choice correct="true"><div>Where the process currently fails.</div></choice>
+<choice correct="false"><div>The vendor's feature list.</div></choice>
+</checkboxgroup>
+<solution>
+<div class="detailed-solution">
+<p>A map describes the work, not the software. Trigger, steps, handoffs, exceptions and
+failure points are the useful content.</p>
+</div>
+</solution>
+</choiceresponse>
+</problem>

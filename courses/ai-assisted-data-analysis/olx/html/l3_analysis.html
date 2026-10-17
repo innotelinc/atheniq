@@ -1,0 +1,50 @@
+<h3>Clean, Describe, Chart, Verify</h3>
+<p>An assistant makes analysis faster at every step — and makes a confident wrong number
+easier to produce. The method below keeps the speed and adds the checks that make the
+result defensible.</p>
+
+<h4>1. Profile before you clean</h4>
+<p>Count rows, count distinct keys, look at nulls, look at the tails. Record what you
+found before changing anything: how many rows, how many blanks, how many duplicates, what
+the date range is. That snapshot is what lets you prove the cleaning did not change the
+answer.</p>
+
+<h4>2. Record every cleaning decision</h4>
+<ul>
+  <li>Rows dropped, and why.</li>
+  <li>Values imputed, with the rule used.</li>
+  <li>Duplicates resolved, and which record was kept.</li>
+  <li>Units converted, and the conversion.</li>
+</ul>
+<p>If a number is ever questioned, this list is the answer. "The AI cleaned it" is not.</p>
+
+<h4>3. Describe before you explain</h4>
+<p>Distribution, range, median, and the count in each group. A summary that starts with a
+percentage before anyone has seen the denominator is a trap; the denominator is often the
+whole story.</p>
+
+<h4>4. Choose the chart for the question</h4>
+<table>
+  <tr><th>Question</th><th>Chart</th></tr>
+  <tr><td>How does it change over time?</td><td>Line</td></tr>
+  <tr><td>How do groups compare?</td><td>Bar, sorted</td></tr>
+  <tr><td>How is one value distributed?</td><td>Histogram</td></tr>
+  <tr><td>Is there a relationship?</td><td>Scatter</td></tr>
+</table>
+<p>Truncated axes and dual axes can make a flat trend look dramatic. Ask whether the chart
+would survive being screenshotted without its caption.</p>
+
+<h4>5. Recompute every number that will be quoted</h4>
+<p>An assistant can state a total that does not match the table it summarised. Recompute
+the headline figures directly, and check that subgroup totals add to the whole. This one
+habit catches most AI analysis errors.</p>
+
+<h4>Try this</h4>
+<p>Take a summary an assistant produced from a table you have. Recompute the two most
+important numbers by hand or with a pivot. Then check whether the excluded rows are
+mentioned anywhere. Both checks take minutes and change conclusions surprisingly often.</p>
+
+<!-- openmaic:begin fai103-ch03-analysis -->
+<p><em>This chapter also runs as a live OpenMAIC classroom on
+classroom.innotel.us; the embed appears here once the classroom is published.</em></p>
+<!-- openmaic:end fai103-ch03-analysis -->

@@ -1,0 +1,64 @@
+<problem display_name="Homework: The Review Gate" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>An AI-drafted customer email says "we will refund the full amount within 48 hours".
+You have not confirmed the refund policy. What is the correct action?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Remove or correct the commitment before sending; only the policy owner can promise it.</div></choice>
+<choice correct="false"><div>Send it — the customer will be happy.</div></choice>
+<choice correct="false"><div>Add "subject to policy" and send unchanged.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Commitments are the expensive error in outbound email. The person sending owns the
+promise, so it must match the policy.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Which output needs a second reader before it leaves the team?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>An external proposal containing a price and a delivery date.</div></choice>
+<choice correct="false"><div>An internal note summarising your own meeting.</div></choice>
+<choice correct="false"><div>A draft agenda for a team stand-up.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Price and date are commitments with financial consequence. Internal, reversible text
+can be checked by its author.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>You ask for a spreadsheet formula. What is the minimum check before using it?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Run it on a row where you know the answer, including blanks and zeros.</div></choice>
+<choice correct="false"><div>Confirm that it looks complicated enough to be right.</div></choice>
+<choice correct="false"><div>Ask the model whether it is correct.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>A formula is code. Test it against known values and edge cases before it touches real
+data.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<choiceresponse>
+<p>Which are appropriate review gates? Select all that apply.</p>
+<checkboxgroup>
+<choice correct="true"><div>External email with a promise — second reader.</div></choice>
+<choice correct="true"><div>Policy answer — check the policy document itself.</div></choice>
+<choice correct="true"><div>Meeting summary — the meeting owner confirms decisions and dates.</div></choice>
+<choice correct="true"><div>Financial formula — peer review before use.</div></choice>
+<choice correct="false"><div>Any AI output — no review needed if the model is new.</div></choice>
+</checkboxgroup>
+<solution>
+<div class="detailed-solution">
+<p>Each gate matches the consequence of the output. A newer model does not remove the
+need for review.</p>
+</div>
+</solution>
+</choiceresponse>
+</problem>

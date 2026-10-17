@@ -195,7 +195,10 @@ class RepositoryCourse(unittest.TestCase):
     def test_every_authored_course_has_a_workforce_key_shape(self):
         for course in olx.find_courses(os.path.join(ROOT, "courses")):
             _, _, summary = olx.validate_course(course)
-            self.assertRegex(summary["course_key"], r"^course-v1:InnotelLabs\+[A-Z0-9]+\+\d{4}_T1$")
+            # A course ships in a term run (2026_T1, 2026_T4, ...); the shape, not
+            # the term, is the convention.
+            self.assertRegex(summary["course_key"],
+                             r"^course-v1:InnotelLabs\+[A-Z0-9]+\+\d{4}_T[1-4]$")
 
     def test_every_course_declares_a_signatory_and_course_image(self):
         for course in olx.find_courses(os.path.join(ROOT, "courses")):

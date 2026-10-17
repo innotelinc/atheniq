@@ -1,0 +1,75 @@
+<problem display_name="Final Exam: Foundations" max_attempts="2" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>Which statement about a language model's output is accurate?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>It is generated text whose plausibility is not evidence of truth.</div></choice>
+<choice correct="false"><div>It is retrieved from a verified knowledge base.</div></choice>
+<choice correct="false"><div>It is reliable when the model says it is certain.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>The model predicts text. Certainty is a style, not a confidence measurement.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>A task is low-cost, reversible, and quick to check. Which tier applies?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Use now, with a read before it leaves.</div></choice>
+<choice correct="false"><div>Use with review by a second team.</div></choice>
+<choice correct="false"><div>Do not use.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Low consequence and cheap verification are exactly the conditions for direct use.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>What is the correct first step when a request needs data you may not paste?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Stop and use the system that owns the data, or reduce it to placeholders.</div></choice>
+<choice correct="false"><div>Paste it and delete the chat afterwards.</div></choice>
+<choice correct="false"><div>Use a personal account to avoid the company's retention.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>The decision is made before the paste. Owning systems carry the accountability the
+chat window does not.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Which draft is ready to send?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>The one whose numbers were read from the source and whose policy claims name a document.</div></choice>
+<choice correct="false"><div>The one that reads most smoothly.</div></choice>
+<choice correct="false"><div>The one produced by the newest model.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Readiness is a property of the checks performed, not the prose or the model version.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<choiceresponse>
+<p>Which habits reduce the chance an AI error reaches a customer? Select all that apply.</p>
+<checkboxgroup>
+<choice correct="true"><div>Naming the claims in a draft before sending it.</div></choice>
+<choice correct="true"><div>Recomputing any number that will be quoted.</div></choice>
+<choice correct="true"><div>Recording what was checked and by whom.</div></choice>
+<choice correct="true"><div>Labelling unverified statements or removing them.</div></choice>
+<choice correct="false"><div>Trusting the draft more when it is long and detailed.</div></choice>
+</checkboxgroup>
+<solution>
+<div class="detailed-solution">
+<p>Verification is a routine: name, source, compare, record. Length and detail are not
+controls.</p>
+</div>
+</solution>
+</choiceresponse>
+</problem>

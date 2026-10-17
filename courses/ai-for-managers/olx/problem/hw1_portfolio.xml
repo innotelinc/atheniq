@@ -1,0 +1,63 @@
+<problem display_name="Homework: Your Team's AI Map" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>A team member has been pasting client data into a personal AI account. What is the
+best first response?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Stop the data exposure, then provide an approved route that works and name the check.</div></choice>
+<choice correct="false"><div>Discipline the individual and move on.</div></choice>
+<choice correct="false"><div>Ignore it because the work got done.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>The behaviour is a signal that the need is real and the route is wrong. Stop the
+exposure, then remove the reason for it.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Which portfolio question identifies who is answerable when an AI output is wrong?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Accountability.</div></choice>
+<choice correct="false"><div>Value.</div></choice>
+<choice correct="false"><div>Capability.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Accountability names the owner. Value and capability describe the use, not the
+responsibility.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>A use is high risk and low value. What is the right decision?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Stop it; the benefit does not justify the exposure.</div></choice>
+<choice correct="false"><div>Pilot it to see whether risk is manageable.</div></choice>
+<choice correct="false"><div>Standardise it with a review step.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Risk should be proportionate to value. Low value does not earn a high-risk pilot.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<choiceresponse>
+<p>Which belong in a manager's AI portfolio map? Select all that apply.</p>
+<checkboxgroup>
+<choice correct="true"><div>Approved uses and their owners.</div></choice>
+<choice correct="true"><div>Shadow uses discovered in the team.</div></choice>
+<choice correct="true"><div>The value each use creates.</div></choice>
+<choice correct="true"><div>The risk and existing controls.</div></choice>
+<choice correct="false"><div>Only the tools purchased centrally.</div></choice>
+</checkboxgroup>
+<solution>
+<div class="detailed-solution">
+<p>The map covers what is actually happening, approved or not, with value, risk and
+ownership.</p>
+</div>
+</solution>
+</choiceresponse>
+</problem>

@@ -1,0 +1,62 @@
+<problem display_name="Homework: The Conversation Plan" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>Which statement about an AI change is honest and usable?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>"The drafting part of your week shrinks; checking and client conversations grow; here is the training for both."</div></choice>
+<choice correct="false"><div>"AI will not replace anyone."</div></choice>
+<choice correct="false"><div>"Everyone will need to become an AI expert."</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Task-level change is specific and defensible. Blanket reassurance is a promise a
+manager cannot keep.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>What is the right sequence before setting a productivity target?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Rule, approved tool, training, then target.</div></choice>
+<choice correct="false"><div>Target first, then figure out the tooling.</div></choice>
+<choice correct="false"><div>Target and training at the same time.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>People under a target with no approved route will choose the fastest unsafe option.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>An experienced employee says the tool will not work for their cases. What should the
+manager do first?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Ask which case would break it and test that case.</div></choice>
+<choice correct="false"><div>Explain the benefits again.</div></choice>
+<choice correct="false"><div>Move the employee to another team.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Resistance often names a real exception. Testing it is free quality assurance.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<choiceresponse>
+<p>Which support does a team need during an AI change? Select all that apply.</p>
+<checkboxgroup>
+<choice correct="true"><div>A one-page rule on what may be assisted.</div></choice>
+<choice correct="true"><div>Practice with briefing and checking.</div></choice>
+<choice correct="true"><div>An approved tool that works.</div></choice>
+<choice correct="true"><div>A blame-free route to report failures.</div></choice>
+<choice correct="false"><div>A pledge that no role will ever change.</div></choice>
+</checkboxgroup>
+<solution>
+<div class="detailed-solution">
+<p>Rules, skill, a workable route and psychological safety are the supports. A pledge
+about roles cannot be kept.</p>
+</div>
+</solution>
+</choiceresponse>
+</problem>

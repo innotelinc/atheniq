@@ -1,0 +1,63 @@
+<problem display_name="Homework: Recompute the Number" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>An assistant summarises a table and quotes a total. What is the minimum check?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Recompute the total from the table and check the subgroup sums add up.</div></choice>
+<choice correct="false"><div>Confirm the sentence reads well.</div></choice>
+<choice correct="false"><div>Ask the assistant whether it is sure.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Any number that will be quoted is recomputed. Group totals should reconcile to the
+whole, or the exclusions should be stated.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>A chart shows a dramatic rise because the axis starts at 90 instead of 0. What is the
+problem?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>The visual exaggerates a small change; the caption must state the axis or the chart must be redrawn.</div></choice>
+<choice correct="false"><div>Nothing, as long as the data is accurate.</div></choice>
+<choice correct="false"><div>Truncated axes are always forbidden, with no exception.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>A truncated axis can be legitimate for small variation, but it must not be presented
+as a large effect.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Why record cleaning decisions before analysing?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>So the result is reproducible and a challenged number has a defensible answer.</div></choice>
+<choice correct="false"><div>Because tools require a log file.</div></choice>
+<choice correct="false"><div>To make the analysis longer.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Row drops, imputations and duplicate rules change results. The record is what makes the
+analysis auditable.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<choiceresponse>
+<p>Which checks belong in an assisted analysis? Select all that apply.</p>
+<checkboxgroup>
+<choice correct="true"><div>Profile the data before cleaning it.</div></choice>
+<choice correct="true"><div>Record every row dropped and why.</div></choice>
+<choice correct="true"><div>Recompute headline totals.</div></choice>
+<choice correct="true"><div>State the denominator in the chart caption.</div></choice>
+<choice correct="false"><div>Trust the summary because the model saw the whole table.</div></choice>
+</checkboxgroup>
+<solution>
+<div class="detailed-solution">
+<p>Speed comes from the assistant; defensibility comes from these checks.</p>
+</div>
+</solution>
+</choiceresponse>
+</problem>

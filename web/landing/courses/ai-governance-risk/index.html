@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FAI106 — AI Governance, Risk &amp; Responsible Use — Syllabus — AthenIQ</title>
+  <meta name="description" content="Syllabus for FAI106 — AI Governance, Risk &amp; Responsible Use.">
+  <meta property="og:image" content="https://atheniq.innotel.us/assets/atheniq-og.png">
+  <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsPSJBdGhlbklRIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImF0aGVuaXEtbWFyayIgeDE9IjAiIHkxPSIxIiB4Mj0iMSIgeTI9IjAiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzA1OTY2OSIvPjxzdG9wIG9mZnNldD0iMC41NSIgc3RvcC1jb2xvcj0iIzEwYjk4MSIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzM0ZDM5OSIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgcng9IjE0IiBmaWxsPSIjMGIxMjIwIi8+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMS4wOCA3LjExKSBzY2FsZSgwLjkyOSkiPjxnIGZpbGw9Im5vbmUiIHN0cm9rZT0idXJsKCNhdGhlbmlxLW1hcmspIiBzdHJva2Utd2lkdGg9IjQuNiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMzIgMTQgTDU2IDI1IEwzMiAzNiBMOCAyNSBMMzIgMTQiLz48cGF0aCBkPSJNMjIgMzggTDIyIDQ1IEwzMiA1MCBMNDIgNDUgTDQyIDM4Ii8+PHBhdGggZD0iTTU2IDI1IEw1NiAzOCIvPjwvZz48Y2lyY2xlIGN4PSI1NiIgY3k9IjQwLjYiIHI9IjIuNiIgZmlsbD0iIzZlZTdiNyIvPjxwYXRoIGQ9Ik0zMiAzLjYgTDM0LjYgNy4zIEwzMiAxMSBMMjkuNCA3LjMgWiIgZmlsbD0iIzZlZTdiNyIvPjwvZz48L3N2Zz4=">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../assets/favicon-32.png">
+  <link rel="apple-touch-icon" href="../../assets/apple-touch-icon.png">
+  <style>
+    :root { color-scheme: dark; --bg:#0a1118; --elev:#101a22; --border:#22323d;
+      --text:#eef4f8; --sec:#c2cfd9; --muted:#93a4b1; --accent:#10b981; --teal:#2dd4bf; --gold:#fbbf24; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--bg); color:var(--text);
+      font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, "Helvetica Neue", sans-serif; line-height:1.6; }
+    a { color:var(--accent); text-decoration:none; }
+    a:hover { color:#34d399; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:.84em; color:var(--sec); }
+    .wrap { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+    .topbar { border-bottom:1px solid var(--border); background:rgba(10,17,24,.8); backdrop-filter: blur(20px); position: sticky; top:0; }
+    .topbar .wrap { display:flex; align-items:center; height:56px; gap:16px; }
+    .brand { font-weight:700; color:var(--text); letter-spacing:.04em; }
+    .brand .dot { color:var(--accent); }
+    .topbar nav { margin-left:auto; display:flex; gap:4px; }
+    .topbar nav a { color:var(--sec); padding:6px 12px; border-radius:6px; font-size:14px; }
+    .topbar nav a:hover { background:#1d2b36; color:var(--text); }
+    h1 { font-size: clamp(1.7rem, 4vw, 2.3rem); margin: 40px 0 6px; letter-spacing:-.02em; }
+    h2 { margin: 44px 0 12px; font-size: 1.25rem; }
+    .key { color:var(--muted); font-size:13px; }
+    .lede { color:var(--sec); }
+    .meta { display:flex; flex-wrap:wrap; gap:10px; margin:18px 0 0; }
+    .meta .pill { border:1px solid var(--border); border-radius:999px; padding:4px 12px; font-size:13px; color:var(--sec); }
+    .chapter { border:1px solid var(--border); background:var(--elev); border-radius:14px; padding:20px 22px; margin:14px 0; }
+    .chapter h3 { margin:0 0 12px; font-size:1.08rem; display:flex; gap:10px; align-items:baseline; }
+    .chapter .num { color:var(--accent); font-variant-numeric: tabular-nums; }
+    .sub { border-top:1px solid var(--border); padding:12px 0 6px; }
+    .sub:first-of-type { border-top:0; }
+    .sub-head { display:flex; align-items:center; gap:10px; }
+    .sub-head h4 { margin:0; font-size:.98rem; font-weight:600; }
+    .units { margin:8px 0 0; padding-left:18px; color:var(--sec); font-size:14px; }
+    .units li { margin:3px 0; }
+    .tag { color:var(--muted); font-size:11.5px; text-transform:uppercase; letter-spacing:.05em; margin-left:6px; }
+    .chip { margin-left:auto; font-size:11px; text-transform:uppercase; letter-spacing:.05em; border-radius:999px; padding:1px 9px; }
+    .chip.graded { color:var(--gold); border:1px solid rgba(251,191,36,.3); }
+    .chip.practice { color:var(--teal); border:1px solid rgba(45,212,191,.3); }
+    table { width:100%; border-collapse:collapse; font-size:14px; }
+    th, td { text-align:left; padding:10px; border-bottom:1px solid var(--border); }
+    td.num { white-space:nowrap; color:var(--sec); }
+    footer { border-top:1px solid var(--border); margin-top:52px; padding:26px 0 44px; color:var(--muted); font-size:13px; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap">
+      <a class="brand" href="../../">AthenIQ<span class="dot">.</span></a>
+      <nav aria-label="Main">
+        <a href="../../catalog/">Catalog</a>
+        <a href="../../">Home</a>
+        <a href="https://github.com/innotelinc/atheniq">GitHub</a>
+      </nav>
+    </div>
+  </header>
+  <main class="wrap">
+    <h1>FAI106 — AI Governance, Risk &amp; Responsible Use</h1>
+    <p class="key"><code>course-v1:InnotelLabs+FAI106+2026_T4</code></p>
+    <p class="lede">AI Governance, Risk & Responsible Use — the FAI106 course of the Innotel Labs FAST AI track. Applied, instructor-led AI skills with a live OpenMAIC classroom in every chapter.</p>
+    <div class="meta">
+      <span class="pill">4 chapters</span>
+      <span class="pill">Pass at 70%</span>
+      <span class="pill">Certificate signed through Signara</span>
+    </div>
+
+    <h2>Outline</h2>
+        <section class="chapter">
+          <h3><span class="num">01</span> Frameworks That Apply</h3>
+          <div class="sub">
+            <div class="sub-head"><h4>Govern, Map, Measure, Manage</h4><span class="chip practice">practice</span></div>
+            <ul class="units"><li>Govern, Map, Measure, Manage <span class="tag">html</span></li></ul>
+          </div>
+          <div class="sub">
+            <div class="sub-head"><h4>Homework: Map the Use Case</h4><span class="chip graded">Homework</span></div>
+            <ul class="units"><li>Homework: Map the Use Case <span class="tag">problem</span></li></ul>
+          </div>
+        </section>
+        <section class="chapter">
+          <h3><span class="num">02</span> Risk Assessment You Can Defend</h3>
+          <div class="sub">
+            <div class="sub-head"><h4>A Register Entry That Survives Review</h4><span class="chip practice">practice</span></div>
+            <ul class="units"><li>A Register Entry That Survives Review <span class="tag">html</span></li></ul>
+          </div>
+          <div class="sub">
+            <div class="sub-head"><h4>Lab: Assess and Escalate</h4><span class="chip graded">Lab</span></div>
+            <ul class="units"><li>Lab: Assess and Escalate <span class="tag">problem</span></li></ul>
+          </div>
+        </section>
+        <section class="chapter">
+          <h3><span class="num">03</span> Transparency and Worker Rights</h3>
+          <div class="sub">
+            <div class="sub-head"><h4>Notice, Explanation, Monitoring</h4><span class="chip practice">practice</span></div>
+            <ul class="units"><li>Notice, Explanation, Monitoring <span class="tag">html</span></li></ul>
+          </div>
+          <div class="sub">
+            <div class="sub-head"><h4>Homework: Write the Notice</h4><span class="chip graded">Homework</span></div>
+            <ul class="units"><li>Homework: Write the Notice <span class="tag">problem</span></li></ul>
+          </div>
+        </section>
+        <section class="chapter">
+          <h3><span class="num">04</span> Vendor Review and Incidents</h3>
+          <div class="sub">
+            <div class="sub-head"><h4>The Questions That Decide the Deal</h4><span class="chip practice">practice</span></div>
+            <ul class="units"><li>The Questions That Decide the Deal <span class="tag">html</span></li></ul>
+          </div>
+          <div class="sub">
+            <div class="sub-head"><h4>Final Exam: Governance Judgment</h4><span class="chip graded">Final Exam</span></div>
+            <ul class="units"><li>Final Exam: Governance Judgment <span class="tag">problem</span></li></ul>
+          </div>
+        </section>
+
+    <h2>Grading</h2>
+    <table>
+      <thead><tr><th>Assignment type</th><th>Weight</th></tr></thead>
+      <tbody>
+<tr><td>Homework</td><td class="num">40%</td></tr><tr><td>Lab</td><td class="num">20%</td></tr><tr><td>Final Exam</td><td class="num">40%</td></tr>
+      </tbody>
+    </table>
+  </main>
+  <footer>
+    <div class="wrap">AthenIQ — Open Learning Platform · © 2026 Innotel Labs</div>
+  </footer>
+</body>
+</html>

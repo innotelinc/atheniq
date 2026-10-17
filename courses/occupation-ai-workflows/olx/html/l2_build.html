@@ -1,0 +1,49 @@
+<h3>Inputs, Steps, Checks, Escalation</h3>
+<p>A workflow that works in a demo and fails on a Tuesday is missing one of four things:
+a clear input, a defined output, a human check, or a path for the case the tool cannot
+handle. Build all four before the pilot.</p>
+
+<h4>1. The input contract</h4>
+<p>State what the workflow expects: which fields, which format, which source system, and
+what happens when a field is missing. "Whatever the user pastes" is not a contract; it is
+a way to send restricted data somewhere it should not go.</p>
+
+<h4>2. The step</h4>
+<p>One job per step. If the assistant is asked to classify, draft, and decide, a failure
+in one contaminates the others. Keep the model's task narrow enough that a reviewer can
+describe what it did.</p>
+
+<h4>3. The output format</h4>
+<p>Define the shape before the content: the fields, the order, the length, and the required
+labels. A structured output is checkable; a paragraph is not. Where the output feeds
+another system, validate the format rather than trusting it.</p>
+
+<h4>4. The human check</h4>
+<p>Name the person and the specific check: "the agent verifies the account balance and the
+refund policy before sending". A check without a name and a criterion is a hope.</p>
+
+<h4>5. The escalation path</h4>
+<p>Low confidence, missing data, an angry customer, a value above a threshold, a policy
+exception — each needs a route to a person. The route must be visible in the interface,
+not buried in a document.</p>
+
+<h4>Break it on purpose</h4>
+<table>
+  <tr><th>Failure</th><th>What should catch it</th></tr>
+  <tr><td>A required field is blank</td><td>Input validation; the workflow stops</td></tr>
+  <tr><td>The instruction is ambiguous</td><td>Output schema plus reviewer</td></tr>
+  <tr><td>The source is out of date</td><td>Source freshness check</td></tr>
+  <tr><td>The tool is unavailable</td><td>Fallback to the manual process</td></tr>
+  <tr><td>The answer looks right but is wrong</td><td>Human check against the owning system</td></tr>
+</table>
+<p>Testing the failure modes is the difference between a pilot and a demo.</p>
+
+<h4>Try this</h4>
+<p>Take the step you chose in chapter 1 and write the five parts. Then deliberately break
+it three ways and record which control caught each break. Any break that reached the
+output is a missing control.</p>
+
+<!-- openmaic:begin fai104-ch02-build_workflow -->
+<p><em>This chapter also runs as a live OpenMAIC classroom on
+classroom.innotel.us; the embed appears here once the classroom is published.</em></p>
+<!-- openmaic:end fai104-ch02-build_workflow -->

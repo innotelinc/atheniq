@@ -163,6 +163,45 @@ docker compose up -d --build
   publish beyond loopback (`OPENMAIC_PUBLISH_ADDRESS`) or the edge cannot reach
   it — the two go together.
 
+### Classrooms inside a course unit
+
+A course chapter can run as a live OpenMAIC classroom inside the LMS
+(`courses/<slug>/openmaic/classrooms.json`). Two settings on the classroom host
+make the embed work, and both are easy to miss:
+
+- **Frame ancestors.** OpenMAIC sends `frame-ancestors 'self'` unless
+  `ALLOWED_FRAME_ANCESTORS` names the LMS origins. It is a **build** arg (compose
+  passes it into the image), not a runtime variable, so set it in
+  `services/OpenMAIC/.env` and rebuild:
+
+  ```
+  ALLOWED_FRAME_ANCESTORS=https://lms.innotel.us https://apps.lms.innotel.us
+  docker compose build openmaic && docker compose up -d openmaic
+  ```
+
+  With it set, OpenMAIC omits `X-Frame-Options` and allows those origins in the
+  CSP. The LMS sends no frame policy of its own.
+- **Who may enter.** `classroom-sso` is an oauth2-proxy in front of the app. Its
+  `--allowed-group` has to include the group your LMS learners hold (here
+  `AthenIQ LMS` as well as `atheniq-admins`), or a signed-in learner is refused
+  after the redirect.
+
+Then generate and embed the classrooms from the course repository:
+
+```bash
+python3 scripts/build-classrooms.py            # plan: which chapters lack a classroom
+python3 scripts/build-classrooms.py --execute  # generate them (one at a time)
+python3 scripts/build-classrooms.py --inject   # write the embeds into the lesson units
+python3 scripts/import-courses.py --execute --course <key>   # publish to the LMS
+```
+
+`--execute --publish` does the last three automatically as each classroom
+finishes. A generation run takes roughly ten minutes and consumes the workspace
+LLM slot: if that slot points at a single vendor key with a small quota, runs
+pause with `RATE_LIMITED` and resume in the same session (`--execute` retries).
+The classroom id is written back into the spec, so a re-run only handles what is
+still missing.
+
 ### Stage 3b — OpenMAIC persistence Postgres (this repo)
 
 Only needed when you point `DATABASE_URL` at it instead of the bundled service.

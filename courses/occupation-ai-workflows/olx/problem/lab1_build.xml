@@ -1,0 +1,62 @@
+<problem display_name="Lab: Build and Break It" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>A required field is blank and the workflow sends the draft anyway. What is missing?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Input validation that stops the workflow before generation.</div></choice>
+<choice correct="false"><div>A longer prompt.</div></choice>
+<choice correct="false"><div>A faster model.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>The input contract must be enforced. Without it, the workflow produces plausible
+output from missing data.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Which review is specific enough to rely on?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>"The agent checks the balance in the billing system and the refund policy before sending."</div></choice>
+<choice correct="false"><div>"Someone reviews it."</div></choice>
+<choice correct="false"><div>"The team keeps an eye on it."</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>A check needs a person, a source, and a criterion. Otherwise it is a hope.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>The AI service is unavailable for a morning. What should the runbook contain?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>A tested fallback to the manual process.</div></choice>
+<choice correct="false"><div>An instruction to wait until it returns.</div></choice>
+<choice correct="false"><div>A note that this cannot happen.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>A workflow without a fallback becomes a work stoppage. The fallback must be written and
+practised.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<choiceresponse>
+<p>Which are required parts of an assisted workflow? Select all that apply.</p>
+<checkboxgroup>
+<choice correct="true"><div>A defined input contract.</div></choice>
+<choice correct="true"><div>A structured output format.</div></choice>
+<choice correct="true"><div>A named human check.</div></choice>
+<choice correct="true"><div>An escalation path.</div></choice>
+<choice correct="false"><div>A promise that the model will always be right.</div></choice>
+</checkboxgroup>
+<solution>
+<div class="detailed-solution">
+<p>Input, output, check and escalation are the controls. Accuracy is not guaranteed by any
+of them, which is why the check exists.</p>
+</div>
+</solution>
+</choiceresponse>
+</problem>

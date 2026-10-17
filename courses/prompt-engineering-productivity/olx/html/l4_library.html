@@ -1,0 +1,46 @@
+<h3>Name It, Test It, Own It</h3>
+<p>A prompt that lives in someone's notes disappears when they change team. A prompt
+library turns individual tricks into a shared asset — but only if each entry is
+documented well enough to be trusted and tested often enough to be true.</p>
+
+<h4>What an entry contains</h4>
+<ul>
+  <li><strong>Name and purpose.</strong> What job it does, in one line.</li>
+  <li><strong>The prompt text</strong>, with placeholders clearly marked.</li>
+  <li><strong>An example input and an example good output.</strong></li>
+  <li><strong>The review gate.</strong> Who checks the result, and what they check.</li>
+  <li><strong>An owner.</strong> The person who keeps it current.</li>
+  <li><strong>A test case.</strong> One input whose correct output you can recognise, so a
+      change can be detected.</li>
+</ul>
+
+<h4>Why test cases matter</h4>
+<p>Tools change models, and models change behaviour. A prompt that produced exactly what
+you wanted in March can quietly produce something different in June. Without a test case,
+nobody notices until the output is in front of a customer. With one, a weekly run takes
+two minutes and tells you whether the entry still works.</p>
+
+<h4>Library hygiene</h4>
+<ol>
+  <li>One job per entry — a prompt that does three things breaks in three ways.</li>
+  <li>Keep prompts free of real customer data; use placeholders.</li>
+  <li>Version the entry; do not edit over a version a team depends on.</li>
+  <li>Retire entries loudly. A stale prompt is worse than no prompt because people trust
+      it.</li>
+</ol>
+
+<h4>Prompts from the internet</h4>
+<p>Public prompt collections are useful inspiration and unreliable infrastructure. You do
+not know what data they send, what instructions they hide, or whether the author tested
+them. Treat a copied prompt like copied code: read it, remove anything that sends data
+somewhere unexpected, and test it before it touches a real workflow.</p>
+
+<h4>Try this</h4>
+<p>Take your most-used prompt and write the full library entry for it, including a test
+case and a named owner. Then ask a colleague to run it from the entry alone. If they get a
+usable result without asking you a question, the entry is good enough to share.</p>
+
+<!-- openmaic:begin fai102-ch04-library -->
+<p><em>This chapter also runs as a live OpenMAIC classroom on
+classroom.innotel.us; the embed appears here once the classroom is published.</em></p>
+<!-- openmaic:end fai102-ch04-library -->

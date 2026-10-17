@@ -1,0 +1,78 @@
+<problem display_name="Final Exam: Leadership Judgment" max_attempts="2" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>What makes a business case credible?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Stated evidence quality, real costs including review, and a named owner.</div></choice>
+<choice correct="false"><div>A large benefit number.</div></choice>
+<choice correct="false"><div>Vendor endorsement.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Credibility comes from stating what is measured, what is assumed, and who is
+accountable.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Which vendor answer should raise the most concern?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>"We do not use customer data for training — we think."</div></choice>
+<choice correct="false"><div>"We retain data for 30 days and delete on request; here is the evidence."</div></choice>
+<choice correct="false"><div>"Here is our subprocessor list and their locations."</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>An evasive answer on training data is a finding. Specific, evidenced answers are what
+the review needs.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>An AI screening tool rejects a candidate. Who is accountable?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>The organisation that deployed it, through a named human owner.</div></choice>
+<choice correct="false"><div>The model vendor.</div></choice>
+<choice correct="false"><div>Nobody; the algorithm decided.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Accountability does not transfer with the tool. The deploying organisation owns the
+decision.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Which gain is most often overstated in an AI business case?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Time saved in one step, with review and rework omitted.</div></choice>
+<choice correct="false"><div>Licence cost.</div></choice>
+<choice correct="false"><div>Training time.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Step-level savings are easy to measure and easy to inflate. The process total is the
+honest number.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<choiceresponse>
+<p>Which decisions stay with a manager rather than the tool? Select all that apply.</p>
+<checkboxgroup>
+<choice correct="true"><div>Which work may be assisted.</div></choice>
+<choice correct="true"><div>Who checks the output.</div></choice>
+<choice correct="true"><div>Whether to stop a use that exposes data.</div></choice>
+<choice correct="true"><div>What evidence would reverse the decision.</div></choice>
+<choice correct="false"><div>Letting the model set its own review policy.</div></choice>
+</checkboxgroup>
+<solution>
+<div class="detailed-solution">
+<p>Scope, checks, stop decisions and falsifiers are management responsibilities that
+cannot be delegated to the tool.</p>
+</div>
+</solution>
+</choiceresponse>
+</problem>

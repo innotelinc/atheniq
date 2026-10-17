@@ -1,0 +1,60 @@
+<problem display_name="Homework: Map the Use Case" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>What do the NIST AI RMF's four functions describe?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>An operating loop: govern, map, measure, manage.</div></choice>
+<choice correct="false"><div>A list of prohibited AI uses.</div></choice>
+<choice correct="false"><div>A certification you can buy.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>The framework describes practice. Legal obligations come from law and sector rules.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Which statement is safe to make publicly about compliance?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>"We maintain a risk register, test identified harms, and review quarterly; the legal position is being confirmed by counsel."</div></choice>
+<choice correct="false"><div>"Our product is fully compliant with all AI laws."</div></choice>
+<choice correct="false"><div>"We are certified by the AI framework."</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Describe evidence and scope. A blanket compliance claim invites a challenge you cannot
+support.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Where do binding obligations for your deployment come from?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>The law and sector rules that apply to your organisation and use, confirmed for your case.</div></choice>
+<choice correct="false"><div>Whichever framework your team prefers.</div></choice>
+<choice correct="false"><div>The vendor's marketing page.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Frameworks inform practice; obligations come from applicable law and regulation.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<choiceresponse>
+<p>Which belong under "govern"? Select all that apply.</p>
+<checkboxgroup>
+<choice correct="true"><div>Who decides and who is accountable.</div></choice>
+<choice correct="true"><div>The policy that says what may be assisted.</div></choice>
+<choice correct="true"><div>What gets recorded and reviewed.</div></choice>
+<choice correct="false"><div>The model's temperature setting.</div></choice>
+<choice correct="false"><div>The vendor's logo placement.</div></choice>
+</checkboxgroup>
+<solution>
+<div class="detailed-solution">
+<p>Governance is decision rights, policy and records — not model parameters or branding.</p>
+</div>
+</solution>
+</choiceresponse>
+</problem>

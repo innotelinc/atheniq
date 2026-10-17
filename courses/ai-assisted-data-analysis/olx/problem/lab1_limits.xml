@@ -1,0 +1,63 @@
+<problem display_name="Lab: Read the Model's Limits" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>A churn model is 97% accurate. Only 2% of accounts leave each month. What should you
+ask first?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>What does it add over the base rate, and how well does it rank the group we will act on?</div></choice>
+<choice correct="false"><div>Whether 97% is high enough to deploy.</div></choice>
+<choice correct="false"><div>Which algorithm it uses.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>With a 2% base rate, "nobody leaves" is 98% accurate. Accuracy alone says almost
+nothing about usefulness.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>The model ranks the whole base well but misses the high-value segment. What does that
+mean for the decision?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Check performance on the segment you will act on; the population average hides it.</div></choice>
+<choice correct="false"><div>Nothing — aggregate performance is what matters.</div></choice>
+<choice correct="false"><div>The model should be retrained on all customers again.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Segment performance is the relevant question when the intervention targets a segment.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>A vendor says the model "proves" the training reduced turnover. What is missing?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>A causal design — without a comparison group, the claim is association.</div></choice>
+<choice correct="false"><div>Nothing; a model that predicts turnover also proves cause.</div></choice>
+<choice correct="false"><div>A larger dataset only.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Prediction and correlation do not establish that the training caused the change.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<choiceresponse>
+<p>Which questions are legitimate to ask of a prediction model? Select all that apply.</p>
+<checkboxgroup>
+<choice correct="true"><div>What is the base rate in this population?</div></choice>
+<choice correct="true"><div>What are the costs of false positives and false negatives?</div></choice>
+<choice correct="true"><div>Does it perform on the segment we will act on?</div></choice>
+<choice correct="true"><div>What data was it trained on, and how old is it?</div></choice>
+<choice correct="false"><div>Can it explain exactly why each individual behaved as predicted?</div></choice>
+</checkboxgroup>
+<solution>
+<div class="detailed-solution">
+<p>Base rate, error costs, segment performance and provenance are all fair. Individual
+causal explanation is usually not available from a predictive model.</p>
+</div>
+</solution>
+</choiceresponse>
+</problem>

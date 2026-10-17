@@ -33,6 +33,30 @@
     "course-v1:InnotelLabs+MAIC101+2026_T1": {
       "name": "MAIC101 — AI Classroom Facilitation",
       "plan": "premium"
+    },
+    "course-v1:InnotelLabs+FAI101+2026_T4": {
+      "name": "FAI101 — Applied AI Foundations for Work",
+      "plan": "premium"
+    },
+    "course-v1:InnotelLabs+FAI102+2026_T4": {
+      "name": "FAI102 — Prompt Engineering & AI Productivity",
+      "plan": "premium"
+    },
+    "course-v1:InnotelLabs+FAI103+2026_T4": {
+      "name": "FAI103 — AI-Assisted Data Analysis & BI",
+      "plan": "premium"
+    },
+    "course-v1:InnotelLabs+FAI104+2026_T4": {
+      "name": "FAI104 — Occupation-Specific AI Workflows",
+      "plan": "premium"
+    },
+    "course-v1:InnotelLabs+FAI105+2026_T4": {
+      "name": "FAI105 — AI for Managers & Leaders",
+      "plan": "premium"
+    },
+    "course-v1:InnotelLabs+FAI106+2026_T4": {
+      "name": "FAI106 — AI Governance, Risk & Responsible Use",
+      "plan": "premium"
     }
   }
 }

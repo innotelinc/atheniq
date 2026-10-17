@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "provider": "openmaic",
+  "gateway": "OmniRoute",
+  "source_course": "course-v1:InnotelLabs+FAI106+2026_T4",
+  "locale": "en",
+  "defaults": {
+    "teacher_persona": "A risk and compliance lead who turns frameworks into decisions a small organisation can actually run, and who says plainly when a question needs counsel.",
+    "classmates": [
+      "An operations manager who has no compliance team",
+      "A works-council-style employee representative focused on monitoring and dignity"
+    ],
+    "interaction": "Case review: the teacher walks one scenario through the framework, then the peers apply it to a scenario of their own and defend the residual risk.",
+    "assessment": "Each classroom ends with 3-5 checks aligned to the chapter's graded activity."
+  },
+  "classrooms": [
+    {
+      "id": "fai106-ch01-frameworks",
+      "chapter": "c1_frameworks",
+      "linked_units": ["u1_lesson", "u2_graded"],
+      "title": "Frameworks That Apply to Your Organisation",
+      "prompt": "Introduce the main governance reference points at a working level: the NIST AI Risk Management Framework's functions, the OECD principles, and the risk-based structure of the EU AI Act, with the class noting that obligations and dates vary and must be checked rather than assumed. The teacher maps one use case (AI-assisted hiring screening) onto govern-map-measure-manage, then the peers map a use case of their own. Include slides on what each framework is for and is not, a roleplay where a sales team asks whether the product is 'compliant', and a quiz on which statement is safe to make publicly.",
+      "objectives": [
+        "Name the purpose of the main AI governance frameworks",
+        "Map a use case onto the NIST functions",
+        "Avoid making compliance claims that cannot be supported"
+      ],
+      "activities": [
+        {"type": "slides", "title": "Four functions, many frameworks"},
+        {"type": "roleplay", "title": "Is it compliant?"},
+        {"type": "quiz", "title": "What may we claim"}
+      ]
+    },
+    {
+      "id": "fai106-ch02-risk",
+      "chapter": "c2_risk",
+      "linked_units": ["u3_lesson", "u4_graded"],
+      "title": "Risk Assessment You Can Defend",
+      "prompt": "Run a risk assessment on a supplied use case: affected people, harms (including harms of denial or error, not only privacy), likelihood, severity, existing controls, residual risk, and the owner who accepts it. The teacher shows a register entry that hides an unmitigated harm behind an average score, and the peers rewrite it. Include slides on risk statements versus adjectives, a roleplay where a sponsor wants the register entry softened, and a quiz on which residual-risk decision needs escalation. Emphasise that accepting risk is a named person's decision, recorded.",
+      "objectives": [
+        "Write a risk statement with affected people and harm",
+        "Record controls and residual risk honestly",
+        "Escalate a risk above your authority"
+      ],
+      "activities": [
+        {"type": "slides", "title": "A register entry that survives review"},
+        {"type": "roleplay", "title": "Soften the entry"},
+        {"type": "lab", "title": "Assess your use case"}
+      ]
+    },
+    {
+      "id": "fai106-ch03-transparency",
+      "chapter": "c3_transparency",
+      "linked_units": ["u5_lesson", "u6_graded"],
+      "title": "Transparency, Disclosure, and Worker Rights",
+      "prompt": "Work through disclosure and monitoring: when people must be told AI is in use, what a useful notice says, how automated decisions should be explained, and where monitoring crosses into surveillance. The teacher compares a vague notice with a specific one, then the peers draft a notice for a use case where AI scores job applicants. Include slides on notice and explanation, a roleplay where a manager wants to monitor productivity silently, and a quiz on which practice needs a formal decision. Note that legal requirements vary by jurisdiction and sector and must be confirmed.",
+      "objectives": [
+        "Write a notice that says what the AI does and does not decide",
+        "Explain an automated decision in plain language",
+        "Recognise monitoring that needs a formal decision"
+      ],
+      "activities": [
+        {"type": "slides", "title": "What notice is for"},
+        {"type": "roleplay", "title": "Silent productivity monitoring"},
+        {"type": "quiz", "title": "Disclose, decide, or stop"}
+      ]
+    },
+    {
+      "id": "fai106-ch04-vendors",
+      "chapter": "c4_vendors",
+      "linked_units": ["u7_lesson", "u8_graded"],
+      "title": "Vendor Review and Incident Response",
+      "prompt": "Run a vendor review of an AI feature: data categories, training use, retention, subprocessors and location, security evidence, accuracy and evaluation claims, human oversight, exit and deletion, and liability. The teacher shows two answers to the same question (one specific, one evasive) and how to score them, then the peers review a supplied vendor pack and list the three questions that decide the deal. Include a short incident drill: an AI feature gives a wrong answer to a customer and it is on social media. Close with the first-hour incident checklist.",
+      "objectives": [
+        "Evaluate vendor answers on data use and retention",
+        "Score accuracy claims by their evidence",
+        "Run the first hour of an AI incident"
+      ],
+      "activities": [
+        {"type": "slides", "title": "The questions that decide the deal"},
+        {"type": "simulation", "title": "The wrong answer goes viral"},
+        {"type": "quiz", "title": "First hour of an incident"}
+      ]
+    }
+  ]
+}

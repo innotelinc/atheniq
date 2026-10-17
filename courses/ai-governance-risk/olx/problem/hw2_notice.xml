@@ -1,0 +1,62 @@
+<problem display_name="Homework: Write the Notice" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>Which notice is useful to the person affected?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>"Our system drafts a summary of your application; a named reviewer makes the decision; you can ask for the reasons and appeal to [route]."</div></choice>
+<choice correct="false"><div>"This process may use automated tools."</div></choice>
+<choice correct="false"><div>"We use cutting-edge AI."</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>The specific notice says what is assisted, who decides, and how to challenge it.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>What is a usable explanation of a decision to the person affected?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>A plain-language account of the factors that mattered and what would have changed the outcome.</div></choice>
+<choice correct="false"><div>A chart of model feature weights.</div></choice>
+<choice correct="false"><div>The model's version number.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Explanations are for people. Internal weights are not an account a person can use or
+contest.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Before deploying productivity monitoring, which question matters most?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>What decision will this data inform, and have the affected people been told and heard?</div></choice>
+<choice correct="false"><div>Whether the vendor has a good dashboard.</div></choice>
+<choice correct="false"><div>Whether the tool can monitor more than competitors'.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Monitoring is a decision about people. Purpose, notice and voice come before
+features.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<choiceresponse>
+<p>Which belong in a disclosure notice? Select all that apply.</p>
+<checkboxgroup>
+<choice correct="true"><div>The specific task that is assisted.</div></choice>
+<choice correct="true"><div>What the system does not decide.</div></choice>
+<choice correct="true"><div>The route to question or appeal a decision.</div></choice>
+<choice correct="true"><div>The date of the last review.</div></choice>
+<choice correct="false"><div>The vendor's marketing claims.</div></choice>
+</checkboxgroup>
+<solution>
+<div class="detailed-solution">
+<p>Task, limits, challenge route and review date are the content. Marketing claims do not
+inform the person affected.</p>
+</div>
+</solution>
+</choiceresponse>
+</problem>

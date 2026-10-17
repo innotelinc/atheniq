@@ -1,0 +1,61 @@
+<problem display_name="Lab: Assess and Escalate" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>Which register entry is defensible?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>"An applicant rejected by the model is not told why and has no appeal; residual risk accepted by [name], reviewed quarterly."</div></choice>
+<choice correct="false"><div>"Reputational risk: medium."</div></choice>
+<choice correct="false"><div>"Low risk; the vendor is certified."</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Harm, affected people, residual risk and a named acceptor make the entry reviewable.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>When is "human in the loop" a real control?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>When the human has the time, information and authority to disagree.</div></choice>
+<choice correct="false"><div>Whenever a person clicks approve.</div></choice>
+<choice correct="false"><div>When the vendor says so.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>A rubber-stamp review is not oversight. The three conditions are what make it real.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Residual risk exceeds your delegated authority. What should happen?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Escalate to a person with the authority to accept it, and record the decision.</div></choice>
+<choice correct="false"><div>Accept it and note it later.</div></choice>
+<choice correct="false"><div>Lower the severity score until it fits.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Acceptance is a decision with a level. Adjusting the score to avoid escalation is
+falsifying the register.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<choiceresponse>
+<p>Which are common false comforts in a risk register? Select all that apply.</p>
+<checkboxgroup>
+<choice correct="true"><div>An average score that hides a severe outcome for a small group.</div></choice>
+<choice correct="true"><div>A review step with no time or authority to disagree.</div></choice>
+<choice correct="true"><div>A vendor certificate treated as absolution.</div></choice>
+<choice correct="false"><div>A named residual-risk owner.</div></choice>
+<choice correct="false"><div>A dated review trigger.</div></choice>
+</checkboxgroup>
+<solution>
+<div class="detailed-solution">
+<p>Averages, nominal review and certification transfer are false comfort. Named ownership
+and triggers are real controls.</p>
+</div>
+</solution>
+</choiceresponse>
+</problem>

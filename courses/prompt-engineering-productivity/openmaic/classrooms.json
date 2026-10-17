@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "provider": "openmaic",
+  "gateway": "OmniRoute",
+  "source_course": "course-v1:InnotelLabs+FAI102+2026_T4",
+  "locale": "en",
+  "defaults": {
+    "teacher_persona": "A prompt engineer who writes briefs for a living and judges every prompt by whether a colleague could reproduce the result.",
+    "classmates": [
+      "An operations coordinator who writes prompts by trial and error",
+      "A compliance-minded editor who asks what the prompt lets the model get away with"
+    ],
+    "interaction": "Live lab: the teacher rewrites one weak prompt in public, then the peers rewrite their own and test each other's.",
+    "assessment": "Each classroom ends with 3-5 checks aligned to the chapter's graded activity."
+  },
+  "classrooms": [
+    {
+      "id": "fai102-ch01-brief",
+      "chapter": "c1_context",
+      "linked_units": ["u1_lesson", "u2_graded"],
+      "title": "A Brief, Not a Wish",
+      "prompt": "Put four vague workplace prompts on the board ('write an email about the delay', 'summarise this', 'make a plan', 'improve this'). The teacher rewrites the first one live into a brief with context, audience, constraints, an example of good output, and a definition of done, then explains each added line. The classmates rewrite the remaining three and test them against a supplied source document, comparing outputs. Include slides on the five parts of a usable brief, a roleplay where the model returns something technically correct but useless, and a quiz on which prompt is more likely to be reproducible. Close with a template learners can paste into their own tools.",
+      "objectives": [
+        "Write a brief with context, constraints, and a definition of done",
+        "Give an example of good output instead of adjectives",
+        "Judge whether a prompt is reproducible by a colleague"
+      ],
+      "activities": [
+        {"type": "slides", "title": "The five parts of a brief"},
+        {"type": "roleplay", "title": "Technically correct, completely useless"},
+        {"type": "quiz", "title": "Which prompt will reproduce"}
+      ]
+    },
+    {
+      "id": "fai102-ch02-iteration",
+      "chapter": "c2_iteration",
+      "linked_units": ["u3_lesson", "u4_graded"],
+      "title": "Critique, Revise, Constrain",
+      "prompt": "Run an iteration lab: the class starts from a mediocre AI draft of a one-page procedure. The teacher demonstrates a critique loop (list what is wrong, ask for a revision that fixes only those points, then constrain the format), and the peers run three rounds on their own draft, keeping a short log of what each change fixed and what it broke. Include a segment on when to stop iterating because the model is drifting, a roleplay where a colleague keeps asking for 'better' without saying what better means, and a quiz on the next move for four stalled prompts. End with the iteration log template.",
+      "objectives": [
+        "Critique a draft against explicit criteria",
+        "Revise one attribute at a time and keep a log",
+        "Recognise drift and stop iterating"
+      ],
+      "activities": [
+        {"type": "slides", "title": "The critique loop"},
+        {"type": "simulation", "title": "Three rounds on one draft"},
+        {"type": "lab", "title": "Iteration log"}
+      ]
+    },
+    {
+      "id": "fai102-ch03-suite",
+      "chapter": "c3_suite",
+      "linked_units": ["u5_lesson", "u6_graded"],
+      "title": "AI in the Tools You Already Use",
+      "prompt": "Work through a day of office tasks in the productivity suite: drafting an email thread, turning meeting notes into decisions and owners, building a spreadsheet formula, and summarising a long document. For each, the teacher shows the task, the prompt, the review gate, and the failure mode, then the peers do one task with a supplied source and compare results. Include a roleplay where an AI-written email contains a promise the organisation cannot keep, and a quiz on which outputs need a second reader. Emphasise that the tool's convenience never removes the review gate.",
+      "objectives": [
+        "Use AI inside email, documents, and spreadsheets with a review gate",
+        "Turn notes into decisions and owners",
+        "Catch commitments the AI invented"
+      ],
+      "activities": [
+        {"type": "slides", "title": "Four tasks, four review gates"},
+        {"type": "roleplay", "title": "The promise nobody approved"},
+        {"type": "quiz", "title": "Who reads this before it sends"}
+      ]
+    },
+    {
+      "id": "fai102-ch04-library",
+      "chapter": "c4_library",
+      "linked_units": ["u7_lesson", "u8_graded"],
+      "title": "A Prompt Library Your Team Can Trust",
+      "prompt": "Have the class turn individual prompts into a shared library: a name, the job it does, the prompt text, an example input, an example good output, the review gate, and the owner who keeps it current. The teacher shows a prompt that silently broke when a tool changed and explains versioning and test cases. The peers review two library entries for missing context or an unsafe default, then rewrite one. Include slides on library hygiene, a roleplay where a colleague copies a prompt from the internet into a restricted workflow, and a short assessment on what a trustworthy entry must contain.",
+      "objectives": [
+        "Turn a working prompt into a documented library entry",
+        "Add a test case and an owner to each entry",
+        "Refuse an untrusted prompt in a restricted workflow"
+      ],
+      "activities": [
+        {"type": "slides", "title": "What makes an entry trustworthy"},
+        {"type": "roleplay", "title": "Copied from the internet"},
+        {"type": "quiz", "title": "Audit the library entry"}
+      ]
+    }
+  ]
+}

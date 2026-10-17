@@ -1,0 +1,76 @@
+<problem display_name="Final Exam: Governance Judgment" max_attempts="2" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>Which is a finding in a vendor review?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>"We do not use customer data for training — we think."</div></choice>
+<choice correct="false"><div>"We retain data 30 days; clause 7.2; here is the evidence."</div></choice>
+<choice correct="false"><div>"Here is the subprocessor list with locations."</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Evasion is evidence about the vendor's controls. Specific, documented answers are what
+the review needs.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Who accepts residual risk?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>A named person with the authority to accept it, on a date, in writing.</div></choice>
+<choice correct="false"><div>The project team collectively.</div></choice>
+<choice correct="false"><div>The vendor.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Acceptance requires authority and a record. Collective or vendor acceptance is not
+accountable.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>What is the first action in an AI incident?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Stop the harm — disable the feature or integration.</div></choice>
+<choice correct="false"><div>Draft a public statement.</div></choice>
+<choice correct="false"><div>Ask the vendor whether it is their fault.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Containment first; communication and review follow once the harm is stopped.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Which statement about frameworks and law is correct?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Frameworks describe practice; law creates obligations, and both must be checked for the specific deployment.</div></choice>
+<choice correct="false"><div>Following NIST makes you legally compliant everywhere.</div></choice>
+<choice correct="false"><div>Law is irrelevant if the framework is followed.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Practice guidance and legal duty are different sources; neither substitutes for the
+other.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<choiceresponse>
+<p>Which practices make a governance programme real? Select all that apply.</p>
+<checkboxgroup>
+<choice correct="true"><div>A risk register with named owners and review dates.</div></choice>
+<choice correct="true"><div>Testing identified harms and recording the evidence.</div></choice>
+<choice correct="true"><div>Notices that state the task, the limits and the appeal route.</div></choice>
+<choice correct="true"><div>An incident playbook rehearsed before it is needed.</div></choice>
+<choice correct="false"><div>A blanket "fully compliant" claim in the sales deck.</div></choice>
+</checkboxgroup>
+<solution>
+<div class="detailed-solution">
+<p>Registers, tests, notices and rehearsal are evidence. The blanket claim is exposure.</p>
+</div>
+</solution>
+</choiceresponse>
+</problem>

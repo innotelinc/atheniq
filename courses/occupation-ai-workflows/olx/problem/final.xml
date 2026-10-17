@@ -1,0 +1,77 @@
+<problem display_name="Final Exam: Workflow Judgment" max_attempts="2" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>What makes a pilot result trustworthy?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>A baseline, measures that include review and rework, and a stopping rule agreed in advance.</div></choice>
+<choice correct="false"><div>Participants saying they liked the tool.</div></choice>
+<choice correct="false"><div>A large time saving measured only on the assisted step.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Net gain includes the cost of review and rework, and the stopping rule keeps the
+report honest.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>A workflow saves ten minutes per case and adds fifteen minutes of review. What is the
+conclusion?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>It is a net loss in time; redesign the check or stop.</div></choice>
+<choice correct="false"><div>It is a success because the assisted step is faster.</div></choice>
+<choice correct="false"><div>The staff should review faster.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>The unit of improvement is the whole process, not the assisted step.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>What must a handover include?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Runbook, named owner, training, and a tested rollback.</div></choice>
+<choice correct="false"><div>The prompt text only.</div></choice>
+<choice correct="false"><div>A slide deck for the sponsor.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>An owner and a rollback are what make the workflow operable by someone else.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Which failure mode is most likely to reach a customer unnoticed?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>A confident, wrong policy statement in an otherwise well-written reply.</div></choice>
+<choice correct="false"><div>A blank field that stops the workflow.</div></choice>
+<choice correct="false"><div>A syntax error in the output format.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Visible failures are caught by controls. Plausible wrong content is what needs a
+source check.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<choiceresponse>
+<p>Which practices keep an assisted workflow safe over time? Select all that apply.</p>
+<checkboxgroup>
+<choice correct="true"><div>Naming the person who owns the output.</div></choice>
+<choice correct="true"><div>Testing the failure modes before the pilot.</div></choice>
+<choice correct="true"><div>Keeping the manual fallback available.</div></choice>
+<choice correct="true"><div>Re-measuring after the tool changes.</div></choice>
+<choice correct="false"><div>Removing the review step once error rates look low.</div></choice>
+</checkboxgroup>
+<solution>
+<div class="detailed-solution">
+<p>Ownership, testing, fallback and re-measurement keep the workflow honest. A low error
+rate is not a reason to remove the control that produced it.</p>
+</div>
+</solution>
+</choiceresponse>
+</problem>

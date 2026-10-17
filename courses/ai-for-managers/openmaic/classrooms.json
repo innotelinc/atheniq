@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "provider": "openmaic",
+  "gateway": "OmniRoute",
+  "source_course": "course-v1:InnotelLabs+FAI105+2026_T4",
+  "locale": "en",
+  "defaults": {
+    "teacher_persona": "A manager of managers who has introduced AI tools into two teams and keeps the focus on the work, the people, and the evidence.",
+    "classmates": [
+      "A team lead worried about workload and blame",
+      "A finance partner who asks what the change costs and what it returns"
+    ],
+    "interaction": "Leadership simulation: the teacher models a decision, then the peers take opposing roles and defend a position with the evidence at hand.",
+    "assessment": "Each classroom ends with 3-5 checks aligned to the chapter's graded activity."
+  },
+  "classrooms": [
+    {
+      "id": "fai105-ch01-map",
+      "chapter": "c1_manager_map",
+      "linked_units": ["u1_lesson", "u2_graded"],
+      "title": "The Manager's AI Map",
+      "prompt": "Have the class map where AI already touches a team's work, whether or not it was approved: drafting, summarising, scheduling, screening, reporting, and the shadow use on personal accounts. The teacher separates activity from value and risk, then the peers plot their own team's uses on a value-versus-risk grid and identify the one that most needs a decision. Include slides on the four portfolio questions (value, risk, capability, accountability), a roleplay where a team member admits to pasting client data into a personal account, and a quiz on which use needs a stop order first.",
+      "objectives": [
+        "Map approved and shadow AI use in a team",
+        "Place uses on a value-versus-risk grid",
+        "Decide which use needs a stop order"
+      ],
+      "activities": [
+        {"type": "slides", "title": "Value, risk, capability, accountability"},
+        {"type": "roleplay", "title": "The personal account"},
+        {"type": "quiz", "title": "What stops first"}
+      ]
+    },
+    {
+      "id": "fai105-ch02-process",
+      "chapter": "c2_process",
+      "linked_units": ["u3_lesson", "u4_graded"],
+      "title": "Process Improvement, Not Tool Envy",
+      "prompt": "Take a team process with a real bottleneck and work it as an improvement project: measure the current state, separate waste from necessary work, choose assist-or-redesign, and define the new measure. The teacher shows an automation that saved a step and created two new reviews, and the peers calculate whether the change is actually a net gain. Include slides on process waste, a roleplay where a vendor demo promises a 40% saving, and a quiz on which change should be piloted first. Keep every number traceable to the class's own estimate.",
+      "objectives": [
+        "Measure a process before changing it",
+        "Separate waste from necessary work",
+        "Test whether a change is a net gain after new reviews"
+      ],
+      "activities": [
+        {"type": "slides", "title": "Where the time actually goes"},
+        {"type": "roleplay", "title": "The 40% demo"},
+        {"type": "lab", "title": "Cost the change"}
+      ]
+    },
+    {
+      "id": "fai105-ch03-people",
+      "chapter": "c3_people",
+      "linked_units": ["u5_lesson", "u6_graded"],
+      "title": "People: Roles, Skills, and Resistance",
+      "prompt": "Work the human side of an AI change: which tasks shift, which roles grow, what training is required, how performance is measured during the transition, and how to answer the fear of being replaced. The teacher models a team conversation, then the peers role-play a resistant senior employee and a junior employee who is over-relying on the tool. Include slides on task-level change and honest communication, a roleplay on redundancy rumours, and a quiz on which response builds trust. Emphasise: no productivity target without a training plan and a review gate.",
+      "objectives": [
+        "Explain task-level change without false reassurance",
+        "Pair every target with training and review",
+        "Respond to resistance with evidence, not slogans"
+      ],
+      "activities": [
+        {"type": "slides", "title": "Tasks shift, roles change"},
+        {"type": "roleplay", "title": "The redundancy rumour"},
+        {"type": "quiz", "title": "Which response builds trust"}
+      ]
+    },
+    {
+      "id": "fai105-ch04-business-case",
+      "chapter": "c4_business_case",
+      "linked_units": ["u7_lesson", "u8_graded"],
+      "title": "The Business Case, the Vendor, and the Rules",
+      "prompt": "Build a one-page business case for the team's chosen change: cost, expected benefit, evidence quality, risk, owner, and the decision being asked for. Then run a vendor review: what data leaves, where it is processed, retention, subprocessors, accuracy claims, exit, and who is accountable for an error. The teacher shows a case that ignored review labour and a vendor answer that dodged retention. The peers red-team each other's cases. Include a roleplay where procurement wants a signature this week and a short assessment on which case is decision-ready.",
+      "objectives": [
+        "Write a business case with evidence quality stated",
+        "Ask the vendor the questions that decide risk",
+        "Identify who is accountable when the tool errs"
+      ],
+      "activities": [
+        {"type": "slides", "title": "A case a director can decide"},
+        {"type": "roleplay", "title": "Sign by Friday"},
+        {"type": "quiz", "title": "Which case holds up"}
+      ]
+    }
+  ]
+}

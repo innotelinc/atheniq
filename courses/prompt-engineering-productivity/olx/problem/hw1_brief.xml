@@ -1,0 +1,62 @@
+<problem display_name="Homework: Rewrite the Brief" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>Which prompt is most likely to produce a reproducible result?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>"Write a 150-word reply to this customer, keeping the dates below, ending with the next step and an owner."</div></choice>
+<choice correct="false"><div>"Write a good reply to this customer."</div></choice>
+<choice correct="false"><div>"Make this sound more professional."</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Audience, length, preserved facts, and a finish line are all stated. The others leave
+the definition of good to the model.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Why does one example of good output usually beat several adjectives?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>It shows length, structure and detail at once, where adjectives are ambiguous.</div></choice>
+<choice correct="false"><div>It lets the model copy the text without thinking.</div></choice>
+<choice correct="false"><div>Models ignore adjectives entirely.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>An example is a concrete target. "Concise" is a judgement the model has to guess.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>What does a "definition of done" add to a brief?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>A testable finish line: what the reader must be able to do after reading.</div></choice>
+<choice correct="false"><div>A guarantee that the facts are correct.</div></choice>
+<choice correct="false"><div>A longer prompt, which always improves output.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>The finish line makes the result checkable. It does not verify facts — that is still
+the reviewer's job.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<choiceresponse>
+<p>Which belong in a usable brief? Select all that apply.</p>
+<checkboxgroup>
+<choice correct="true"><div>The audience and the situation.</div></choice>
+<choice correct="true"><div>Constraints such as length and what must not change.</div></choice>
+<choice correct="true"><div>An example of good output.</div></choice>
+<choice correct="true"><div>What the reader must be able to do afterwards.</div></choice>
+<choice correct="false"><div>A request to "be creative" with no other limit.</div></choice>
+</checkboxgroup>
+<solution>
+<div class="detailed-solution">
+<p>Context, constraints, an example and a finish line make a brief. Unbounded creativity
+removes the constraints that make output usable.</p>
+</div>
+</solution>
+</choiceresponse>
+</problem>

@@ -1,0 +1,62 @@
+<problem display_name="Homework: Write the Spec" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>Which is a measurable analysis question?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>"What share of accounts active on 1 January cancelled before 31 March, and does that exceed the 12% threshold for changing the retention offer?"</div></choice>
+<choice correct="false"><div>"Are we losing customers?"</div></choice>
+<choice correct="false"><div>"How is the business doing?"</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Population, window, metric and threshold are all stated. The others cannot be answered
+unambiguously.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Two teams report churn of 4% and 9%. What is the most likely cause?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Different metric definitions — the population or window differs.</div></choice>
+<choice correct="false"><div>One team made an arithmetic error.</div></choice>
+<choice correct="false"><div>Churn is impossible to measure.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Most metric disputes are definition disputes. Writing the formula and population
+before querying prevents them.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Why does a spec need a threshold before the analysis starts?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>It defines what result would change the decision, which stops the report becoming decoration.</div></choice>
+<choice correct="false"><div>It guarantees the data is accurate.</div></choice>
+<choice correct="false"><div>It makes the dashboard load faster.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>The threshold connects analysis to action. Without it, any result can be published
+and ignored.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<choiceresponse>
+<p>Which belong in a measurable spec? Select all that apply.</p>
+<checkboxgroup>
+<choice correct="true"><div>The decision the analysis supports.</div></choice>
+<choice correct="true"><div>The population and exclusions.</div></choice>
+<choice correct="true"><div>The metric formula.</div></choice>
+<choice correct="true"><div>The time window.</div></choice>
+<choice correct="false"><div>The preferred conclusion.</div></choice>
+</checkboxgroup>
+<solution>
+<div class="detailed-solution">
+<p>A spec defines the measurement and its purpose, never the answer it hopes for.</p>
+</div>
+</solution>
+</choiceresponse>
+</problem>

@@ -15,6 +15,12 @@ the runtime; this directory is the source of truth for the courseware.
 | **DATA101 — Data Foundations** | `course-v1:InnotelLabs+DATA101+2026_T1` | `data-foundations` | [`data-foundations/`](data-foundations/README.md) |
 | **SQL101 — SQL Essentials** | `course-v1:InnotelLabs+SQL101+2026_T1` | `data-foundations` | [`sql-essentials/`](sql-essentials/README.md) |
 | **MAIC101 — AI Classroom Facilitation** | `course-v1:InnotelLabs+MAIC101+2026_T1` | `ai-classroom-facilitator` | [`ai-classroom-facilitation/`](ai-classroom-facilitation/README.md) + [OpenMAIC classrooms](ai-classroom-facilitation/openmaic/README.md) |
+| **FAI101 — Applied AI Foundations for Work** | `course-v1:InnotelLabs+FAI101+2026_T4` | `fast-ai` | [`ai-foundations-for-work/`](ai-foundations-for-work/README.md) + [classrooms](ai-foundations-for-work/openmaic/classrooms.json) |
+| **FAI102 — Prompt Engineering & AI Productivity** | `course-v1:InnotelLabs+FAI102+2026_T4` | `fast-ai` | [`prompt-engineering-productivity/`](prompt-engineering-productivity/README.md) + [classrooms](prompt-engineering-productivity/openmaic/classrooms.json) |
+| **FAI103 — AI-Assisted Data Analysis & BI** | `course-v1:InnotelLabs+FAI103+2026_T4` | `fast-ai` | [`ai-assisted-data-analysis/`](ai-assisted-data-analysis/README.md) + [classrooms](ai-assisted-data-analysis/openmaic/classrooms.json) |
+| **FAI104 — Occupation-Specific AI Workflows** | `course-v1:InnotelLabs+FAI104+2026_T4` | `fast-ai` | [`occupation-ai-workflows/`](occupation-ai-workflows/README.md) + [classrooms](occupation-ai-workflows/openmaic/classrooms.json) |
+| **FAI105 — AI for Managers & Leaders** | `course-v1:InnotelLabs+FAI105+2026_T4` | `fast-ai` | [`ai-for-managers/`](ai-for-managers/README.md) + [classrooms](ai-for-managers/openmaic/classrooms.json) |
+| **FAI106 — AI Governance, Risk & Responsible Use** | `course-v1:InnotelLabs+FAI106+2026_T4` | `fast-ai` | [`ai-governance-risk/`](ai-governance-risk/README.md) + [classrooms](ai-governance-risk/openmaic/classrooms.json) |
 
 ## Bundle and import
 
@@ -88,6 +94,9 @@ classroom-ready end to end: `demo-course`, `it-support-certification`,
 
 ```bash
 make check-classrooms   # CI: fail if a spec has drifted from the OLX outline
+python3 scripts/build-classrooms.py            # plan the OpenMAIC generation
+python3 scripts/build-classrooms.py --execute  # generate the missing classrooms
+python3 scripts/build-classrooms.py --inject   # embed them in the lesson units
 ```
 
 `scripts/check-classrooms.py` reads both sides and fails when they disagree: the

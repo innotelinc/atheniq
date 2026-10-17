@@ -1,0 +1,45 @@
+<h3>A Question You Can Measure</h3>
+<p>Most bad analysis starts before any data is touched. "Are we losing customers?" has
+no population, no time window, and no decision attached, so two analysts can answer it
+with different numbers and both be right. A measurable spec fixes the argument before
+the work starts.</p>
+
+<h4>The five parts of a spec</h4>
+<ol>
+  <li><strong>The decision.</strong> What someone will do differently depending on the
+      answer. If nothing changes, the question is curiosity, not analysis.</li>
+  <li><strong>The population.</strong> Who or what is counted — all customers, active
+      accounts, first-time buyers — and who is excluded, with the reason.</li>
+  <li><strong>The time window.</strong> A start and an end, aligned to the decision, not
+      to the calendar.</li>
+  <li><strong>The metric and its definition.</strong> The formula, the numerator, and the
+      denominator, written down.</li>
+  <li><strong>The threshold.</strong> What result would change the decision. This is the
+      part teams skip, and the part that stops a report from becoming decoration.</li>
+</ol>
+
+<h4>Why definitions cause disputes</h4>
+<p>Two teams report churn of 4% and 9%. Neither is lying. One counts cancellations in the
+month they happen; the other counts accounts that were active last year and inactive now,
+including accounts that never renewed. Until the definition is written, the argument is
+about words, not customers.</p>
+
+<h4>Check the data can answer it</h4>
+<p>A spec is only useful if the data exists at the required grain. Ask: is the field
+recorded, at what level, for the whole window, and with what known gaps? Discovering that
+the region field was added in March is cheaper now than after a dashboard ships.</p>
+
+<h4>Write it before you query</h4>
+<p>Five lines in a shared document saves a week of rework: decision, population, window,
+metric, threshold. The analyst who writes it can defend the number; the manager who
+approves it knows what they are getting.</p>
+
+<h4>Try this</h4>
+<p>Take a question your team asks every month and write the five lines. Then ask a
+colleague to state, from your spec alone, what result would cause them to act. If they
+cannot, the threshold is missing or vague.</p>
+
+<!-- openmaic:begin fai103-ch01-question -->
+<p><em>This chapter also runs as a live OpenMAIC classroom on
+classroom.innotel.us; the embed appears here once the classroom is published.</em></p>
+<!-- openmaic:end fai103-ch01-question -->

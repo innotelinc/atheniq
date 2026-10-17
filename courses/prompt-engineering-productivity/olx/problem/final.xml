@@ -1,0 +1,76 @@
+<problem display_name="Final Exam: Prompt Practice" max_attempts="2" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>Which element most improves reproducibility across two people using the same prompt?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>An example of good output plus explicit constraints.</div></choice>
+<choice correct="false"><div>A request to "use your best judgement".</div></choice>
+<choice correct="false"><div>A longer prompt with more adjectives.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Examples and constraints remove interpretation. Adjectives add it.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>When should you stop iterating on a draft?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>When fixing one point reintroduces another, or the goal can no longer be stated precisely.</div></choice>
+<choice correct="false"><div>After exactly three rounds, always.</div></choice>
+<choice correct="false"><div>When the model says the draft is finished.</div></choice>
+
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Regression and vagueness are the signals. Take the best draft and edit it yourself.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>What is the highest-risk sentence in an AI-drafted external email?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>A commitment about timing, money, or outcome that nobody approved.</div></choice>
+<choice correct="false"><div>A greeting that is slightly formal.</div></choice>
+<choice correct="false"><div>A sentence that repeats the customer's own words.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Style is cheap to fix. An unapproved commitment is a promise the organisation must
+honour.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Which library entry is trustworthy?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>One with a purpose, an example, a test case, a review gate, and a named owner.</div></choice>
+<choice correct="false"><div>One copied from a popular public collection.</div></choice>
+<choice correct="false"><div>One with the longest prompt text.</div></choice>
+
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Trust comes from documentation and maintenance, not popularity or length.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<choiceresponse>
+<p>Which practices keep a shared prompt library healthy? Select all that apply.</p>
+<checkboxgroup>
+<choice correct="true"><div>One job per entry.</div></choice>
+<choice correct="true"><div>Versioning instead of overwriting.</div></choice>
+<choice correct="true"><div>Retiring stale entries visibly.</div></choice>
+<choice correct="true"><div>Placeholders instead of real customer data.</div></choice>
+<choice correct="false"><div>Letting each user edit the canonical prompt freely.</div></choice>
+</checkboxgroup>
+<solution>
+<div class="detailed-solution">
+<p>A library is infrastructure: versioned, owned, tested, and free of real data.</p>
+</div>
+</solution>
+</choiceresponse>
+</problem>

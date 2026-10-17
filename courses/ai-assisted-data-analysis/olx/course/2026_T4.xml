@@ -1,0 +1,4 @@
+<course cert_html_view_enabled="true" certificates_display_behavior="CertificatesDisplayBehaviors.END" display_name="FAI103 — AI-Assisted Data Analysis &amp; BI" enrollment_end="2027-12-31T00:00:00Z" enrollment_start="2026-09-01T00:00:00Z" language="en" start="2026-10-19T00:00:00Z">
+<chapter url_name="c1_question_to_data"/><chapter url_name="c2_ml_limits"/><chapter url_name="c3_analysis"/><chapter url_name="c4_reporting"/>
+<wiki slug="InnotelLabs.FAI103.2026_T4"/>
+</course>

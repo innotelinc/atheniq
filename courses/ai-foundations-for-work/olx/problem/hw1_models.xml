@@ -1,0 +1,64 @@
+<problem display_name="Homework: How the Model Works" max_attempts="3" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>A language model writes a fluent paragraph citing a policy that does not exist.
+This is best described as:</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Confabulation — plausible text that is not grounded in fact.</div></choice>
+<choice correct="false"><div>A deliberate lie by the model.</div></choice>
+<choice correct="false"><div>A sign the model has no training data.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>The model optimises for plausible continuation, not truth. Every citation, number
+and policy claim must be checked against a source.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Why is a polished, confident answer not evidence that it is correct?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Fluency is cheap for these systems; correctness requires grounding.</div></choice>
+<choice correct="false"><div>Because confident answers are usually wrong.</div></choice>
+<choice correct="false"><div>Because the model refuses to answer uncertain questions.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Polish is the model's default output. It does not carry a reliability signal, so the
+reader must supply the check.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>You ask the same question in two new chats and get different details. What does that
+tell you about relying on the answer?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>The output is sampled, so anything you rely on must be pinned and verified.</div></choice>
+<choice correct="false"><div>One of the answers must be from a different model.</div></choice>
+<choice correct="false"><div>The second answer is the corrected one.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Non-determinism is normal. If an output matters, save it, check it, and treat the
+saved version as the artifact.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<choiceresponse>
+<p>Which are sound uses of a language model at work? Select all that apply.</p>
+<checkboxgroup>
+<choice correct="true"><div>Drafting a first version of an email you will edit and check.</div></choice>
+<choice correct="true"><div>Reformatting notes you supply into an outline.</div></choice>
+<choice correct="true"><div>Generating practice questions a person will review.</div></choice>
+<choice correct="false"><div>Answering a customer's policy question without checking the policy.</div></choice>
+</checkboxgroup>
+<solution>
+<div class="detailed-solution">
+<p>Drafting, reformatting and option generation work on material you bring and leave
+judgement with you. Policy answers must come from the policy.</p>
+</div>
+</solution>
+</choiceresponse>
+</problem>

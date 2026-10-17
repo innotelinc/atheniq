@@ -1,0 +1,43 @@
+<h3>Prediction, Explanation, Cause</h3>
+<p>A model that predicts well is not a model that explains, and neither is a model that
+proves cause. Confusing the three is the most expensive mistake in applied analytics,
+because each supports a different sentence and only one of them survives scrutiny.</p>
+
+<h4>Three different claims</h4>
+<table>
+  <tr><th>Claim</th><th>What it needs</th><th>What it does not tell you</th></tr>
+  <tr><td>"This account is likely to leave"</td><td>A model that ranks risk</td><td>Why, or what would stop it</td></tr>
+  <tr><td>"Low usage is associated with leaving"</td><td>Observed correlation</td><td>Whether usage causes leaving</td></tr>
+  <tr><td>"Increasing usage reduces leaving"</td><td>An experiment or strong causal design</td><td>Whether the effect holds for every segment</td></tr>
+</table>
+
+<h4>Base rates</h4>
+<p>If 2% of accounts leave each month, a model that says "nobody leaves" is 98% accurate
+and completely useless. Accuracy alone hides this; precision on the group you act on does
+not. Always ask: what is the base rate, and what does the model add over it?</p>
+
+<h4>Where a model is accurate and still unhelpful</h4>
+<p>A churn model can rank the whole customer base well and still be weak for the small,
+high-value segment the team actually cares about. Aggregate metrics hide segment
+performance. Check the group you will act on, not the population average.</p>
+
+<h4>Reading a confusion matrix</h4>
+<ul>
+  <li><strong>True positives:</strong> the accounts flagged that did leave — the ones the
+      intervention can reach.</li>
+  <li><strong>False positives:</strong> flagged, did not leave — wasted effort, and a
+      cost the business case must include.</li>
+  <li><strong>False negatives:</strong> not flagged, did leave — the miss that determines
+      whether the model is worth using at all.</li>
+</ul>
+<p>The right balance depends on the cost of each cell, not on the model's headline score.</p>
+
+<h4>Try this</h4>
+<p>Take a prediction someone has shown you and write three sentences: what it predicts,
+what it explains, and what it would take to claim cause. Most business decks collapse
+all three into one sentence — that is the slide to fix.</p>
+
+<!-- openmaic:begin fai103-ch02-ml-limits -->
+<p><em>This chapter also runs as a live OpenMAIC classroom on
+classroom.innotel.us; the embed appears here once the classroom is published.</em></p>
+<!-- openmaic:end fai103-ch02-ml-limits -->

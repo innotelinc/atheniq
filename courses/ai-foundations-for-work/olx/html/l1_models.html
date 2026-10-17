@@ -1,0 +1,65 @@
+<h3>Prediction, Not Knowledge</h3>
+<p>Every AI tool in this course is a prediction engine. It has read an enormous amount
+of text and learned which words tend to follow which. When you ask it a question it
+does not look anything up, check a database, or know whether it is right. It produces
+the most plausible continuation — fluently, at speed, and without a signal that says
+"I am guessing here".</p>
+
+<h4>What that explains</h4>
+<table>
+  <tr><th>Behaviour you see</th><th>What is happening</th></tr>
+  <tr><td>A confident, well-written answer</td><td>Plausible text is exactly what the model optimises for</td></tr>
+  <tr><td>An invented citation or statistic</td><td>Confabulation: the shape of a fact without the fact</td></tr>
+  <tr><td>The same question answered differently</td><td>Sampling: the output is not deterministic</td></tr>
+  <tr><td>Detail that drifts over a long chat</td><td>Each turn is conditioned on what is in the context window</td></tr>
+  <tr><td>Advice that sounds like your policy</td><td>It has read policies — not <em>your</em> policy</td></tr>
+</table>
+
+<h4>Why fluency is not evidence</h4>
+<p>Humans use fluency as a shortcut for credibility: polished prose usually means
+someone thought about it. A language model breaks that shortcut, because polish is
+free and correctness is not. The skill this course builds is simple to state and hard
+to keep: <strong>separate how the answer sounds from what supports it.</strong></p>
+
+<p>Consider a draft memo that says "our refund window is 45 days, per policy 4.2".
+The sentence is grammatical, specific, and cites a document. None of those properties
+make it true. It is true only if policy 4.2 says so — and the way to know is to open
+policy 4.2.</p>
+
+<h4>What the model is genuinely good at</h4>
+<ul>
+  <li><strong>Drafting</strong> a first version you will edit anyway.</li>
+  <li><strong>Reformatting</strong> material you supply: notes into an outline, an
+      outline into an email.</li>
+  <li><strong>Re-explaining</strong> one idea at a different level or in a different
+      structure.</li>
+  <li><strong>Generating options</strong> — five openings, ten practice questions —
+      where you pick and verify.</li>
+</ul>
+<p>Notice the pattern: the model works on material <em>you</em> bring, and the
+judgement about what is true stays with you.</p>
+
+<h4>Try this</h4>
+<ol>
+  <li>Ask a tool for three facts about a process at your own workplace, with sources.</li>
+  <li>Check each fact against the source it names. Record which ones survive.</li>
+  <li>Ask the same question again in a new chat. Note what changed.</li>
+</ol>
+<p>Most learners find at least one confident claim that does not survive the check.
+That experience — not a warning slide — is what makes the verification habit stick.</p>
+
+<!-- openmaic:begin fai101-ch01-verification -->
+<div class="openmaic-classroom">
+  <h4>Live classroom: The Confident Wrong Answer</h4>
+  <p>Run this chapter as a multi-agent classroom on OpenMAIC: an AI teacher,
+  AI classmates, and the scenario from the lesson — with you in the room.</p>
+  <p><a href="https://classroom.innotel.us/classroom/stage-Iv5jm2IGSeHp" target="_blank" rel="noopener">Open “The Confident Wrong Answer” at
+  classroom.innotel.us</a></p>
+  <iframe src="https://classroom.innotel.us/classroom/stage-Iv5jm2IGSeHp" title="The Confident Wrong Answer — OpenMAIC classroom" width="100%"
+    height="680" loading="lazy" allow="microphone; camera; fullscreen"
+    allowfullscreen
+    style="border:1px solid #22323d;border-radius:12px;background:#0a1118"></iframe>
+  <p><small>If the classroom does not load in the page, open it in a new tab and
+  sign in with your AthenIQ account.</small></p>
+</div>
+<!-- openmaic:end fai101-ch01-verification -->

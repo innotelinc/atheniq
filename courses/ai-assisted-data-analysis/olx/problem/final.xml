@@ -1,0 +1,78 @@
+<problem display_name="Final Exam: Analysis Judgment" max_attempts="2" showanswer="finished" weight="1.0">
+<multiplechoiceresponse>
+<p>A decision memo's "what would change our mind" section is empty. What does that
+suggest?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>The recommendation is a preference rather than a finding.</div></choice>
+<choice correct="false"><div>The analysis is unusually certain.</div></choice>
+<choice correct="false"><div>The memo is complete.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>If no observation could reverse the recommendation, the evidence is not doing the
+work.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Which statement is a causal claim?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>"The new onboarding reduced 30-day cancellations by 4 points."</div></choice>
+<choice correct="false"><div>"Accounts that completed onboarding cancel less often."</div></choice>
+<choice correct="false"><div>"Cancellations are concentrated in the first month."</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Only the first asserts an effect of an intervention. The others describe association
+or distribution.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>An executive asks for "one number, no caveats". What is the professional response?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Give the number with its scope in one sentence, and note the uncertainty in the memo.</div></choice>
+<choice correct="false"><div>Give the number and drop the caveats.</div></choice>
+<choice correct="false"><div>Refuse to provide a number.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>A number without its definition will be reused wrongly. Scope travels with it.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<multiplechoiceresponse>
+<p>Which analysis step most often exposes an AI summarisation error?</p>
+<choicegroup type="MultipleChoice">
+<choice correct="true"><div>Recomputing the quoted totals and reconciling subgroups.</div></choice>
+<choice correct="false"><div>Reading the summary twice.</div></choice>
+<choice correct="false"><div>Asking for a longer summary.</div></choice>
+</choicegroup>
+<solution>
+<div class="detailed-solution">
+<p>Recomputation is cheap and catches the errors that matter: totals, denominators and
+exclusions.</p>
+</div>
+</solution>
+</multiplechoiceresponse>
+
+<choiceresponse>
+<p>Which belong in a decision-ready report? Select all that apply.</p>
+<checkboxgroup>
+<choice correct="true"><div>The decision and the recommendation.</div></choice>
+<choice correct="true"><div>Evidence with sources.</div></choice>
+<choice correct="true"><div>What the data cannot tell you.</div></choice>
+<choice correct="true"><div>What would change the recommendation.</div></choice>
+<choice correct="false"><div>Only the findings that support the recommendation.</div></choice>
+</checkboxgroup>
+<solution>
+<div class="detailed-solution">
+<p>A decision memo states the case, its limits, and its falsifiers. Selective findings are
+advocacy, not analysis.</p>
+</div>
+</solution>
+</choiceresponse>
+</problem>

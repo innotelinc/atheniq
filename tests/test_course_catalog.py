@@ -10,8 +10,9 @@ class Model(unittest.TestCase):
     def test_lists_every_track_and_course(self):
         model = catalog.load_model(ROOT)
         self.assertEqual({t["id"] for t in model["tracks"]},
-                         {"it-support", "data-foundations", "ai-classroom-facilitator"})
-        self.assertEqual(len(model["courses"]), 8)
+                         {"it-support", "data-foundations", "ai-classroom-facilitator",
+                          "fast-ai"})
+        self.assertEqual(len(model["courses"]), 14)
 
     def test_courses_carry_structure_and_access(self):
         for course in catalog.load_model(ROOT)["courses"]:
