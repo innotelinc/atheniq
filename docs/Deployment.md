@@ -350,8 +350,10 @@ Canonical hosts for a reference deployment:
 
 | Host | Backend |
 | --- | --- |
-| `lms.<domain>` | Tutor LMS, students' entry point |
-| `learn.<domain>` | Tutor LMS, canonical name (MFE absolute URLs) |
+| `lms.<domain>` | Tutor LMS — `LMS_HOST`, the canonical name |
+| `apps.lms.<domain>` | Learner MFEs (`apps.<LMS_HOST>`) |
+| `learn.<domain>` | Legacy LMS name, still answered by `contrib/tutor-atheniq-hosts` |
+| `apps.learn.<domain>` | Legacy MFE name, same plugin |
 | `studio.<domain>` | AthenIQ Studio |
 | `classroom.<domain>` | OpenMAIC |
 | `cert.<domain>` | Signara portal (shared DocumentOps) |
@@ -371,13 +373,29 @@ Cerulean's Technitium plane — the old TSIG/`nsupdate` BIND zone at
 caddy) and terminates TLS; each host carries its own Let's Encrypt certificate
 issued by Cerulean (`lms` has `CN=lms.innotel.us`).
 
-`lms.<domain>` is the students' name for the same LMS the staff use at
-`learn.<domain>`: the edge sends both to the Tutor caddy, so the caddy needs a
-site block for the new name and the LMS must allow the host
-(`ALLOWED_HOSTS` + `CSRF_TRUSTED_ORIGINS`). The LMS still builds absolute URLs
-from `LMS_ROOT_URL` (`learn`), so `/` and `/courses/` hand the visitor to the
-MFE at `apps.learn`; a canonical rename of the student host would mean moving
-`LMS_HOST`, the MFE hosts and the SSO redirect URIs together.
+`lms.<domain>` is the canonical `LMS_HOST`; the learner MFEs moved with it to
+`apps.lms.<domain>` and read their configuration from the LMS at runtime, so no
+MFE image is rebuilt for the rename. When `LMS_HOST` changed, so did three
+things outside the Tutor config: the zone records and NPM hosts for `apps.lms`
+and `meilisearch.lms`, the Authentik provider's redirect URI
+(`https://lms.<domain>/auth/complete/oidc/`), and the `django.contrib.sites`
+row (still `learn` until it is updated, which is what course emails use).
+
+`learn.<domain>` and `apps.learn.<domain>` keep answering through
+[`contrib/tutor-atheniq-hosts`](../contrib/tutor-atheniq-hosts), which appends
+them to `ALLOWED_HOSTS` / `CSRF_TRUSTED_ORIGINS` and gives each a caddy site
+block. They are configuration, not hand edits: `tutor config save` regenerates
+the LMS settings and the Caddyfile, and the plugin puts them back.
+
+```bash
+pip install -e contrib/tutor-atheniq-hosts
+tutor plugins enable atheniqhosts
+tutor config save \
+  --set LMS_HOST=lms.<domain> \
+  --set 'ATHENIQ_LEGACY_LMS_HOSTS=["learn.<domain>"]' \
+  --set 'ATHENIQ_LEGACY_MFE_HOSTS=["apps.learn.<domain>"]'
+tutor local restart caddy lms cms
+```
 
 Run [`scripts/provision-edge.sh`](../scripts/provision-edge.sh) to re-apply
 (idempotent; pass hostnames to narrow it). It drives Cerulean's API for the

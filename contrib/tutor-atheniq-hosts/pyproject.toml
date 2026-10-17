@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tutor-atheniq-hosts"
+version = "0.1.0"
+description = "Keep AthenIQ answering on the LMS hostnames it carried before a rename"
+
+[project.entry-points."tutor.plugin.v0"]
+atheniqhosts = "atheniqhosts.plugin"
+
+[tool.setuptools]
+packages = ["atheniqhosts"]
