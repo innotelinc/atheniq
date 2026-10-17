@@ -381,23 +381,31 @@ and `meilisearch.lms`, the Authentik provider's redirect URI
 (`https://lms.<domain>/auth/complete/oidc/`), and the `django.contrib.sites`
 row (still `learn` until it is updated, which is what course emails use).
 
-`learn.<domain>` and `apps.learn.<domain>` were retired once nothing still
-linked to them: their NPM hosts and edge certificates are gone, so the old
-names no longer reach the platform. The
-[`contrib/tutor-atheniq-hosts`](../contrib/tutor-atheniq-hosts) plugin remains
-the door for a future rename, but both of its lists are empty now — Django
-therefore neither trusts nor answers the old hosts. Because the lists are data,
-`tutor config save` cannot resurrect them.
+`learn.<domain>` is kept as an **alias** of the LMS: an NPM host on the same
+upstream as `lms` (`http://<tutor host>:18080`, Cerulean's
+`learn.<domain>` + `*.learn.<domain>` certificate), a `learn` CNAME in the zone,
+and the name in `ATHENIQ_LEGACY_LMS_HOSTS` so Django answers it and trusts its
+forms. A request to `https://learn.<domain>/` therefore lands on the canonical
+platform — the LMS redirects it to `https://apps.lms.<domain>/catalog/` itself.
+The learner MFE name `apps.learn.<domain>` is **retired**: its NPM host and
+certificate are gone, so it no longer reaches the platform. Both lists are data
+rather than defaults, which is why a `tutor config save` cannot resurrect a
+name that was dropped.
 
 ```bash
 pip install -e contrib/tutor-atheniq-hosts
 tutor plugins enable atheniqhosts
 tutor config save \
   --set LMS_HOST=lms.<domain> \
-  --set 'ATHENIQ_LEGACY_LMS_HOSTS=[]' \
+  --set 'ATHENIQ_LEGACY_LMS_HOSTS=["learn.<domain>"]' \
   --set 'ATHENIQ_LEGACY_MFE_HOSTS=[]'
 tutor local restart caddy lms cms
 ```
+
+The [`contrib/tutor-atheniq-hosts`](../contrib/tutor-atheniq-hosts) plugin ships
+both lists empty; keeping `learn.<domain>` alive is the `--set` above plus its
+NPM host and zone record, and dropping the name again is the same edit in
+reverse.
 
 Run [`scripts/provision-edge.sh`](../scripts/provision-edge.sh) to re-apply
 (idempotent; pass hostnames to narrow it). It drives Cerulean's API for the
