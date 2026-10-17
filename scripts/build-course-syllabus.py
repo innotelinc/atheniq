@@ -138,7 +138,7 @@ def render(model):
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{_e(model['title'])} — Syllabus — AthenIQ</title>
   <meta name="description" content="Syllabus for {_e(model['title'])}.">
-  <meta property="og:image" content="https://innotelinc.github.io/atheniq/assets/atheniq-og.png">
+  <meta property="og:image" content="https://atheniq.innotel.us/assets/atheniq-og.png">
   <link rel="icon" href="{favicon}">
   <link rel="icon" type="image/png" sizes="32x32" href="../../assets/favicon-32.png">
   <link rel="apple-touch-icon" href="../../assets/apple-touch-icon.png">
