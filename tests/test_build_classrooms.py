@@ -14,6 +14,8 @@ build = load("build-classrooms.py")
 class ModelChain(unittest.TestCase):
     def test_orders_and_deduplicates_the_models(self):
         self.assertEqual(build.model_candidates("b, a ,b,, c"), ["b", "a", "c"])
+        self.assertEqual(build.model_candidates("still, reorders, nothing"),
+                         ["still", "reorders", "nothing"])
 
     def test_accepts_semicolons_and_an_empty_flag(self):
         self.assertEqual(build.model_candidates("a;b"), ["a", "b"])
@@ -29,6 +31,29 @@ class ModelChain(unittest.TestCase):
         """Some gateway routes carry a suffix (`:batch`), which is not a provider."""
         self.assertEqual(build.model_ref("no-think/openrouter/claude-opus-5:batch"),
                          "omniroute:no-think/openrouter/claude-opus-5:batch")
+
+
+class CourseSelection(unittest.TestCase):
+    def test_no_flags_covers_every_course(self):
+        self.assertTrue(build.course_selected("sql-essentials", "SQL101", [], []))
+
+    def test_course_picks_by_slug_or_code(self):
+        self.assertTrue(build.course_selected("sql-essentials", "SQL101", ["SQL101"], []))
+        self.assertTrue(build.course_selected("sql-essentials", "SQL101", ["sql-essentials"], []))
+        self.assertFalse(build.course_selected("sql-essentials", "SQL101", ["FAI101"], []))
+
+    def test_skip_refuses_by_slug_or_code(self):
+        self.assertFalse(build.course_selected("demo-course", "TEST101", [], ["TEST101"]))
+        self.assertFalse(build.course_selected("demo-course", "TEST101", [], ["demo-course"]))
+        self.assertTrue(build.course_selected("sql-essentials", "SQL101", [], ["TEST101"]))
+
+    def test_skip_wins_over_course(self):
+        self.assertFalse(build.course_selected("demo-course", "TEST101",
+                                              ["TEST101"], ["demo-course"]))
+
+    def test_split_arg_drops_the_blanks(self):
+        self.assertEqual(build.split_arg("a, ,b, "), ["a", "b"])
+        self.assertEqual(build.split_arg(None), [])
 
 
 class CapacityFailures(unittest.TestCase):

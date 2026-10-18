@@ -119,6 +119,18 @@ def model_ref(model):
     return f"{PROVIDER_ID}:{name}"
 
 
+def split_arg(raw):
+    """A comma-separated flag value as a list, with the blanks dropped."""
+    return [part.strip() for part in (raw or "").split(",") if part.strip()]
+
+
+def course_selected(slug, code, wanted, skipped):
+    """Whether the plan covers this course: `--course` picks, `--skip` refuses."""
+    if slug in skipped or (code and code in skipped):
+        return False
+    return not wanted or slug in wanted or (code and code in wanted)
+
+
 def _load_classroom_validator():
     path = os.path.join(REPO, "scripts", "check-classrooms.py")
     spec = importlib.util.spec_from_file_location("check_classrooms", path)
@@ -520,6 +532,9 @@ def main():
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--course",
                     help="only these courses (slug or course code, comma-separated)")
+    ap.add_argument("--skip",
+                    help="leave these courses alone (slug or course code, "
+                         "comma-separated) — the demo course, say")
     ap.add_argument("--base-url", default=DEFAULT_BASE_URL,
                     help=f"OpenMAIC base URL (default {DEFAULT_BASE_URL})")
     ap.add_argument("--execute", action="store_true", help="submit and poll the runs")
@@ -557,8 +572,7 @@ def main():
         else:
             errors, warnings, summary = [], [], {}
         code = str(doc.get("source_course") or "").split("+")[1]
-        wanted = [w.strip() for w in (args.course or "").split(",") if w.strip()]
-        if wanted and slug not in wanted and code not in wanted:
+        if not course_selected(slug, code, split_arg(args.course), split_arg(args.skip)):
             continue
         for classroom in doc.get("classrooms", []):
             plan.append({
