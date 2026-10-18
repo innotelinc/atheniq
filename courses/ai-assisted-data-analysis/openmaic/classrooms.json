@@ -42,7 +42,8 @@
           "title": "Answerable or not"
         }
       ],
-      "classroom_id": "stage-UeJHM-WPefPk"
+      "classroom_id": "stage-UeJHM-WPefPk",
+      "model": "omniroute:codex/gpt-5.6-luna-medium"
     },
     {
       "id": "fai103-ch02-ml-limits",
@@ -102,7 +103,9 @@
           "type": "lab",
           "title": "Clean, describe, chart"
         }
-      ]
+      ],
+      "classroom_id": "stage-OyvNOg9f3M-U",
+      "model": "omniroute:codex/gpt-5.6-luna-medium"
     },
     {
       "id": "fai103-ch04-reporting",
@@ -131,7 +134,9 @@
           "type": "quiz",
           "title": "Which memo is ready"
         }
-      ]
+      ],
+      "classroom_id": "stage-YSbQCK5VS95G",
+      "model": "omniroute:codex/gpt-5.6-luna-medium"
     }
   ]
 }
