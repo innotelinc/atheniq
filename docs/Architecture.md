@@ -111,7 +111,10 @@ Studio courseware.
 
 ```
 internet ──► NGINX Proxy Manager (Cerulean-provisioned)
-              ├── learn.<domain>      → Tutor LMS
+              ├── learn.<domain>      → Tutor LMS            (canonical LMS_HOST)
+              ├── apps.learn.<domain> → learner MFEs         (apps.<LMS_HOST>)
+              ├── lms.<domain>        → alias of learn.<domain>
+              ├── apps.lms.<domain>   → alias of apps.learn.<domain>
               ├── studio.<domain>     → AthenIQ Studio
               ├── classroom.<domain>  → OpenMAIC
               └── certs.<domain>      → Signara portal (shared)

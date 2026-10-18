@@ -17,7 +17,7 @@
 # cerulean repo's .env and set BREAKGLASS_LOGIN=1 there for the run.
 #
 #   ./scripts/provision-edge.sh                  # all hosts
-#   ./scripts/provision-edge.sh lms.innotel.us   # just one (or several)
+#   ./scripts/provision-edge.sh learn.innotel.us   # just one (or several)
 #   DRY_RUN=1 ./scripts/provision-edge.sh        # print the plan, change nothing
 set -euo pipefail
 
@@ -42,10 +42,14 @@ ZONE="${CERULEAN_ZONE:-innotel.us}"
 # so the LMS emits https:// URLs while the edge terminates TLS).
 FORWARD_HOST="${FORWARD_HOST:-192.168.1.59}"
 FORWARD_PORT="${FORWARD_PORT:-18080}"
-# Students use lms.<zone>; learn keeps the canonical LMS name the MFEs are built on.
+# `learn.<zone>` is the canonical LMS name and `apps.learn.<zone>` its MFEs;
+# `lms.<zone>` / `apps.lms.<zone>` are the aliases kept in front of the same
+# application (see ATHENIQ_LEGACY_*_HOSTS), and `meilisearch.<lms host>` is
+# emitted by Tutor for whichever name is canonical. All of them need a zone
+# record, a certificate and an NPM host, so all of them are listed.
 HOSTS=("$@")
 if [ "${#HOSTS[@]}" -eq 0 ]; then
-  HOSTS=(lms.$ZONE learn.$ZONE studio.$ZONE apps.learn.$ZONE meilisearch.learn.$ZONE)
+  HOSTS=(learn.$ZONE lms.$ZONE studio.$ZONE apps.learn.$ZONE apps.lms.$ZONE meilisearch.learn.$ZONE meilisearch.lms.$ZONE)
 fi
 
 echo "== Cerulean edge: ${HOSTS[*]} -> $FORWARD_HOST:$FORWARD_PORT =="

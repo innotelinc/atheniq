@@ -18,7 +18,7 @@ left disabled, or a container that never came back up) and that is the other hal
 of "the name works".
 
     make cert-check                       # the platform's public names
-    python3 scripts/cert-check.py lms.innotel.us studio.innotel.us
+    python3 scripts/cert-check.py learn.innotel.us studio.innotel.us
     python3 scripts/cert-check.py --http --json --warn-days 30
 
 Exit status is 0 when every name passes and 1 when any does not, so it can gate
@@ -37,14 +37,19 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
 #: The names the platform publishes, in the order a person meets them. Each is
-#: read as a hostname and checked on 443.
+#: read as a hostname and checked on 443. The `learn` names are canonical and
+#: the `lms` ones are the aliases kept in front of the same application, so both
+#: are checked: an alias with a broken chain is still a browser warning for
+#: whoever followed an old link.
 PLATFORM_HOSTS: tuple[str, ...] = (
     "atheniq.innotel.us",
+    "learn.innotel.us",
+    "apps.learn.innotel.us",
     "lms.innotel.us",
     "apps.lms.innotel.us",
-    "learn.innotel.us",
     "studio.innotel.us",
     "classroom.innotel.us",
+    "meilisearch.learn.innotel.us",
     "meilisearch.lms.innotel.us",
 )
 

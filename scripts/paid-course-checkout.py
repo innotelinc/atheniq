@@ -43,7 +43,7 @@ DEFAULTS = {
     "MAGNATE_API_URL": "https://app.magnate.innotel.us",
     "PAID_CHECKOUT_ADDR": "127.0.0.1:8099",
     "COURSE_PRICES_FILE": os.path.join(REPO, "config", "course-prices.json"),
-    "LMS_HOST": "lms.innotel.us",
+    "LMS_HOST": "learn.innotel.us",
 }
 
 

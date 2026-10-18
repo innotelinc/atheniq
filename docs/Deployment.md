@@ -96,11 +96,13 @@ the Tutor plugin in [`contrib/tutor-ceruleansso`](../contrib/tutor-ceruleansso)
 `SOCIAL_AUTH_OIDC_OIDC_ENDPOINT` at
 `https://auth.cerulean.innotel.us/application/o/atheniq-lms`. The TPA
 `ProviderConfig` row (site = default, backend `oidc`) holds the client id/secret;
-Authentik redirect URIs are `https://lms.innotel.us/auth/complete/oidc/` and
-`https://studio.innotel.us/auth/complete/oidc/` (strict). LMS verified:
-auth entry redirects to Authentik authorize and returns to the login flow; the
-container reaches Authentik discovery over the edge. Full browser sign-in needs
-the `learn`/`studio.innotel.us` NPM edge hosts + DNS (see [Cerulean DNS and TLS](#cerulean-dns-and-tls)).
+Authentik redirect URIs are `https://learn.innotel.us/auth/complete/oidc/` and
+`https://studio.innotel.us/auth/complete/oidc/` (strict). `lms.innotel.us` is
+registered as well, so a sign-in started on the alias still completes. LMS
+verified: auth entry redirects to Authentik authorize and returns to the login
+flow; the container reaches Authentik discovery over the edge. Full browser
+sign-in needs the `learn`/`studio.innotel.us` NPM edge hosts + DNS (see
+[Cerulean DNS and TLS](#cerulean-dns-and-tls)).
 
 Use the Authentik authorization/`userinfo` endpoints in `.env` (`OIDC_*`) and
 apply the same group claims (`learners`, `instructors`, `atheniq-admins`,
@@ -175,9 +177,36 @@ make the embed work, and both are easy to miss:
   `services/OpenMAIC/.env` and rebuild:
 
   ```
-  ALLOWED_FRAME_ANCESTORS=https://lms.innotel.us https://apps.lms.innotel.us
+  ALLOWED_FRAME_ANCESTORS=https://learn.innotel.us https://apps.learn.innotel.us https://lms.innotel.us https://apps.lms.innotel.us https://atheniq.innotel.us
   docker compose build openmaic && docker compose up -d openmaic
   ```
+
+  Every origin a course unit is served from has to be listed, canonical and
+  alias alike: a learner who followed an old `lms` link is still the parent
+  frame. Because the value is compiled into
+  `.next/routes-manifest.json` (it is read by `next.config.ts`), a rebuild is
+  the only way to change it — a running container keeps the allowlist it was
+  built with, and a course unit embedded from an origin that is missing shows a
+  blank frame with a CSP violation in the console.
+
+  When a rename cannot wait for a rebuild (the box has no headroom for a Next
+  build, which is what happened here), patch the running container and make the
+  patch part of an image instead:
+
+  ```bash
+  # 1. edit the manifest inside the running container, restart, verify the header
+  docker cp scripts/openmaic-csp-patch.js openmaic-openmaic-1:/tmp/patch.js
+  docker exec -u root openmaic-openmaic-1 node /tmp/patch.js
+  docker restart openmaic-openmaic-1
+  # 2. keep it across recreates by committing the patched container as the
+  #    image this compose project uses (keep the old one for rollback)
+  docker tag "$(docker inspect -f '{{.Image}}' openmaic-openmaic-1)" openmaic-openmaic:pre-<change>
+  docker commit openmaic-openmaic-1 openmaic-openmaic:latest
+  cd services/OpenMAIC && docker compose up -d --no-build --force-recreate openmaic
+  ```
+
+  The source rebuild still wins in the end: `docker compose build openmaic`
+  overwrites `openmaic-openmaic:latest` and bakes the value from `.env`.
 
   With it set, OpenMAIC omits `X-Frame-Options` and allows those origins in the
   CSP. The LMS sends no frame policy of its own.
@@ -417,9 +446,10 @@ Canonical hosts for a reference deployment:
 | Host | Backend |
 | --- | --- |
 | `atheniq.<domain>` | Product landing page — the `landing` compose service serving `web/landing/` |
-| `lms.<domain>` | Tutor LMS — `LMS_HOST`, the canonical name |
-| `apps.lms.<domain>` | Learner MFEs (`apps.<LMS_HOST>`) |
-| `learn.<domain>` | Alias of `lms.<domain>` (NPM host, certificate, zone CNAME) |
+| `learn.<domain>` | Tutor LMS — `LMS_HOST`, the canonical name |
+| `apps.learn.<domain>` | Learner MFEs (`apps.<LMS_HOST>`) |
+| `lms.<domain>` | Alias of `learn.<domain>` (NPM host, certificate, zone CNAME) |
+| `apps.lms.<domain>` | Alias of `apps.learn.<domain>` |
 | `studio.<domain>` | AthenIQ Studio |
 | `classroom.<domain>` | OpenMAIC |
 | `cert.<domain>` | Signara portal (shared DocumentOps) |
@@ -439,48 +469,51 @@ publishes it under the name with Cerulean's `atheniq.<domain>` certificate, and
 the zone already carries the CNAME. The pages' canonical and Open Graph URLs are
 the product domain rather than the GitHub Pages preview CI also publishes.
 
-**Realized (2026-09, `lms` 2026-10):** `atheniq`, `lms`, `learn`, `studio`,
-`apps.lms`, and `meilisearch.lms` (`innotel.us`) are live. DNS records are CNAMEs to the
-`innotel.us.` apex (A `73.68.203.71`, the edge's WAN address), written through
-Cerulean's Technitium plane — the old TSIG/`nsupdate` BIND zone at
-`192.168.1.80` is retired. The edge (nginx proxy manager, admin API on
-`192.168.1.71:81`) forwards every host to `http://192.168.1.59:18080` (Tutor
-caddy) and terminates TLS; each host carries its own Let's Encrypt certificate
-issued by Cerulean (`lms` has `CN=lms.innotel.us`).
+**Realized (2026-10):** `atheniq`, `learn`, `apps.learn`, `lms`, `apps.lms`,
+`studio`, and `meilisearch.learn` / `meilisearch.lms` (`innotel.us`) are live.
+DNS records are CNAMEs to the `innotel.us.` apex (A `73.68.203.71`, the edge's
+WAN address), written through Cerulean's Technitium plane — the old
+TSIG/`nsupdate` BIND zone at `192.168.1.80` is retired. The edge (nginx proxy
+manager, admin API on `192.168.1.71:81`) forwards every host to
+`http://192.168.1.59:18080` (Tutor caddy) and terminates TLS; each host carries
+its own Let's Encrypt certificate issued by Cerulean (`learn` has `CN=learn.innotel.us`
+plus `*.learn.innotel.us`, which is what covers `apps.learn`).
 
-`lms.<domain>` is the canonical `LMS_HOST`; the learner MFEs moved with it to
-`apps.lms.<domain>` and read their configuration from the LMS at runtime, so no
-MFE image is rebuilt for the rename. When `LMS_HOST` changed, so did three
-things outside the Tutor config: the zone records and NPM hosts for `apps.lms`
-and `meilisearch.lms`, the Authentik provider's redirect URI
-(`https://lms.<domain>/auth/complete/oidc/`), and the `django.contrib.sites`
-row (still `learn` until it is updated, which is what course emails use).
+`learn.<domain>` is the canonical `LMS_HOST` and `apps.learn.<domain>` the
+learner MFEs (`apps.<LMS_HOST>`); the MFEs read their configuration from the LMS
+at runtime, so no MFE image is rebuilt when a name changes. Alongside
+`LMS_HOST`, three things outside the Tutor config carry the name: the zone
+record and NPM host for the MFE name, the Authentik provider's redirect URI
+(`https://learn.<domain>/auth/complete/oidc/`), and the `django.contrib.sites`
+row (`learn.<domain>`, which is what course emails use).
 
-`learn.<domain>` is kept as an **alias** of the LMS: an NPM host on the same
-upstream as `lms` (`http://<tutor host>:18080`, Cerulean's
-`learn.<domain>` + `*.learn.<domain>` certificate), a `learn` CNAME in the zone,
-and the name in `ATHENIQ_LEGACY_LMS_HOSTS` so Django answers it and trusts its
-forms. A request to `https://learn.<domain>/` therefore lands on the canonical
-platform — the LMS redirects it to `https://apps.lms.<domain>/catalog/` itself.
-The learner MFE name `apps.learn.<domain>` is **retired**: its NPM host and
-certificate are gone, so it no longer reaches the platform. Both lists are data
-rather than defaults, which is why a `tutor config save` cannot resurrect a
-name that was dropped.
+`lms.<domain>` and `apps.lms.<domain>` are kept as **aliases**: NPM hosts on the
+same upstream as the canonical pair (`http://<tutor host>:18080`), a `lms` CNAME
+in the zone, and the names in `ATHENIQ_LEGACY_LMS_HOSTS` / `ATHENIQ_LEGACY_MFE_HOSTS`
+so Django answers them, trusts their forms and allows login to return to them. A
+request to `https://lms.<domain>/` therefore lands on the canonical platform —
+the LMS redirects it to `https://apps.learn.<domain>/catalog/` itself. Both
+lists are data rather than defaults, which is why a `tutor config save` cannot
+resurrect a name that was dropped.
 
 ```bash
 pip install -e contrib/tutor-atheniq-hosts
 tutor plugins enable atheniqhosts
 tutor config save \
-  --set LMS_HOST=lms.<domain> \
-  --set 'ATHENIQ_LEGACY_LMS_HOSTS=["learn.<domain>"]' \
-  --set 'ATHENIQ_LEGACY_MFE_HOSTS=[]'
-tutor local restart caddy lms cms
+  --set LMS_HOST=learn.<domain> \
+  --set 'ATHENIQ_LEGACY_LMS_HOSTS=["lms.<domain>"]' \
+  --set 'ATHENIQ_LEGACY_MFE_HOSTS=["apps.lms.<domain>"]'
+tutor local restart caddy lms lms-worker cms cms-worker mfe
 ```
 
+Two values this deployment overrides by hand embed the hostname as well and
+have to be rewritten with it: `MFE_CONFIG` (absolute MFE/login/logo URLs) and
+`PARAGON_THEME_URLS` (the `brandOverride` stylesheet URLs). `tutor config save`
+alone will not move them — they are plain strings in `config.yml`.
+
 The [`contrib/tutor-atheniq-hosts`](../contrib/tutor-atheniq-hosts) plugin ships
-both lists empty; keeping `learn.<domain>` alive is the `--set` above plus its
-NPM host and zone record, and dropping the name again is the same edit in
-reverse.
+both lists empty; keeping an alias alive is the `--set` above plus its NPM host
+and zone record, and dropping the name again is the same edit in reverse.
 
 Run [`scripts/provision-edge.sh`](../scripts/provision-edge.sh) to re-apply
 (idempotent; pass hostnames to narrow it). It drives Cerulean's API for the
@@ -490,19 +523,20 @@ DNS record, the certificate, and the NPM host; `DRY_RUN=1` prints the plan.
 > (its own caddy stays plain HTTP on `:18080`; NPM terminates TLS). This makes
 > AthenIQ emit `https://` absolute URLs — required, since the browser would
 > otherwise block the MFEs' API calls as mixed content (this broke the catalog
-> MFE at `https://apps.lms.innotel.us/catalog/` until flipped). To re-apply
+> MFE at `https://apps.learn.innotel.us/catalog/` until flipped). To re-apply
 > after a Tutor reinstall: `tutor config save --set ENABLE_HTTPS=true` then
 > `docker compose -p tutor_local -f docker-compose.yml -f
 > docker-compose.prod.yml restart lms cms mfe caddy`.
 
 Each public name carries `Strict-Transport-Security: max-age=63072000; preload`
-(`lms`, `apps.lms`, `atheniq`); `includeSubDomains` is deliberately off, because a
-sticky rule covering every subdomain would outlive any one host's certificate.
+(`learn`, `apps.learn`, `lms`, `apps.lms`, `atheniq`); `includeSubDomains` is
+deliberately off, because a sticky rule covering every subdomain would outlive
+any one host's certificate.
 
 The edge is one step removed from this repo, so it has a check of its own:
 
 ```bash
-make cert-check          # or: python3 scripts/cert-check.py lms.innotel.us
+make cert-check          # or: python3 scripts/cert-check.py learn.innotel.us
 python3 scripts/cert-check.py --http    # also GET / and fail on a 5xx (the deploy gate)
 ```
 
@@ -782,6 +816,49 @@ Verified live: the public webview
 `https://learn.<domain>/certificates/<verify_uuid>` renders the full certificate
 (awarded-to name, course title, "Certificate of Completion", signatory,
 issue date) and the learner's dashboard shows the "certificate is ready" link.
+
+**Where the certificate screens are** (probed live — the legacy
+`https://learn.<domain>/courses/<course>/instructor` 404s, the dashboard moved
+to the MFE):
+
+| What | URL |
+| --- | --- |
+| Issue / regenerate for learners (instructor dashboard → **Certificates** tab) | `https://apps.learn.<domain>/instructor/instructor-dashboard/<course_id>/certificates` |
+| Define signatories (Studio → course → Settings → Certificates) | `https://apps.learn.<domain>/authoring/course/<course_id>/settings/certificates` |
+| Certificate records (Django admin) | `https://learn.<domain>/admin/certificates/generatedcertificate/` |
+| Per-course generation setting (Django admin) | `https://learn.<domain>/admin/certificates/certificategenerationcoursesetting/` |
+| Generation switch (Django admin) | `https://learn.<domain>/admin/waffle/switch/` |
+
+The instructor tab is a client-side route (`instructor-dashboard/:courseId/:tabId`,
+the tab is `tabId: "certificates"`), so it answers 200 with the MFE shell for any
+path — the evidence that it exists is the route table in the shipped bundle plus
+its live API, `/api/instructor/v2/courses/<course_id>/certificates/{issued,
+generation_history,invalidations,regenerate,toggle_generation}` (401 without a
+session, i.e. present, not 404).
+
+**Fixes applied 2026-10** (this deployment had drifted from the state above):
+
+- The four TEST101 certificates were stored under the **stale course key**
+  `course-v1:Innotel+TEST101+2026_T1` while the live course is
+  `course-v1:InnotelLabs+TEST101+2026_T1`, so every public verify URL rendered
+  "Invalid Certificate" (`webview.py` logs `Course not found`) even though the
+  rows were `downloadable` and their Signara documents were signed. Repointing
+  `course_id` with a queryset `.update()` (never `save()`) fixed all four;
+  `verify_uuid` is untouched, so existing links stay valid.
+- `CertificateGenerationCourseSetting` had **0 rows**, so per-course gating ran
+  purely off the global switch. All 14 course overviews now have an explicit
+  `self_generation_enabled=True` row, so disabling one course is a per-course
+  change rather than a global one.
+- The public names went **back to `learn.<domain>`** (with `lms.<domain>` kept as
+  the alias): `LMS_HOST`, the `MFE_CONFIG` / `PARAGON_THEME_URLS` host strings,
+  `django.contrib.sites`, the `apps.learn` edge host, and the OpenMAIC
+  `ALLOWED_FRAME_ANCESTORS` allowlist. See
+  [Cerulean DNS and TLS](#cerulean-dns-and-tls) for the full re-apply.
+
+> A certificate row's `course_id` is a snapshot: after a course is re-created
+> under a new org/slug (as TEST101 was), the row keeps the old key and the
+> webview 404s the course. Check `GeneratedCertificate.course_id` against
+> `CourseOverview.id` before assuming the TLS/feature-config side is at fault.
 
 ### 9.7 Signara signing leg (cert bridge)
 

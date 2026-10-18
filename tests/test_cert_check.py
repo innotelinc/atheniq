@@ -181,6 +181,10 @@ class Reporting(unittest.TestCase):
     def test_reported_names_are_the_ones_asked_for(self):
         self.assertEqual(list(cert.PLATFORM_HOSTS),
                          list(dict.fromkeys(cert.PLATFORM_HOSTS)))
+        # Canonical names first, then the aliases that must keep answering.
+        self.assertEqual(cert.PLATFORM_HOSTS[:4],
+                         ("atheniq.innotel.us", "learn.innotel.us",
+                          "apps.learn.innotel.us", "lms.innotel.us"))
         self.assertIn("apps.lms.innotel.us", cert.PLATFORM_HOSTS)
         self.assertIn("atheniq.innotel.us", cert.PLATFORM_HOSTS)
 
