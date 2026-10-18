@@ -103,7 +103,9 @@
           "type": "quiz",
           "title": "Disclose, decide, or stop"
         }
-      ]
+      ],
+      "classroom_id": "stage-JQ0Cd1p7QkN_",
+      "model": "omniroute:codex/gpt-5.6-luna-medium"
     },
     {
       "id": "fai106-ch04-vendors",
