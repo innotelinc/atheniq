@@ -187,6 +187,9 @@ class Reporting(unittest.TestCase):
                           "apps.learn.innotel.us", "lms.innotel.us"))
         self.assertIn("apps.lms.innotel.us", cert.PLATFORM_HOSTS)
         self.assertIn("atheniq.innotel.us", cert.PLATFORM_HOSTS)
+        # The staff generation console: a public name like any other, even
+        # though an SSO proxy stands in front of it.
+        self.assertIn("ai.lms.innotel.us", cert.PLATFORM_HOSTS)
 
 
 class UnreachableName(unittest.TestCase):

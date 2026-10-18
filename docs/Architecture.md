@@ -117,6 +117,7 @@ internet ──► NGINX Proxy Manager (Cerulean-provisioned)
               ├── apps.lms.<domain>   → alias of apps.learn.<domain>
               ├── studio.<domain>     → AthenIQ Studio
               ├── classroom.<domain>  → OpenMAIC
+              ├── ai.lms.<domain>     → course-generation console (staff; own SSO proxy)
               └── certs.<domain>      → Signara portal (shared)
 host network (private)
   ├── OmniRoute        :20128   (SSO proxy → gateway's own listener)

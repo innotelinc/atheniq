@@ -1,0 +1,29 @@
+[Unit]
+Description=AthenIQ course-generation console (staff screen for OpenMAIC classrooms)
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+# Long-running: the SSO proxy in front of it dials it, and the page polls it
+# while a classroom generates. It holds no model credential of its own — every
+# generation goes through OpenMAIC's API on this host's loopback, and who may
+# start one is decided by the identity headers the proxy sets (see
+# docs/Deployment.md §"Course-generation console").
+#
+# The values below are the deployment's; the unit ships with the paths this
+# box uses. Copy to /etc/systemd/system/ and adjust GENERATION_BIND /
+# GENERATION_ROOT / GENERATION_ALLOWED_GROUPS for another host.
+Environment=PYTHONUNBUFFERED=1
+Environment=OPENMAIC_BASE_URL=http://127.0.0.1:3000
+Environment=GENERATION_BIND=192.168.1.59
+Environment=GENERATION_PORT=8090
+Environment=GENERATION_ALLOWED_GROUPS=atheniq-admins,AthenIQ
+Environment=GENERATION_ROOT=/home/tutor/atheniq-generation
+Environment=CLASSROOM_HOST=https://classroom.innotel.us
+ExecStart=/usr/bin/python3 /home/tutor/atheniq-generation/scripts/generation-console.py
+Restart=on-failure
+RestartSec=5
+User=tutor
+
+[Install]
+WantedBy=multi-user.target

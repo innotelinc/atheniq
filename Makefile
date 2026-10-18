@@ -7,7 +7,7 @@
 SHELL := /bin/bash
 
 .PHONY: help setup up down logs ps \
-        openmaic-up openmaic-down convex-up convex-down convex-key \
+        openmaic-up openmaic-down convex-up convex-down convex-key generation-console \
         onyx-check onyx-buckets onyx-selftest magnate-probe \
         paid-status entitlement-status entitlement-sync \
         check-commits check-compose check-tracks check-courses check-classrooms check-catalog check-syllabus check-images check-brand cert-check \
@@ -47,6 +47,9 @@ openmaic-up: ## Start the OpenMAIC persistence Postgres
 
 openmaic-down: ## Stop the OpenMAIC persistence Postgres
 	docker compose --profile openmaic down
+
+generation-console: ## Run the course-generation console locally (OpenMAIC on this host)
+	python3 scripts/generation-console.py --trust-local
 
 ## ---- Realtime (Convex) ----------------------------------------------------
 

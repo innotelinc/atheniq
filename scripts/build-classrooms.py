@@ -262,10 +262,13 @@ class OpenMAIC:
             with urllib.request.urlopen(req, timeout=self.timeout) as resp:
                 return resp.status, json.load(resp)
         except urllib.error.HTTPError as err:
-            try:
-                payload = json.load(err)
-            except Exception:
-                payload = {"error": err.read().decode("utf-8", "replace")}
+            # Closed as soon as it is read: a refused call is an ordinary answer
+            # here, not an exception worth leaking a socket for.
+            with err:
+                try:
+                    payload = json.load(err)
+                except Exception:
+                    payload = {"error": err.read().decode("utf-8", "replace")}
             return err.code, payload
         except urllib.error.URLError as err:
             raise SystemExit(f"cannot reach OpenMAIC at {self.base_url}: {err.reason}")
@@ -279,6 +282,15 @@ class OpenMAIC:
 
     def run(self, run_id):
         return self._call("GET", f"/api/generation-runs/{run_id}")
+
+    def active_runs(self):
+        """The runs the server still holds — generating or paused.
+
+        OpenMAIC refuses an unfiltered list (`pass active=1`), which is the
+        right default: a finished run is history, and its classroom is already
+        recorded in the spec.
+        """
+        return self._call("GET", "/api/generation-runs?active=1")
 
     def retry(self, run_id):
         return self._call("POST", f"/api/generation-runs/{run_id}/retry",

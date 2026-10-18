@@ -160,6 +160,56 @@ services:
       timeout: 5s
       retries: 3
 
+  # ------------------------------------------------------------------
+  # Course-generation console — `ai.lms.<domain>`.
+  #
+  # The staff screen for generating the classrooms a course spec describes
+  # (`scripts/generation-console.py`, page in `web/generate/`). It is a *front*
+  # for OpenMAIC's HTTP API, not a second generator: OpenMAIC keeps the runs,
+  # the classrooms and the model settings, and this decides who may start one
+  # and writes the result back into the spec.
+  #
+  # `network_mode: host` is deliberate. OpenMAIC publishes its API on the host's
+  # loopback (`OPENMAIC_PUBLISH_ADDRESS=127.0.0.1`) so nothing on the LAN can
+  # reach it without SSO; a bridged container could not see that address, and
+  # publishing OpenMAIC for the console's sake would undo the isolation. On the
+  # host network the console dials 127.0.0.1:3000 and listens on the LAN address
+  # the SSO proxy in front of it dials.
+  #
+  # `courses/` is mounted writable for one reason: recording a finished
+  # classroom's id in its spec. Everything else is read-only.
+  #
+  # The identity headers come from oauth2-proxy, not from this container — see
+  # docs/Deployment.md §"Course-generation console". Without a proxy the app
+  # answers 401 to every API call, which is the failure we want.
+  # ------------------------------------------------------------------
+  generation:
+    image: python:3.12-slim
+    container_name: atheniq-generation
+    restart: unless-stopped
+    network_mode: host
+    # Memory posture (docs/service-audit.md): a request handler and a page.
+    mem_limit: 192m
+    memswap_limit: 192m
+    command: ["python3", "/srv/repo/scripts/generation-console.py"]
+    environment:
+      OPENMAIC_BASE_URL: ${OPENMAIC_BASE_URL:-http://127.0.0.1:3000}
+      GENERATION_BIND: ${GENERATION_BIND:-0.0.0.0}
+      GENERATION_PORT: ${GENERATION_PORT:-8090}
+      GENERATION_ALLOWED_GROUPS: ${GENERATION_ALLOWED_GROUPS:-atheniq-admins,instructors}
+      GENERATION_ROOT: /srv/repo
+      CLASSROOM_HOST: ${CLASSROOM_HOST:-https://classroom.innotel.us}
+    volumes:
+      - ./scripts:/srv/repo/scripts:ro
+      - ./web:/srv/repo/web:ro
+      - ./courses:/srv/repo/courses
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:${GENERATION_PORT:-8090}/healthz', timeout=4).status == 200 else 1)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
 volumes:
   openmaic-postgres-data:
   convex-data:

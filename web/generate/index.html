@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AthenIQ — Course generation</title>
+  <meta name="description" content="Generate the OpenMAIC classrooms a course describes. Staff console.">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="console.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <span class="brand">
+        <span class="mark" aria-hidden="true"></span>
+        AthenIQ <span class="sep">/</span> <span class="muted">Course generation</span>
+      </span>
+      <span class="who" id="who">checking sign-in…</span>
+      <span class="pill" id="health" data-state="pending">OpenMAIC …</span>
+    </div>
+  </header>
+
+  <main class="wrap layout">
+    <section class="panel courses" aria-labelledby="courses-h">
+      <div class="panel-head">
+        <h1 id="courses-h">Courses</h1>
+        <div class="head-tools">
+          <input id="filter" type="search" placeholder="Filter courses or classrooms" aria-label="Filter courses or classrooms">
+          <span class="counts" id="counts"></span>
+        </div>
+      </div>
+      <p class="sub">Every classroom a course spec describes. A generated one links to the live classroom; a missing one can be generated here and is written back to the spec by the batch tool.</p>
+      <div id="courses" class="course-list" aria-live="polite">
+        <p class="empty">loading…</p>
+      </div>
+    </section>
+
+    <aside class="side">
+      <section class="panel" aria-labelledby="runs-h">
+        <div class="panel-head">
+          <h2 id="runs-h">Runs</h2>
+          <button class="link" id="runs-refresh" type="button">refresh</button>
+        </div>
+        <p class="sub">What OpenMAIC is holding right now: <b>generating</b> is working, <b>paused</b> hit a model problem and keeps a slot until it is discarded.</p>
+        <div id="runs" class="run-list" aria-live="polite"><p class="empty">loading…</p></div>
+      </section>
+
+      <section class="panel" aria-labelledby="brief-h">
+        <div class="panel-head">
+          <h2 id="brief-h">New brief</h2>
+          <span class="hint" id="charhint"></span>
+        </div>
+        <p class="sub">For a classroom that is not in a course spec yet. Say what the class does, who is in the room, and how it is assessed — that is what the generator turns into scenes.</p>
+        <form id="brief" class="brief" autocomplete="off">
+          <label for="brief-title">Title</label>
+          <input id="brief-title" name="title" type="text" maxlength="120" placeholder="Reading a Support Queue">
+          <label for="brief-requirement">Brief</label>
+          <textarea id="brief-requirement" name="requirement" rows="7" spellcheck="true"
+                    placeholder="Start from three tickets with different impact and urgency…"></textarea>
+          <div class="brief-actions">
+            <button class="btn btn-primary" id="brief-submit" type="submit">Generate</button>
+            <span class="hint">80 characters minimum</span>
+          </div>
+        </form>
+      </section>
+    </aside>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="console.js"></script>
+</body>
+</html>

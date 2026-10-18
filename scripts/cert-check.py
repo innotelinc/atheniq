@@ -49,6 +49,7 @@ PLATFORM_HOSTS: tuple[str, ...] = (
     "apps.lms.innotel.us",
     "studio.innotel.us",
     "classroom.innotel.us",
+    "ai.lms.innotel.us",
     "meilisearch.learn.innotel.us",
     "meilisearch.lms.innotel.us",
 )

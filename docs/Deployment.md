@@ -258,6 +258,100 @@ the owner's concurrent-run limit, so leaving them behind jams a batch shut.
 `--skip <slug|code>` leaves a course out of the run, which is how the demo course
 stays classroom-free.
 
+### Course-generation console (`ai.lms.<domain>`)
+
+`scripts/build-classrooms.py` is the batch: an operator runs it from a shell, in
+one long command, and reads the log. The console is the same work from a
+browser — the staff screen that lists every course's classroom briefs, starts
+one, shows the run's step, and writes a finished classroom's id back into the
+spec. It is a **front for OpenMAIC**, not a second generator: OpenMAIC keeps the
+runs, the classrooms and the model settings.
+
+```bash
+make up                       # this repo's compose: landing + generation
+# on a box with OpenMAIC locally:
+make generation-console       # opens on 127.0.0.1:8090, trusting local requests
+```
+
+What it serves (`web/generate/`, no build step, stdlib Python — see the module
+docstring in `scripts/generation-console.py` for the full route list):
+
+- **Courses** — one row per classroom in `courses/*/openmaic/classrooms.json`,
+  with its chapter, its linked units, and whether the spec already records a
+  `classroom_id`. A missing one gets a **Generate** button; a generated one
+  links straight to `classroom.<domain>/classroom/<id>`.
+- **Runs** — what OpenMAIC is holding: step, progress, and the gateway's own
+  error words on a paused run. A paused run can be **retried** or **discarded**
+  (a run that already produced a classroom answers 409 and is kept); a finished
+  one that came from a spec gets **Record in spec**, which is the step the batch
+  tool does in `--execute` — without it the classroom exists but no course unit
+  points at it.
+- **New brief** — a free-form classroom for something not in a spec yet.
+
+**Who may generate.** The console sits behind an oauth2-proxy and does not trust
+it blindly: every request must carry the identity headers that
+`--set-xauthrequest` and `--pass-user-headers` set, and the caller must hold one
+of `GENERATION_ALLOWED_GROUPS` (default `atheniq-admins,instructors`). No
+headers is a 401, the wrong groups is a 403, so a misrouted proxy fails closed
+instead of publishing an endpoint that spends model budget. Mutating calls also
+require the console's own header plus a same-origin `Origin`, which is what stops
+a cross-site post.
+
+```bash
+# alongside the classroom's own oauth2-proxy; the upstream is where the console
+# listens (GENERATION_BIND), not OpenMAIC itself
+oauth2-proxy \
+  --provider=oidc --oidc-issuer-url=https://auth.cerulean.innotel.us/application/o/classroom/ \
+  --oidc-groups-claim=groups --scope=openid --email-domain='*' \
+  --allowed-group=atheniq-admins --allowed-group=AthenIQ \
+  --set-xauthrequest=true --pass-user-headers=true --cookie-secure=true \
+  --reverse-proxy=true --http-address=0.0.0.0:3001 \
+  --upstream=http://<atheniq host>:8090
+```
+
+**Why it runs on the host network.** OpenMAIC publishes its API on the host's
+loopback (`OPENMAIC_PUBLISH_ADDRESS=127.0.0.1`) so nothing on the LAN reaches it
+without the SSO proxy in front of it; a bridged console container cannot see
+that address,
+and publishing OpenMAIC for the console's sake would undo the isolation. On the
+host network the console dials `127.0.0.1:3000` and listens on `GENERATION_BIND`
+(the LAN address the proxy dials). `courses/` is mounted writable, for recording
+a classroom id in its spec; `scripts/` and `web/` are read-only.
+
+`/healthz` answers without an identity (it says the process is up and nothing
+else) so the container healthcheck does not need to sign in.
+
+**Realized (2026-10, `ai.lms.innotel.us`).** The console runs from
+`atheniq-generation.service` (`deploy/systemd/atheniq-generation.service`):
+`/home/tutor/atheniq-generation` holds this repo's `scripts/generation-console.py`,
+`web/generate/` and the fourteen `courses/*/openmaic/classrooms.json`, and the
+unit binds `192.168.1.59:8090` as the `tutor` user (so recording a classroom id
+can write the spec it owns). In front of it, a second oauth2-proxy
+(`generation-sso`, published `192.168.1.59:8091`) reuses the classroom's
+Authentik client with `--set-xauthrequest`/`--pass-user-headers`; its callback
+`https://ai.lms.innotel.us/oauth2/callback` had to be added to that provider
+(the `Classroom` provider, `client_id=classroom`) — Authentik's OAuth2 model is
+at `/api/v3/providers/oauth2/`, not under `core/`.
+
+```bash
+# on the edge host, in this order
+scp scripts/cerulean-issue-cert.js scripts/npm-upload-cert.py scripts/ai-lms-edge.py proxy:/tmp/
+docker cp /tmp/cerulean-issue-cert.js cerulean:/tmp/
+# 1. the certificate: Cerulean's own ACME path (DNS-01 through Technitium)
+docker exec -e DOMAIN=ai.lms.innotel.us cerulean node /tmp/cerulean-issue-cert.js
+# 2. into NPM, which is what terminates TLS (multipart upload, not JSON)
+python3 /tmp/npm-upload-cert.py <cerulean certificate id>
+# 3. the zone CNAME and the proxy host (192.168.1.59:8091) behind it
+python3 /tmp/ai-lms-edge.py            # DRY_RUN=1 to plan only
+```
+
+The certificate is one name, not a wildcard: `ai.lms.` is not covered by the
+`lms.innotel.us` pair, and a wildcard for a name only used by staff would be
+wider than the need. Verified live: `CN=ai.lms.innotel.us` (Let's Encrypt),
+`302` to Authentik on every path including `/api/`, and a request that sets its
+own `X-Auth-Request-*` headers is still refused — the proxy authenticates before
+it forwards.
+
 ### Stage 3b — OpenMAIC persistence Postgres (this repo)
 
 Only needed when you point `DATABASE_URL` at it instead of the bundled service.
@@ -452,6 +546,7 @@ Canonical hosts for a reference deployment:
 | `apps.lms.<domain>` | Alias of `apps.learn.<domain>` |
 | `studio.<domain>` | AthenIQ Studio |
 | `classroom.<domain>` | OpenMAIC |
+| `ai.lms.<domain>` | Course-generation console — staff only, behind its own oauth2-proxy |
 | `cert.<domain>` | Signara portal (shared DocumentOps) |
 
 Set the `CERULEAN_*` variables in `.env` (`CERULEAN_BASE_DOMAIN`,
@@ -470,7 +565,9 @@ the zone already carries the CNAME. The pages' canonical and Open Graph URLs are
 the product domain rather than the GitHub Pages preview CI also publishes.
 
 **Realized (2026-10):** `atheniq`, `learn`, `apps.learn`, `lms`, `apps.lms`,
-`studio`, and `meilisearch.learn` / `meilisearch.lms` (`innotel.us`) are live.
+`studio`, `classroom`, `ai.lms` (the generation console, its own
+single-name certificate), and `meilisearch.learn` / `meilisearch.lms`
+(`innotel.us`) are live.
 DNS records are CNAMEs to the `innotel.us.` apex (A `73.68.203.71`, the edge's
 WAN address), written through Cerulean's Technitium plane — the old
 TSIG/`nsupdate` BIND zone at `192.168.1.80` is retired. The edge (nginx proxy
