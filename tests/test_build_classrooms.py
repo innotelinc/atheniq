@@ -2,8 +2,12 @@
 
 The generation run itself is the server's job and needs the classroom host;
 what is checked here is the policy around it — which failures are worth another
-model, and what the model chain looks like.
+model, what the model chain looks like — and the record a finished classroom
+leaves in the spec.
 """
+import json
+import os
+import tempfile
 import unittest
 
 from _loader import load
@@ -90,6 +94,57 @@ class PausedRun(unittest.TestCase):
         run = build.RunPaused(None, None)
         self.assertIn("no error reported", str(run))
         self.assertFalse(run.capacity)
+
+
+class FinishedClassroom(unittest.TestCase):
+    """What a completed run writes back, and whether `--check`-style lint still passes."""
+
+    def test_the_id_and_the_model_are_recorded_and_nothing_else_moves(self):
+        classrooms = load("check-classrooms.py")
+        index = classrooms.olx_index(os.path.join(str(build.REPO), "courses"))
+        key = "course-v1:InnotelLabs+ITSP101+2026_T1"
+        chapters = [(chapter, units) for chapter, units in index[key]["chapters"].items()
+                    if units][:2]
+        self.assertEqual(len(chapters), 2, chapters)
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        path = os.path.join(tmp.name, "classrooms.json")
+        doc = {
+            "version": 1,
+            "source_course": key,
+            "classrooms": [
+                {"id": chapter.replace("_", "-"), "chapter": chapter, "title": "A chapter",
+                 "prompt": "Run it.", "objectives": ["Describe the role"],
+                 "activities": [{"type": "slides", "title": "Intro"}],
+                 "linked_units": units[:1]}
+                for chapter, units in chapters
+            ],
+        }
+        build.write_spec(path, doc)
+
+        class Stub:
+            def __init__(self, base_url):
+                pass
+
+        real = build.OpenMAIC, build.submit_once, build.wait_for_run
+        build.OpenMAIC = Stub
+        build.submit_once = lambda client, requirement, **kw: "run-1"
+        build.wait_for_run = lambda client, run_id, **kw: "stage-finished"
+        try:
+            item = ("it-support-certification", path, 1, doc["classrooms"][1], doc, "http://om")
+            out = build.generate_one(item, model="auto/best-coding")
+        finally:
+            build.OpenMAIC, build.submit_once, build.wait_for_run = real
+
+        self.assertEqual(out[2], "stage-finished")
+        self.assertIsNone(out[3])
+        written = json.load(open(path))
+        self.assertEqual(written["classrooms"][1]["classroom_id"], "stage-finished")
+        self.assertEqual(written["classrooms"][1]["model"], "omniroute:auto/best-coding")
+        self.assertNotIn("classroom_id", written["classrooms"][0])
+        # The extra field must not turn the spec invalid.
+        errors, _, _ = classrooms.validate_spec(path, index)
+        self.assertEqual(errors, [])
 
 
 class DiscardedPause(unittest.TestCase):
