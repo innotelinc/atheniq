@@ -196,11 +196,29 @@ python3 scripts/import-courses.py --execute --course <key>   # publish to the LM
 ```
 
 `--execute --publish` does the last three automatically as each classroom
-finishes. A generation run takes roughly ten minutes and consumes the workspace
-LLM slot: if that slot points at a single vendor key with a small quota, runs
-pause with `RATE_LIMITED` and resume in the same session (`--execute` retries).
-The classroom id is written back into the spec, so a re-run only handles what is
-still missing.
+finishes. The classroom id is written back into the spec, so a re-run only
+handles what is still missing.
+
+**A paused run is a model-supply failure.** The tool stops at the first one and
+prints the step and the gateway's own error — an exhausted quota, a rate limit,
+a provider with no credential — instead of waiting it out. Give it a chain of
+gateway models to fall back through and it moves instead of stopping:
+
+```bash
+python3 scripts/build-classrooms.py --execute --publish \
+  --models codex/gpt-5.6-luna-medium,auto/best-chat,auto/best-coding
+```
+
+A paused classroom is re-submitted on the next model after the tool points the
+classroom's chat slots at it through OpenMAIC's model settings (`PUT
+/api/model-config`, no rebuild), the model that works is reused for the rest of
+the batch, and `--models` runs one classroom at a time because that setting is
+workspace-wide. When the chain runs out the batch stops and says how many
+classrooms it left — add a provider to the gateway (or wait for a quota window)
+and run the same command again. `--max-resumes N` (default 0) resumes a paused
+run in place instead, which is only worth it when the pause really was
+transient. A run that is merely slow is not a failure: `--run-timeout`
+(default 5400s) is the limit.
 
 ### Stage 3b — OpenMAIC persistence Postgres (this repo)
 

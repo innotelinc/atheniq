@@ -17,7 +17,10 @@
     {
       "id": "data101-ch01-literacy",
       "chapter": "c1_literacy",
-      "linked_units": ["u1_literacy", "u2_check"],
+      "linked_units": [
+        "u1_literacy",
+        "u2_check"
+      ],
       "title": "Read the Table Before You Trust It",
       "prompt": "Start from a messy operations spreadsheet: the classmates must say what question it can answer, what a row is, and which column is the grain. Then have them compute a simple summary in a spreadsheet and state what the answer does and does not support.",
       "objectives": [
@@ -26,15 +29,27 @@
         "State the limits of a summary before presenting it"
       ],
       "activities": [
-        {"type": "slides", "title": "Rows, columns, grain, and questions"},
-        {"type": "exercise", "title": "What question does this sheet answer?"},
-        {"type": "quiz", "title": "Data literacy"}
+        {
+          "type": "slides",
+          "title": "Rows, columns, grain, and questions"
+        },
+        {
+          "type": "exercise",
+          "title": "What question does this sheet answer?"
+        },
+        {
+          "type": "quiz",
+          "title": "Data literacy"
+        }
       ]
     },
     {
       "id": "data101-ch02-cleaning",
       "chapter": "c2_cleaning",
-      "linked_units": ["u3_cleaning", "u4_lab"],
+      "linked_units": [
+        "u3_cleaning",
+        "u4_lab"
+      ],
       "title": "Cleaning Is the Work",
       "prompt": "Give the classmates a dirty dataset and run the six dimensions of quality against it: completeness, accuracy, consistency, uniqueness, validity, and timeliness. Have them fix a duplicate, a wrong type, and an inconsistent category, then explain which fix could change the conclusion of the analysis.",
       "objectives": [
@@ -43,15 +58,27 @@
         "Explain how a cleaning choice can change the answer"
       ],
       "activities": [
-        {"type": "slides", "title": "The six dimensions of data quality"},
-        {"type": "lab", "title": "Clean a dataset, then defend each change"},
-        {"type": "discussion", "title": "Which cleaning choice was actually an analysis decision?"}
+        {
+          "type": "slides",
+          "title": "The six dimensions of data quality"
+        },
+        {
+          "type": "lab",
+          "title": "Clean a dataset, then defend each change"
+        },
+        {
+          "type": "discussion",
+          "title": "Which cleaning choice was actually an analysis decision?"
+        }
       ]
     },
     {
       "id": "data101-ch03-reporting",
       "chapter": "c3_reporting",
-      "linked_units": ["u5_reporting", "u6_check"],
+      "linked_units": [
+        "u5_reporting",
+        "u6_check"
+      ],
       "title": "A Report Answers Someone's Question",
       "prompt": "Name the reader and the question first, then choose the chart that fits — comparison, change over time, composition, or relationship. Have the classmates critique three charts that are technically correct but misleading, and rebuild one of them.",
       "objectives": [
@@ -60,15 +87,27 @@
         "Rebuild a dashboard tile so it answers one question well"
       ],
       "activities": [
-        {"type": "slides", "title": "Comparison, change, composition, relationship"},
-        {"type": "simulation", "title": "Three charts that mislead"},
-        {"type": "quiz", "title": "Reporting and visualisation"}
+        {
+          "type": "slides",
+          "title": "Comparison, change, composition, relationship"
+        },
+        {
+          "type": "simulation",
+          "title": "Three charts that mislead"
+        },
+        {
+          "type": "quiz",
+          "title": "Reporting and visualisation"
+        }
       ]
     },
     {
       "id": "data101-ch04-governance",
       "chapter": "c4_governance",
-      "linked_units": ["u7_governance", "u8_final"],
+      "linked_units": [
+        "u7_governance",
+        "u8_final"
+      ],
       "title": "Where the Number Comes From",
       "prompt": "Work through systems and ownership: source of truth per entity, who may change a value, retention, and personal data. Have the classmates resolve a conflict where two dashboards disagree, trace each figure to its system of record, and say which one the organisation should trust and why.",
       "objectives": [
@@ -77,9 +116,18 @@
         "Resolve two conflicting reports by tracing each figure to its source"
       ],
       "activities": [
-        {"type": "slides", "title": "Sources of truth, ownership, retention"},
-        {"type": "roleplay", "title": "Two dashboards, two numbers"},
-        {"type": "discussion", "title": "Personal data: what we keep and for how long"}
+        {
+          "type": "slides",
+          "title": "Sources of truth, ownership, retention"
+        },
+        {
+          "type": "roleplay",
+          "title": "Two dashboards, two numbers"
+        },
+        {
+          "type": "discussion",
+          "title": "Personal data: what we keep and for how long"
+        }
       ]
     }
   ]

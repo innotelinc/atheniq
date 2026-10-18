@@ -17,7 +17,10 @@
     {
       "id": "itsp102-ch01-architecture",
       "chapter": "c1_architecture",
-      "linked_units": ["u1_architecture", "u2_check"],
+      "linked_units": [
+        "u1_architecture",
+        "u2_check"
+      ],
       "title": "Describing a Network Before You Touch It",
       "prompt": "Run a session on how support work describes a network: size (LAN/WAN), topology, and the layer that carries the data. Give the classmates a site description and have them classify it, then trace one request from a laptop to an internet service and name the layer each hop belongs to.",
       "objectives": [
@@ -26,15 +29,27 @@
         "Walk a request end to end and name each hop"
       ],
       "activities": [
-        {"type": "slides", "title": "Size, topology, layers"},
-        {"type": "simulation", "title": "Where did the packet stop?"},
-        {"type": "quiz", "title": "Architecture foundations"}
+        {
+          "type": "slides",
+          "title": "Size, topology, layers"
+        },
+        {
+          "type": "simulation",
+          "title": "Where did the packet stop?"
+        },
+        {
+          "type": "quiz",
+          "title": "Architecture foundations"
+        }
       ]
     },
     {
       "id": "itsp102-ch02-routing",
       "chapter": "c2_routing",
-      "linked_units": ["u3_routing", "u4_lab"],
+      "linked_units": [
+        "u3_routing",
+        "u4_lab"
+      ],
       "title": "Frames, Packets, and the Wireless Middle",
       "prompt": "Contrast switching, routing, and wireless access, then debug a network where one VLAN cannot reach a printer on another. Have the classmates interpret a switch MAC table, an ARP cache, and a routing table in turn, and decide which one is actually wrong.",
       "objectives": [
@@ -43,15 +58,27 @@
         "Diagnose a wireless client that associates but cannot reach anything"
       ],
       "activities": [
-        {"type": "slides", "title": "Switching, VLANs, routing, wireless"},
-        {"type": "lab", "title": "One VLAN cannot reach the printer"},
-        {"type": "quiz", "title": "Routing and wireless"}
+        {
+          "type": "slides",
+          "title": "Switching, VLANs, routing, wireless"
+        },
+        {
+          "type": "lab",
+          "title": "One VLAN cannot reach the printer"
+        },
+        {
+          "type": "quiz",
+          "title": "Routing and wireless"
+        }
       ]
     },
     {
       "id": "itsp102-ch03-windows",
       "chapter": "c3_windows",
-      "linked_units": ["u5_windows", "u6_check"],
+      "linked_units": [
+        "u5_windows",
+        "u6_check"
+      ],
       "title": "The Domain Is the Backbone",
       "prompt": "Work through Active Directory Domain Services as the identity and policy backbone: domain controllers, DNS, DHCP, file shares, and Group Policy. Then have the classmates troubleshoot a user who cannot log in, separating a DNS problem from a replication problem from a locked account, using the tools an admin would actually run.",
       "objectives": [
@@ -60,15 +87,27 @@
         "Work a domain sign-in failure in the right order"
       ],
       "activities": [
-        {"type": "slides", "title": "Domain controllers, DNS, DHCP, GPO"},
-        {"type": "roleplay", "title": "The user who cannot log in"},
-        {"type": "quiz", "title": "Directory services"}
+        {
+          "type": "slides",
+          "title": "Domain controllers, DNS, DHCP, GPO"
+        },
+        {
+          "type": "roleplay",
+          "title": "The user who cannot log in"
+        },
+        {
+          "type": "quiz",
+          "title": "Directory services"
+        }
       ]
     },
     {
       "id": "itsp102-ch04-linux",
       "chapter": "c4_linux",
-      "linked_units": ["u7_linux", "u8_final"],
+      "linked_units": [
+        "u7_linux",
+        "u8_final"
+      ],
       "title": "The Shell and the Service Model",
       "prompt": "Teach Linux server administration through the shell and systemd: navigate the filesystem, read logs, and manage a service. Then run a short incident where nginx is not serving, and have the classmates use systemctl and journalctl to prove whether the unit, the port, or the config is at fault.",
       "objectives": [
@@ -77,9 +116,18 @@
         "Diagnose a failed web service from status, journal, and socket"
       ],
       "activities": [
-        {"type": "slides", "title": "Shell, filesystem, systemd"},
-        {"type": "lab", "title": "nginx is down — prove why"},
-        {"type": "quiz", "title": "Linux administration review"}
+        {
+          "type": "slides",
+          "title": "Shell, filesystem, systemd"
+        },
+        {
+          "type": "lab",
+          "title": "nginx is down — prove why"
+        },
+        {
+          "type": "quiz",
+          "title": "Linux administration review"
+        }
       ]
     }
   ]

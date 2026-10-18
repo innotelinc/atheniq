@@ -17,7 +17,10 @@
     {
       "id": "itsp103-ch01-soc",
       "chapter": "c1_soc",
-      "linked_units": ["u1_soc", "u2_check"],
+      "linked_units": [
+        "u1_soc",
+        "u2_check"
+      ],
       "title": "What the SOC Sees, and What You Feed It",
       "prompt": "Explain what a security operations centre collects and decides, and where a support technician sits in that loop. Give the classmates a set of alerts and tickets and have them triage: which are noise, which need enrichment, and which should wake someone up.",
       "objectives": [
@@ -26,15 +29,27 @@
         "Hand an alert over with the evidence attached"
       ],
       "activities": [
-        {"type": "slides", "title": "Collect, detect, respond"},
-        {"type": "discussion", "title": "Which of these five alerts is real?"},
-        {"type": "quiz", "title": "Monitoring fundamentals"}
+        {
+          "type": "slides",
+          "title": "Collect, detect, respond"
+        },
+        {
+          "type": "discussion",
+          "title": "Which of these five alerts is real?"
+        },
+        {
+          "type": "quiz",
+          "title": "Monitoring fundamentals"
+        }
       ]
     },
     {
       "id": "itsp103-ch02-identity",
       "chapter": "c2_identity",
-      "linked_units": ["u3_identity", "u4_lab"],
+      "linked_units": [
+        "u3_identity",
+        "u4_lab"
+      ],
       "title": "Identity Is the Control Plane",
       "prompt": "Work through least privilege, account lifecycle, and privileged access, then run an access review: the classmates get a list of accounts and group memberships and must justify each one, revoke what is not needed, and say what breaks when they do.",
       "objectives": [
@@ -43,15 +58,27 @@
         "Explain what an access change costs before making it"
       ],
       "activities": [
-        {"type": "slides", "title": "Least privilege and the account lifecycle"},
-        {"type": "lab", "title": "Access review: justify or revoke"},
-        {"type": "roleplay", "title": "The contractor who never left"}
+        {
+          "type": "slides",
+          "title": "Least privilege and the account lifecycle"
+        },
+        {
+          "type": "lab",
+          "title": "Access review: justify or revoke"
+        },
+        {
+          "type": "roleplay",
+          "title": "The contractor who never left"
+        }
       ]
     },
     {
       "id": "itsp103-ch03-defense",
       "chapter": "c3_defense",
-      "linked_units": ["u5_defense", "u6_check"],
+      "linked_units": [
+        "u5_defense",
+        "u6_check"
+      ],
       "title": "Layers, So One Failure Is Not Enough",
       "prompt": "Teach defense in depth through the controls a support technician actually touches: EDR and antivirus, host firewalls, patching, network segmentation, and email filtering. Then have the classmates harden a machine step by step and argue about which single control failing would hurt most.",
       "objectives": [
@@ -60,15 +87,27 @@
         "Explain why one failed control should not be a breach"
       ],
       "activities": [
-        {"type": "slides", "title": "Endpoint, network, and email controls"},
-        {"type": "simulation", "title": "Malware on a laptop: the first ten minutes"},
-        {"type": "quiz", "title": "Defense in depth"}
+        {
+          "type": "slides",
+          "title": "Endpoint, network, and email controls"
+        },
+        {
+          "type": "simulation",
+          "title": "Malware on a laptop: the first ten minutes"
+        },
+        {
+          "type": "quiz",
+          "title": "Defense in depth"
+        }
       ]
     },
     {
       "id": "itsp103-ch04-incident",
       "chapter": "c4_incident",
-      "linked_units": ["u7_incident", "u8_final"],
+      "linked_units": [
+        "u7_incident",
+        "u8_final"
+      ],
       "title": "Rehearsed, Not Improvised",
       "prompt": "Walk the incident-response lifecycle from prepare to lessons learned, then run a tabletop: a confirmed account compromise on a Friday afternoon. The classmates must confirm the incident, contain it without destroying evidence, communicate upward, and write the timeline they would hand to a review.",
       "objectives": [
@@ -77,9 +116,18 @@
         "Write a timeline and lessons-learned note that survives review"
       ],
       "activities": [
-        {"type": "slides", "title": "Prepare, identify, contain, eradicate, recover, learn"},
-        {"type": "roleplay", "title": "A compromised account on Friday afternoon"},
-        {"type": "discussion", "title": "Debrief: what the timeline must show"}
+        {
+          "type": "slides",
+          "title": "Prepare, identify, contain, eradicate, recover, learn"
+        },
+        {
+          "type": "roleplay",
+          "title": "A compromised account on Friday afternoon"
+        },
+        {
+          "type": "discussion",
+          "title": "Debrief: what the timeline must show"
+        }
       ]
     }
   ]

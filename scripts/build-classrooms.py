@@ -26,13 +26,23 @@ Usage:
     python3 scripts/build-classrooms.py --execute            # generate
     python3 scripts/build-classrooms.py --execute --jobs 2
     python3 scripts/build-classrooms.py --course FAI101
+    python3 scripts/build-classrooms.py --execute --models codex/gpt-5.6-luna-medium,auto/best-chat
     python3 scripts/build-classrooms.py --inject             # write the embeds
     python3 scripts/build-classrooms.py --json
 
 The generation run is the server's own: an outline is planned and confirmed
 automatically, then scenes (with narration, images and quizzes) are produced.
-A run that pauses on a retryable step is resumed once with a fresh command id,
-which is the same recovery an operator would perform in the UI.
+
+A run that pauses has hit a model the gateway cannot serve — most often a quota
+or rate limit on the route the classroom is configured with. The tool does not
+wait such a run out: it stops there (or resumes it `--max-resumes` times, 0 by
+default) and reports the step and the gateway's own words, so the failure is
+visible instead of hidden behind hours of retries. Pass `--models` to give it a
+chain of gateway models to fall back on: a classroom that pauses is re-submitted
+on the next model after pointing the classroom's chat slots at it through
+OpenMAIC's model settings, and a model that works is then reused for the rest of
+the batch. Switching models is workspace-wide, so `--models` runs one classroom
+at a time.
 
 Exit codes: 0 ok, 1 a submission or run failed, 2 a spec is invalid.
 """
@@ -54,7 +64,59 @@ COURSES_DIR = os.path.join(REPO, "courses")
 DEFAULT_BASE_URL = "http://127.0.0.1:3000"
 CLASSROOM_HOST = "https://classroom.innotel.us"
 
+# The gateway is the deployment's only model provider, and these are the slots
+# a generation run reads its models from.
+PROVIDER_ID = "omniroute"
+MODEL_SLOTS = ("llm", "course.content.slide", "course.content.interactive", "agent")
+
+# Phrases a gateway uses when it is out of capacity rather than out of patience
+# with the request. They are what separates "this route is spent, try another"
+# from "this classroom is malformed", and only the first is worth retrying.
+CAPACITY_MARKERS = (
+    "quota", "rate limit", "rate_limit", "out of credits", "credit", "circuit open",
+    "circuit breaker", "no active credentials", "queue budget", "pre-dispatch",
+    "cooldown", "cooling down", "429", "402", "temporarily unavailable",
+    "insufficient", "concurrency",
+)
+
 _LOCK = threading.Lock()
+
+
+class RunPaused(RuntimeError):
+    """A run stopped on a step it could not finish — a model-supply failure."""
+
+    def __init__(self, step, error):
+        self.step = step
+        self.error = str(error or "")
+        super().__init__(f"paused on {step or 'a step'}: {self.error or 'no error reported'}")
+
+    @property
+    def capacity(self):
+        """True when the message names a gateway limit rather than bad input."""
+        return looks_like_capacity_failure(self.error)
+
+
+def looks_like_capacity_failure(text):
+    """Whether a gateway error message is about supply, not about the request."""
+    low = (text or "").lower()
+    return any(marker in low for marker in CAPACITY_MARKERS)
+
+
+def model_candidates(raw):
+    """The gateway models from `--models`, in the order given, deduplicated."""
+    seen, out = set(), []
+    for part in (raw or "").replace(";", ",").split(","):
+        name = part.strip()
+        if name and name not in seen:
+            seen.add(name)
+            out.append(name)
+    return out
+
+
+def model_ref(model):
+    """An OpenMAIC model reference: the deployment provider plus the model id."""
+    name = model[len(PROVIDER_ID) + 1:] if model.startswith(PROVIDER_ID + ":") else model
+    return f"{PROVIDER_ID}:{name}"
 
 
 def _load_classroom_validator():
@@ -164,6 +226,26 @@ class OpenMAIC:
         return self._call("POST", f"/api/generation-runs/{run_id}/retry",
                           {"commandId": f"cmd-{int(time.time() * 1000)}"})
 
+    def model_config(self):
+        return self._call("GET", "/api/model-config")
+
+    def set_models(self, model):
+        """Point the classroom's chat slots at one gateway model.
+
+        A run resolves its models as it starts, so a switch here is what the
+        next classroom generates with — no container restart, no rebuild.
+        """
+        status, view = self.model_config()
+        if status != 200:
+            raise RuntimeError(f"cannot read the classroom's model settings: {status} {view}")
+        ref = model_ref(model)
+        change = {"kind": "slots", "set": {slot: ref for slot in MODEL_SLOTS}}
+        status, answer = self._call("PUT", "/api/model-config",
+                                    {"revision": view.get("revision"), "change": change})
+        if status != 200:
+            raise RuntimeError(f"cannot set the classroom model to {ref}: {status} {answer}")
+        return ref
+
 
 def submit_once(client, requirement, attempts=6, pause=30):
     """Submit a classroom, waiting out the owner's active-run limit."""
@@ -185,8 +267,14 @@ def submit_once(client, requirement, attempts=6, pause=30):
     raise RuntimeError("gave up submitting")
 
 
-def wait_for_run(client, run_id, timeout_s=3600, poll_s=15):
-    """Poll a generation run; resume it once if a retryable step pauses it."""
+def wait_for_run(client, run_id, timeout_s=5400, poll_s=15, max_resumes=0):
+    """Poll a generation run to completion.
+
+    A pause is a model-supply failure, not a slow step, so it is raised (after
+    `max_resumes` retries, none by default) rather than waited out: the caller
+    can move the classroom to another model instead of paying for the same
+    broken route until the timeout.
+    """
     deadline = time.time() + timeout_s
     resumes = 0
     backoff = 30
@@ -204,11 +292,9 @@ def wait_for_run(client, run_id, timeout_s=3600, poll_s=15):
         if state in ("ended",):
             raise RuntimeError(f"run {run_id} ended: {run.get('error')}")
         if state == "paused":
-            # A paused step is retryable. Rate limits on the model gateway are the
-            # common cause, so back off further each time rather than hammering it.
+            if resumes >= max_resumes:
+                raise RunPaused(run.get("step"), run.get("error"))
             resumes += 1
-            if resumes > 8:
-                raise RuntimeError(f"run paused {resumes} times: {run.get('error')}")
             time.sleep(backoff)
             backoff = min(backoff * 2, 240)
             client.retry(run_id)
@@ -217,25 +303,35 @@ def wait_for_run(client, run_id, timeout_s=3600, poll_s=15):
     raise RuntimeError(f"run {run_id} did not finish within {timeout_s}s")
 
 
-def generate_one(item):
-    """Generate one classroom; return (spec_path, classroom_id, error)."""
+def generate_one(item, model=None, max_resumes=0, run_timeout=5400):
+    """Generate one classroom.
+
+    Returns (spec_path, classroom_index, stage_id, error, paused): the caller
+    needs to know a pause apart from any other failure to decide whether another
+    model is worth trying.
+    """
     slug, path, index, classroom, doc, base_url = item
     client = OpenMAIC(base_url)
     requirement = requirement_text(doc, classroom)
     label = f"{slug}/{classroom.get('chapter')}"
     try:
         run_id = submit_once(client, requirement)
-        stage_id = wait_for_run(client, run_id)
+        stage_id = wait_for_run(client, run_id, timeout_s=run_timeout,
+                                max_resumes=max_resumes)
+    except RunPaused as exc:
+        return path, index, None, f"{label}: {exc}", True
     except Exception as exc:  # report and keep the batch going
-        return path, index, None, f"{label}: {exc}"
+        return path, index, None, f"{label}: {exc}", False
     # Persist immediately: a long batch must survive an interruption without
     # losing classrooms it already paid for.
     with _LOCK:
         doc = read_spec(path)
         doc["classrooms"][index]["classroom_id"] = stage_id
+        if model:
+            doc["classrooms"][index]["model"] = model_ref(model)
         write_spec(path, doc)
         print(f"  generated {label} -> {stage_id}", flush=True)
-    return path, index, stage_id, None
+    return path, index, stage_id, None, False
 
 
 def inject_block(doc, classroom, stage_id):
@@ -290,6 +386,91 @@ def import_course(course_key):
         tail = (result.stderr or result.stdout).strip().splitlines()[-3:]
         raise RuntimeError("import failed: " + " / ".join(tail))
     return result.stdout
+
+
+def publish_one(path, args):
+    """Embed one finished classroom and put its course back in the LMS."""
+    if not args.publish:
+        return None
+    slug = os.path.basename(os.path.dirname(os.path.dirname(path)))
+    key = read_spec(path).get("source_course")
+    try:
+        inject_links({slug})
+        import_course(key)
+        print(f"  published {slug} -> {key}", flush=True)
+        return None
+    except Exception as exc:  # keep the batch generating the rest
+        print(f"  FAILED to publish {slug}: {exc}", file=sys.stderr)
+        return f"{slug}: {exc}"
+
+
+def run_campaign(items, candidates, args):
+    """Generate the classrooms, moving to the next model when a run pauses.
+
+    A classroom that pauses is re-submitted on the next model of the chain, and
+    a model that finishes a classroom is the one every later classroom starts
+    on. When the chain runs out, the batch stops: the point of failing fast is
+    to leave the remaining classrooms for a gateway that can serve them.
+    """
+    client = OpenMAIC(args.base_url)
+    chain = list(candidates)
+    applied = None
+    failures = []
+    queue = list(items)
+    while queue:
+        item = queue.pop(0)
+        model = chain[0]
+        if model != applied:
+            try:
+                print(f"  classroom model -> {client.set_models(model)}", flush=True)
+                applied = model
+            except Exception as exc:
+                print(f"  FAILED to use {model}: {exc}", file=sys.stderr)
+                if len(chain) > 1:
+                    chain.pop(0)
+                    queue.insert(0, item)
+                    continue
+                failures.append(f"model {model}: {exc}")
+                break
+        path, index, stage_id, error, paused = generate_one(
+            item, model=model, max_resumes=args.max_resumes,
+            run_timeout=args.run_timeout)
+        if not error:
+            problem = publish_one(path, args)
+            if problem:
+                failures.append(problem)
+            continue
+        if paused and len(chain) > 1:
+            print(f"  paused on {model}; retrying on {chain[1]}", file=sys.stderr)
+            chain.pop(0)
+            queue.insert(0, item)
+            continue
+        failures.append(error)
+        print(f"  FAILED {error}", file=sys.stderr)
+        if paused:
+            if queue:
+                failures.append(f"{len(queue)} classroom(s) not attempted: no model "
+                                f"left in the chain")
+            break
+    return failures
+
+
+def run_batch(items, jobs, args):
+    """Generate the classrooms on whatever model the classroom is configured with."""
+    failures = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=jobs) as pool:
+        futures = {pool.submit(generate_one, item, None, args.max_resumes,
+                               args.run_timeout): item for item in items}
+        for future in concurrent.futures.as_completed(futures):
+            path, index, stage_id, error, paused = future.result()
+            if error:
+                failures.append(error)
+                print(f"  FAILED {error}", file=sys.stderr)
+                continue
+            problem = publish_one(path, args)
+            if problem:
+                failures.append(problem)
+    return failures
 
 
 def inject_links(only_slugs=None):
@@ -347,6 +528,14 @@ def main():
     ap.add_argument("--jobs", type=int, default=1,
                     help="classrooms generated at once (default 1: the gateway "
                          "rate-limits concurrent runs)")
+    ap.add_argument("--models",
+                    help="gateway models to fall back through, best first "
+                         "(comma-separated); a paused run moves to the next one")
+    ap.add_argument("--max-resumes", type=int, default=0,
+                    help="times to resume a paused run before moving on (default 0: "
+                         "stop at the first pause)")
+    ap.add_argument("--run-timeout", type=int, default=5400,
+                    help="seconds one generation run may take (default 5400)")
     ap.add_argument("--inject", action="store_true",
                     help="write the generated classrooms into the lesson HTML")
     ap.add_argument("--publish", action="store_true",
@@ -415,27 +604,20 @@ def main():
         return 1
 
     jobs = max(1, args.jobs)
+    candidates = model_candidates(args.models)
+    # The classroom's model settings are one workspace-wide value, so a model
+    # switch mid-batch would move classrooms that are already generating.
+    if candidates and jobs > 1:
+        print("note: --models switches the whole classroom, so this run uses --jobs 1",
+              file=sys.stderr)
+        jobs = 1
     items = [(p["slug"], p["spec"], i, p["classroom"], p["doc"], args.base_url)
              for i, p in enumerate(pending)]
-    failures = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=jobs) as pool:
-        futures = {pool.submit(generate_one, item): item for item in items}
-        for future in concurrent.futures.as_completed(futures):
-            path, index, stage_id, error = future.result()
-            if error:
-                failures.append(error)
-                print(f"  FAILED {error}", file=sys.stderr)
-                continue
-            if args.publish:
-                slug = os.path.basename(os.path.dirname(os.path.dirname(path)))
-                key = read_spec(path).get("source_course")
-                try:
-                    inject_links({slug})
-                    import_course(key)
-                    print(f"  published {slug} -> {key}", flush=True)
-                except Exception as exc:  # keep the batch generating the rest
-                    failures.append(f"{slug}: {exc}")
-                    print(f"  FAILED to publish {slug}: {exc}", file=sys.stderr)
+    if candidates:
+        print(f"models: {', '.join(candidates)}")
+        failures = run_campaign(items, candidates, args)
+    else:
+        failures = run_batch(items, jobs, args)
 
     if args.inject:
         inject_links()

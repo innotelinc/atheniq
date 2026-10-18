@@ -17,7 +17,10 @@
     {
       "id": "itsp104-ch01-brief",
       "chapter": "c1_brief",
-      "linked_units": ["u1_brief", "u2_check"],
+      "linked_units": [
+        "u1_brief",
+        "u2_check"
+      ],
       "title": "Prove You Can Run Support",
       "prompt": "Unpack the capstone brief: a portfolio that shows reasoning, not just answers. Have the classmates draft the structure of their own portfolio, then rehearse the professional-practice expectations — documentation, handover notes, and honesty about what they did not know.",
       "objectives": [
@@ -26,15 +29,27 @@
         "State the limits of your own knowledge without losing the room"
       ],
       "activities": [
-        {"type": "slides", "title": "The brief, the portfolio, the standard"},
-        {"type": "discussion", "title": "What makes a fix defensible?"},
-        {"type": "exercise", "title": "Draft your portfolio outline"}
+        {
+          "type": "slides",
+          "title": "The brief, the portfolio, the standard"
+        },
+        {
+          "type": "discussion",
+          "title": "What makes a fix defensible?"
+        },
+        {
+          "type": "exercise",
+          "title": "Draft your portfolio outline"
+        }
       ]
     },
     {
       "id": "itsp104-ch02-simulation",
       "chapter": "c2_simulation",
-      "linked_units": ["u3_simulation", "u4_lab"],
+      "linked_units": [
+        "u3_simulation",
+        "u4_lab"
+      ],
       "title": "Work the Queue",
       "prompt": "Run a live service desk: a queue of tickets with different impact and urgency, a knowledge base to write into, and a user waiting. The candidate must prioritise, communicate, fix, and update the ticket — while a peer plays a user who gives incomplete information and then escalates.",
       "objectives": [
@@ -43,16 +58,31 @@
         "Keep the ticket and the user informed while you work"
       ],
       "activities": [
-        {"type": "roleplay", "title": "The queue at 09:00"},
-        {"type": "simulation", "title": "Work the tickets in order"},
-        {"type": "lab", "title": "Write the knowledge-base article"},
-        {"type": "discussion", "title": "Handover: what the next shift needs"}
+        {
+          "type": "roleplay",
+          "title": "The queue at 09:00"
+        },
+        {
+          "type": "simulation",
+          "title": "Work the tickets in order"
+        },
+        {
+          "type": "lab",
+          "title": "Write the knowledge-base article"
+        },
+        {
+          "type": "discussion",
+          "title": "Handover: what the next shift needs"
+        }
       ]
     },
     {
       "id": "itsp104-ch03-review",
       "chapter": "c3_review",
-      "linked_units": ["u5_review", "u6_final"],
+      "linked_units": [
+        "u5_review",
+        "u6_final"
+      ],
       "title": "The Whole Ladder, One Page",
       "prompt": "Consolidate ITSP101 through ITSP104 into the one-page map of the track, then run a certification review built from the candidate's own weak spots: the teacher pulls questions from earlier chapters, the peers mark the reasoning, and the group names what still needs work before the final exam.",
       "objectives": [
@@ -61,9 +91,18 @@
         "Identify and close your own remaining gaps before the final exam"
       ],
       "activities": [
-        {"type": "slides", "title": "The track in one page"},
-        {"type": "quiz", "title": "Certification review"},
-        {"type": "discussion", "title": "My gap list, and what I do about it"}
+        {
+          "type": "slides",
+          "title": "The track in one page"
+        },
+        {
+          "type": "quiz",
+          "title": "Certification review"
+        },
+        {
+          "type": "discussion",
+          "title": "My gap list, and what I do about it"
+        }
       ]
     }
   ]
