@@ -134,7 +134,9 @@
           "type": "quiz",
           "title": "Ethics and equity review"
         }
-      ]
+      ],
+      "classroom_id": "stage-wmOYU8HIB4zn",
+      "model": "omniroute:codex/gpt-5.6-luna-medium"
     }
   ]
 }
