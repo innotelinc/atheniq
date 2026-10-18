@@ -103,7 +103,9 @@
           "type": "quiz",
           "title": "Which response builds trust"
         }
-      ]
+      ],
+      "classroom_id": "stage-D9OqDR0MqB5h",
+      "model": "omniroute:codex/gpt-5.6-luna-medium"
     },
     {
       "id": "fai105-ch04-business-case",
@@ -132,7 +134,9 @@
           "type": "quiz",
           "title": "Which case holds up"
         }
-      ]
+      ],
+      "classroom_id": "stage-_JCr8uLeeio5",
+      "model": "omniroute:codex/gpt-5.6-luna-medium"
     }
   ]
 }
