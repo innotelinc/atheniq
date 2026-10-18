@@ -101,7 +101,9 @@
           "type": "quiz",
           "title": "Classify the snippet"
         }
-      ]
+      ],
+      "classroom_id": "stage-sS8rVETTpZn5",
+      "model": "omniroute:codex/gpt-5.6-luna-medium"
     },
     {
       "id": "fai101-ch04-habit",
@@ -130,7 +132,9 @@
           "type": "quiz",
           "title": "Choose the next step"
         }
-      ]
+      ],
+      "classroom_id": "stage-uo8NYtxAYEOb",
+      "model": "omniroute:codex/gpt-5.6-luna-medium"
     }
   ]
 }

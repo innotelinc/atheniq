@@ -41,7 +41,9 @@
           "type": "quiz",
           "title": "What may we claim"
         }
-      ]
+      ],
+      "classroom_id": "stage-hRe_YBYYSvVH",
+      "model": "omniroute:codex/gpt-5.6-luna-medium"
     },
     {
       "id": "fai106-ch02-risk",
@@ -70,7 +72,9 @@
           "type": "lab",
           "title": "Assess your use case"
         }
-      ]
+      ],
+      "classroom_id": "stage-qgjDDQJYZbME",
+      "model": "omniroute:codex/gpt-5.6-luna-medium"
     },
     {
       "id": "fai106-ch03-transparency",
