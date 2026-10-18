@@ -71,7 +71,9 @@
           "type": "lab",
           "title": "Where may this model be used"
         }
-      ]
+      ],
+      "classroom_id": "stage-nd29Bq4bzWpt",
+      "model": "omniroute:codex/gpt-5.6-luna-medium"
     },
     {
       "id": "fai103-ch03-analysis",

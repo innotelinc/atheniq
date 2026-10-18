@@ -96,6 +96,43 @@ class PausedRun(unittest.TestCase):
         self.assertFalse(run.capacity)
 
 
+class PlanIndexes(unittest.TestCase):
+    """A classroom's index is its place in the spec, not its place in the queue."""
+
+    def test_a_spec_with_a_gap_still_points_each_classroom_at_its_own_entry(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        slug = "demo-course"
+        os.makedirs(os.path.join(tmp.name, slug, "openmaic"))
+        path = os.path.join(tmp.name, slug, "openmaic", "classrooms.json")
+        doc = {
+            "version": 1,
+            "source_course": "course-v1:InnotelLabs+TEST101+2026_T1",
+            "classrooms": [
+                {"id": "ch01", "chapter": "ch01_welcome", "classroom_id": "stage-keep-me"},
+                {"id": "ch02", "chapter": "ch02_media"},
+                {"id": "ch03", "chapter": "ch03_problems"},
+            ],
+        }
+        build.write_spec(path, doc)
+
+        plan, invalid = build.plan_entries(tmp.name)
+        self.assertEqual(invalid, [])
+        self.assertEqual([p["index"] for p in plan], [0, 1, 2])
+        self.assertEqual([p["generated"] for p in plan], [True, False, False])
+
+        pending = [p for p in plan if not p["generated"]]
+        items = [(p["slug"], p["spec"], p["index"], p["classroom"], p["doc"], "http://om")
+                 for p in pending]
+        self.assertEqual([item[2] for item in items], [1, 2])
+
+    def test_the_plan_reads_courses_from_the_directory_it_is_given(self):
+        plan, _ = build.plan_entries(str(build.COURSES_DIR))
+        self.assertTrue(plan)
+        by_slug = {p["slug"] for p in plan}
+        self.assertIn("ai-foundations-for-work", by_slug)
+
+
 class FinishedClassroom(unittest.TestCase):
     """What a completed run writes back, and whether `--check`-style lint still passes."""
 

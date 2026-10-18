@@ -114,6 +114,42 @@ def model_candidates(raw):
     return out
 
 
+def build_plan(specs, olx_index, wanted, skipped, validator=None):
+    """The classrooms in scope, each with where it sits in its own spec.
+
+    Returns (plan, invalid). `index` in a plan entry is the classroom's position
+    in `classrooms[]` — what a finished run writes back to. Numbering the ones
+    that still need a classroom instead would file each result under a chapter
+    that already had one, as soon as a spec had a gap in it.
+    """
+    plan, invalid = [], []
+    for slug, path in specs:
+        doc = read_spec(path)
+        # A spec may be authored before its OLX package (the courseware is the
+        # slower half). Validate its structure against the outline only once the
+        # outline exists; `make check-classrooms` is the gate before import.
+        if validator and doc.get("source_course") in olx_index:
+            errors, _, _ = validator.validate_spec(path, olx_index)
+        else:
+            errors = []
+        code = str(doc.get("source_course") or "").split("+")[1]
+        if not course_selected(slug, code, wanted, skipped):
+            continue
+        for index, classroom in enumerate(doc.get("classrooms", [])):
+            plan.append({
+                "slug": slug,
+                "spec": path,
+                "doc": doc,
+                "index": index,
+                "classroom": classroom,
+                "chapter": classroom.get("chapter"),
+                "title": classroom.get("title"),
+                "generated": bool(classroom.get("classroom_id")),
+            })
+        invalid.extend(f"{slug}: {e}" for e in errors)
+    return plan, invalid
+
+
 def model_ref(model):
     """An OpenMAIC model reference: the deployment provider plus the model id."""
     name = model[len(PROVIDER_ID) + 1:] if model.startswith(PROVIDER_ID + ":") else model
@@ -140,16 +176,25 @@ def _load_classroom_validator():
     return module
 
 
-def spec_paths():
+def spec_paths(root=None):
     """Every course's classroom spec, in a stable order."""
+    courses = root or COURSES_DIR
     found = []
-    if not os.path.isdir(COURSES_DIR):
+    if not os.path.isdir(courses):
         return found
-    for slug in sorted(os.listdir(COURSES_DIR)):
-        path = os.path.join(COURSES_DIR, slug, "openmaic", "classrooms.json")
+    for slug in sorted(os.listdir(courses)):
+        path = os.path.join(courses, slug, "openmaic", "classrooms.json")
         if os.path.isfile(path):
             found.append((slug, path))
     return found
+
+
+def plan_entries(root=None, wanted=None, skipped=None, validator=None):
+    """The plan over every spec under root, and the invalid specs in it."""
+    courses = root or COURSES_DIR
+    validator = validator or _load_classroom_validator()
+    return build_plan(spec_paths(courses), validator.olx_index(courses),
+                      wanted or [], skipped or [], validator)
 
 
 def read_spec(path):
@@ -576,32 +621,8 @@ def main():
     args = ap.parse_args()
 
     validator = _load_classroom_validator()
-    index = validator.olx_index(COURSES_DIR)
-
-    plan, invalid = [], []
-    for slug, path in spec_paths():
-        doc = read_spec(path)
-        # A spec may be authored before its OLX package (the courseware is the
-        # slower half). Validate its structure against the outline only once the
-        # outline exists; `make check-classrooms` is the gate before import.
-        if doc.get("source_course") in index:
-            errors, warnings, summary = validator.validate_spec(path, index)
-        else:
-            errors, warnings, summary = [], [], {}
-        code = str(doc.get("source_course") or "").split("+")[1]
-        if not course_selected(slug, code, split_arg(args.course), split_arg(args.skip)):
-            continue
-        for classroom in doc.get("classrooms", []):
-            plan.append({
-                "slug": slug,
-                "spec": path,
-                "doc": doc,
-                "classroom": classroom,
-                "chapter": classroom.get("chapter"),
-                "title": classroom.get("title"),
-                "generated": bool(classroom.get("classroom_id")),
-            })
-        invalid.extend(f"{slug}: {e}" for e in errors)
+    plan, invalid = plan_entries(None, split_arg(args.course), split_arg(args.skip),
+                                 validator)
 
     if args.json:
         print(json.dumps({"classrooms": [
@@ -642,8 +663,8 @@ def main():
         print("note: --models switches the whole classroom, so this run uses --jobs 1",
               file=sys.stderr)
         jobs = 1
-    items = [(p["slug"], p["spec"], i, p["classroom"], p["doc"], args.base_url)
-             for i, p in enumerate(pending)]
+    items = [(p["slug"], p["spec"], p["index"], p["classroom"], p["doc"], args.base_url)
+             for p in pending]
     if candidates:
         print(f"models: {', '.join(candidates)}")
         failures = run_campaign(items, candidates, args)
