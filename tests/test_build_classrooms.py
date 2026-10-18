@@ -92,6 +92,39 @@ class PausedRun(unittest.TestCase):
         self.assertFalse(run.capacity)
 
 
+class DiscardedPause(unittest.TestCase):
+    """A paused run must not hold the owner's run slot while a model is retried."""
+
+    def test_the_paused_run_is_discarded_and_the_classroom_reported_paused(self):
+        calls = {}
+
+        class Stub:
+            def __init__(self, base_url):
+                pass
+
+            def discard(self, run_id):
+                calls["discarded"] = run_id
+                return 200, {}
+
+        real = build.OpenMAIC, build.submit_once, build.wait_for_run
+        build.OpenMAIC = Stub
+        build.submit_once = lambda client, requirement, **kw: "run-1"
+
+        def paused(client, run_id, **kw):
+            raise build.RunPaused("scene:1:content", "quota", run_id)
+
+        build.wait_for_run = paused
+        try:
+            out = build.generate_one(("slug", "/spec", 0, {"chapter": "c1"}, {},
+                                      "http://om"))
+        finally:
+            build.OpenMAIC, build.submit_once, build.wait_for_run = real
+        self.assertEqual(calls["discarded"], "run-1")
+        self.assertIsNone(out[2])
+        self.assertTrue(out[4])
+        self.assertIn("quota", out[3])
+
+
 class Campaign(unittest.TestCase):
     """The classroom loop: fall back one model at a time, then stop."""
 

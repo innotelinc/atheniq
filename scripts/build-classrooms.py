@@ -85,9 +85,10 @@ _LOCK = threading.Lock()
 class RunPaused(RuntimeError):
     """A run stopped on a step it could not finish — a model-supply failure."""
 
-    def __init__(self, step, error):
+    def __init__(self, step, error, run_id=None):
         self.step = step
         self.error = str(error or "")
+        self.run_id = run_id
         super().__init__(f"paused on {step or 'a step'}: {self.error or 'no error reported'}")
 
     @property
@@ -241,6 +242,16 @@ class OpenMAIC:
     def model_config(self):
         return self._call("GET", "/api/model-config")
 
+    def discard(self, run_id):
+        """Throw away a run that has no classroom, freeing the owner's slot.
+
+        A paused run still counts as one the owner has in progress, so a batch
+        that moved on to another model would otherwise collect paused runs until
+        the server refused to start anything. A run whose classroom exists
+        answers 409 and is kept.
+        """
+        return self._call("DELETE", f"/api/generation-runs/{run_id}")
+
     def set_models(self, model):
         """Point the classroom's chat slots at one gateway model.
 
@@ -305,7 +316,7 @@ def wait_for_run(client, run_id, timeout_s=5400, poll_s=15, max_resumes=0):
             raise RuntimeError(f"run {run_id} ended: {run.get('error')}")
         if state == "paused":
             if resumes >= max_resumes:
-                raise RunPaused(run.get("step"), run.get("error"))
+                raise RunPaused(run.get("step"), run.get("error"), run_id)
             resumes += 1
             time.sleep(backoff)
             backoff = min(backoff * 2, 240)
@@ -331,6 +342,12 @@ def generate_one(item, model=None, max_resumes=0, run_timeout=5400):
         stage_id = wait_for_run(client, run_id, timeout_s=run_timeout,
                                 max_resumes=max_resumes)
     except RunPaused as exc:
+        # Free the owner's run slot: the next model submits a fresh run, and a
+        # batch that leaves its paused runs behind is refused for concurrency.
+        if exc.run_id:
+            status, _ = client.discard(exc.run_id)
+            if status not in (200, 202, 204, 404, 409):
+                print(f"  could not discard {exc.run_id}: {status}", file=sys.stderr)
         return path, index, None, f"{label}: {exc}", True
     except Exception as exc:  # report and keep the batch going
         return path, index, None, f"{label}: {exc}", False

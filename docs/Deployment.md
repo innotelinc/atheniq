@@ -223,8 +223,11 @@ transient. A run that is merely slow is not a failure: `--run-timeout`
 The models a classroom may be pointed at are the ones the deployment declares in
 `services/OpenMAIC/openmaic.yml` — anything else is refused with
 `PROVIDER_DISABLED`, so the chain has to be built from those names (the shipped
-file declares the gateway's `auto/best-*` routes). `--skip <slug|code>` leaves a
-course out of the run, which is how the demo course stays classroom-free.
+file declares the gateway's `auto/best-*` routes). A paused run is discarded
+before the next model is tried: it has no classroom yet and still counts against
+the owner's concurrent-run limit, so leaving them behind jams a batch shut.
+`--skip <slug|code>` leaves a course out of the run, which is how the demo course
+stays classroom-free.
 
 ### Stage 3b — OpenMAIC persistence Postgres (this repo)
 
