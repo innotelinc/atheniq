@@ -41,7 +41,9 @@
           "type": "quiz",
           "title": "What stops first"
         }
-      ]
+      ],
+      "classroom_id": "stage-MZMqptgj1o64",
+      "model": "omniroute:codex/gpt-5.6-luna-medium"
     },
     {
       "id": "fai105-ch02-process",
@@ -70,7 +72,9 @@
           "type": "lab",
           "title": "Cost the change"
         }
-      ]
+      ],
+      "classroom_id": "stage-F9bwRpuqHm-r",
+      "model": "omniroute:codex/gpt-5.6-luna-medium"
     },
     {
       "id": "fai105-ch03-people",
