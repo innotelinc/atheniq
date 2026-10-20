@@ -68,6 +68,9 @@ class FakeOpenMAIC(http.server.BaseHTTPRequestHandler):
     runs = {}
     submissions = []
     stages = {}
+    #: How many runs this fake will hold at once, or None for no ceiling. Set by
+    #: a test that wants the console's own queue to be what starts the rest.
+    cap = None
 
     def log_message(self, *args):
         pass
@@ -108,6 +111,10 @@ class FakeOpenMAIC(http.server.BaseHTTPRequestHandler):
         length = int(self.headers.get("Content-Length") or 0)
         body = json.loads(self.rfile.read(length) or b"{}")
         if url.path == "/api/generate-classroom":
+            if type(self).cap is not None:
+                active = [r for r in type(self).runs.values() if r.get("state") in self.ACTIVE]
+                if len(active) >= type(self).cap:
+                    return self._json(429, {"error": "too many active runs"})
             type(self).submissions.append(body.get("requirement"))
             run_id = f"run-{len(type(self).submissions)}"
             type(self).runs[run_id] = {"id": run_id, "state": "generating",
@@ -146,6 +153,7 @@ class GatewayCase(unittest.TestCase):
     def setUp(self):
         FakeOpenMAIC.runs = {}
         FakeOpenMAIC.submissions = []
+        FakeOpenMAIC.cap = None
         self.gateway = http.server.ThreadingHTTPServer(("127.0.0.1", 0), FakeOpenMAIC)
         start(self.gateway)
 
@@ -223,6 +231,7 @@ class DirectConsole(unittest.TestCase):
             base_url=f"http://127.0.0.1:{self.gateway.server_address[1]}",
             root=self.root, max_requirement=400, submits_per_hour=20,
         )
+        FakeOpenMAIC.cap = None
         self.console = console.Console(self.config)
         self.dana = console.Identity("dana", "dana@innotel.us", ("atheniq-admins",))
 
@@ -629,6 +638,35 @@ class HttpSurface(GatewayCase):
                      "/%2e%2e/%2e%2e/etc/passwd"):
             status, _, _ = self.call(path)
             self.assertEqual(status, 404, path)
+
+    def test_the_batch_over_the_socket_queues_what_the_generator_refuses(self):
+        """The whole path a click takes, including the poll that starts the rest.
+
+        The POST answers with what started and what is waiting; the GET the page
+        polls every few seconds is what starts the waiting one once a slot frees,
+        and what writes the finished classroom into its spec.
+        """
+        with open(self.spec_path) as fh:
+            doc = json.load(fh)
+        doc["classrooms"][1]["classroom_id"] = None
+        with open(self.spec_path, "w") as fh:
+            json.dump(doc, fh)
+        FakeOpenMAIC.cap = 1
+        status, body, _ = self.mutate("/api/generate-missing", body={})
+        self.assertEqual(202, status)
+        self.assertEqual(1, len(body["started"]))
+        self.assertEqual(1, body["queued"])
+        self.assertEqual([], body["skipped"])
+        # The generator finishes the first classroom; the page's next poll starts
+        # the queued one and records the finished one into its spec.
+        run_id = body["started"][0]["runId"]
+        FakeOpenMAIC.runs[run_id].update({"state": "completed", "stageId": "stage-http"})
+        status, body, _ = self.call("/api/runs", headers=self.signed())
+        self.assertEqual(200, status)
+        self.assertEqual([], body["queued"])
+        self.assertEqual(2, len(FakeOpenMAIC.submissions))
+        with open(self.spec_path) as fh:
+            self.assertEqual("stage-http", json.load(fh)["classrooms"][0]["classroom_id"])
 
 
 if __name__ == "__main__":
