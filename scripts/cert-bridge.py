@@ -409,6 +409,12 @@ def render_cert_pdf(cert, signer_name, signer_title, out_path):
     learner = learner_display_name(cert)
     course = cert["course_name"] or cert["course_id"]
     grade = cert["grade"]
+    # A course certificate is the default, but the same renderer signs a degree:
+    # the three overrides let a program conferral say what it actually awarded.
+    heading = cert.get("heading") or "Certificate of Completion"
+    statement = cert.get("statement") or "has successfully completed the course"
+    award = cert.get("award") or (
+        f"with a final grade of {grade}, and is awarded this certificate")
     try:
         issued = datetime.strptime(cert["created_date"][:19], "%Y-%m-%d %H:%M:%S")
     except (ValueError, TypeError):
@@ -432,12 +438,12 @@ def render_cert_pdf(cert, signer_name, signer_title, out_path):
     lines = [
         (org.upper(), "F2", 26, 40, 96),
         (platform, "F1", 11, 40, 122),
-        ("Certificate of Completion", "F2", 34, 40, 210),
+        (heading, "F2", 34, 40, 210),
         ("This certifies that", "F1", 15, 0, 300),
         (learner, "F2", 24, 0, 332),
-        ("has successfully completed the course", "F1", 15, 0, 392),
+        (statement, "F1", 15, 0, 392),
         (course, "F2", 18, 0, 424),
-        (f"with a final grade of {grade}, and is awarded this certificate", "F1", 13, 0, 480),
+        (award, "F1", 13, 0, 480),
         ("Issued: " + date_str, "F1", 13, 0, 560),
         ("Certificate ID: " + cert["verify_uuid"], "F1", 10, 0, 578),
     ]

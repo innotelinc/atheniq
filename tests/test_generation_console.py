@@ -629,6 +629,10 @@ class HttpSurface(GatewayCase):
         # The page's own markup, not its <title>: the heading is wording somebody
         # can change, the batch button is the interface this policy protects.
         self.assertIn(b'id="generate-missing"', body)
+        # The console now introduces itself as AthenIQ Platform Services; the
+        # page must still be the console, served with the same strict policy.
+        self.assertIn(b"Platform Services", body)
+        self.assertIn(b"console.js", body)
         self.assertIn("script-src 'self'", headers["Content-Security-Policy"])
         self.assertEqual(headers["X-Content-Type-Options"], "nosniff")
         status, body, headers = self.call("/console.js")
@@ -669,6 +673,43 @@ class HttpSurface(GatewayCase):
         self.assertEqual(2, len(FakeOpenMAIC.submissions))
         with open(self.spec_path) as fh:
             self.assertEqual("stage-http", json.load(fh)["classrooms"][0]["classroom_id"])
+
+
+class LibraryCase(GatewayCase):
+    """The library is a shelf on disk: the page lists what exists, staff add one,
+    and a name can never become a path outside `library/`."""
+
+    def test_a_new_library_is_created_and_listed(self):
+        status, body, _ = self.mutate("/api/library",
+                                      body={"name": "Clinical simulation media",
+                                            "description": "Manikin setup and monitor traces."})
+        self.assertEqual(status, 201, body)
+        self.assertEqual(body["created"]["slug"], "clinical-simulation-media")
+        self.assertTrue(os.path.isfile(os.path.join(
+            self.root, "library", "clinical-simulation-media", "library.json")))
+
+        status, listing, _ = self.call("/api/library", headers=self.signed())
+        self.assertEqual(status, 200)
+        self.assertEqual([item["slug"] for item in listing["libraries"]],
+                         ["clinical-simulation-media"])
+        self.assertEqual(listing["libraries"][0]["assets"], 0)
+
+    def test_a_name_that_cannot_make_a_folder_is_refused(self):
+        status, body, _ = self.mutate("/api/library", body={"name": "../.."})
+        self.assertEqual(status, 400, body)
+        library = os.path.join(self.root, "library")
+        self.assertEqual(os.listdir(library) if os.path.isdir(library) else [], [])
+
+    def test_the_same_library_twice_is_a_conflict(self):
+        self.mutate("/api/library", body={"name": "Readings"})
+        status, body, _ = self.mutate("/api/library", body={"name": "readings"})
+        self.assertEqual(status, 409, body)
+
+    def test_the_library_page_is_served(self):
+        status, body, headers = self.call("/library.html", headers=self.signed())
+        self.assertEqual(status, 200)
+        self.assertIn(b"library.js", body)
+        self.assertEqual(headers["X-Content-Type-Options"], "nosniff")
 
 
 if __name__ == "__main__":

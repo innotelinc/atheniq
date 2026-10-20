@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>AthenIQ — Course generation</title>
+  <title>AthenIQ Platform Services — Classrooms</title>
   <meta name="description" content="Generate the OpenMAIC classrooms a course describes. Staff console.">
   <meta name="robots" content="noindex, nofollow">
   <link rel="stylesheet" href="console.css">
@@ -13,8 +13,15 @@
     <div class="wrap topbar-inner">
       <span class="brand">
         <span class="mark" aria-hidden="true"></span>
-        AthenIQ <span class="sep">/</span> <span class="muted">Course generation</span>
+        AthenIQ <span class="sep">/</span> <span class="muted">Platform Services</span>
       </span>
+      <nav class="nav">
+        <a href="courses.html">Courses</a>
+        <a href="programs.html">Programs</a>
+        <a href="index.html">Classrooms</a>
+        <a href="https://studio.innotel.us/" rel="noopener">Studio</a>
+        <a href="platform.html">Platform</a>
+      </nav>
       <span class="who" id="who">checking sign-in…</span>
       <span class="pill" id="health" data-state="pending">OpenMAIC …</span>
     </div>
@@ -32,6 +39,8 @@
       <p class="sub">Every classroom a course spec describes. A generated one links to the live classroom; a missing one is generated here, and its classroom is written back into the spec as soon as the run finishes — no second click, and the entry leaves the list.</p>
       <div class="bulk">
         <button class="btn btn-primary" id="generate-missing" type="button" disabled>Generate all missing</button>
+        <a class="btn btn-secondary" href="classroom-create.html">New classroom</a>
+        <a class="btn btn-secondary" href="courses.html">Course specs</a>
         <span class="hint" id="missing-hint"></span>
       </div>
       <div id="courses" class="course-list" aria-live="polite">

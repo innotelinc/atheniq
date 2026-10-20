@@ -1,0 +1,149 @@
+/* AthenIQ — Unity for Studio (CMS).
+ *
+ * Studio is an authoring tool, so this is chrome, not a reskin: the header and
+ * the Platform Services entry point wear Unity, while the editing surface keeps
+ * the platform's light, high-contrast defaults. A dark course editor would be
+ * a styling exercise, not an improvement.
+ *
+ * Loaded from cms/templates/widgets/header.html, which is the one template the
+ * Studio shell renders on every page.
+ */
+
+:root {
+  --atheniq-bg: #0a1118;
+  --atheniq-bg-elevated: #101a22;
+  --atheniq-surface: #16222c;
+  --atheniq-border: #22323d;
+  --atheniq-text: #eef4f8;
+  --atheniq-text-secondary: #c2cfd9;
+  --atheniq-text-muted: #93a4b1;
+  --atheniq-accent: #10b981;
+  --atheniq-accent-hover: #34d399;
+  --atheniq-radius: 10px;
+}
+
+/* -- the shell ------------------------------------------------------------ */
+
+.wrapper-header {
+  background: var(--atheniq-bg) !important;
+}
+
+.wrapper-header header.primary {
+  background: linear-gradient(180deg, #0d1620 0%, var(--atheniq-bg) 100%);
+  border-bottom: 1px solid var(--atheniq-border);
+  box-shadow: none;
+}
+
+.wrapper-header header.primary .wrapper-l {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-height: 64px;
+  max-width: 1440px;
+}
+
+/* The Studio logo is a dark raster on a now-dark bar: lift it instead of
+   recolouring it, so the mark keeps its own shape. */
+.wrapper-header .brand-image {
+  filter: brightness(0) invert(1);
+  opacity: 0.94;
+}
+
+.wrapper-header .branding {
+  margin: 0;
+  flex: 0 0 auto;
+}
+
+/* -- the Platform Services entry ----------------------------------------- */
+
+.atheniq-platform {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 6px;
+  order: 0;
+}
+
+.atheniq-platform-link {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+  padding: 7px 13px;
+  border: 1px solid var(--atheniq-border);
+  border-radius: 999px;
+  text-decoration: none !important;
+  line-height: 1.2;
+  background: rgba(22, 34, 44, 0.7);
+  transition: border-color .15s ease, background .15s ease;
+}
+
+.atheniq-platform-link:hover,
+.atheniq-platform-link:focus-visible {
+  border-color: var(--atheniq-accent);
+  background: rgba(16, 185, 129, 0.12);
+  outline: none;
+}
+
+.atheniq-platform-name {
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  color: var(--atheniq-text) !important;
+}
+
+.atheniq-platform-sub {
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--atheniq-text-muted) !important;
+}
+
+.atheniq-platform-learner {
+  padding: 7px 13px;
+  font-size: 12.5px;
+  font-weight: 550;
+  color: var(--atheniq-text-secondary) !important;
+  border-radius: 999px;
+}
+
+.atheniq-platform-learner:hover {
+  color: var(--atheniq-text) !important;
+}
+
+/* -- the rest of the Studio header, on the Unity bar --------------------- */
+
+.wrapper-header header.primary .nav-account,
+.wrapper-header header.primary .nav-course,
+.wrapper-header header.primary .nav-not-signedin {
+  margin-left: auto;
+}
+
+.wrapper-header header.primary a:not(.atheniq-platform-link):not(.brand-link) {
+  color: var(--atheniq-text-secondary);
+}
+
+.wrapper-header header.primary a:not(.atheniq-platform-link):not(.brand-link):hover {
+  color: var(--atheniq-text);
+}
+
+.wrapper-header header.primary .nav-item > a,
+.wrapper-header header.primary .nav-account-links a {
+  color: var(--atheniq-text-secondary);
+}
+
+.wrapper-header header.primary .nav-account-user .username {
+  color: var(--atheniq-text);
+}
+
+/* The account avatar is sized by upstream rules; only its ring changes so it
+   reads as part of the same chrome. */
+.wrapper-header header.primary .nav-account-user .user-dropdown {
+  border-color: var(--atheniq-accent);
+}
+
+@media (max-width: 900px) {
+  .atheniq-platform-sub { display: none; }
+  .atheniq-platform-link { padding: 6px 11px; }
+  .atheniq-platform-learner { display: none; }
+}

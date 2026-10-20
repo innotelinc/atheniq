@@ -22,11 +22,14 @@ image:
     tutor images build mfe
     tutor local launch
 
-The header link is the same mechanism: an env-config runtime definition plus a
-`PLUGIN_SLOTS` entry that appends one widget to the desktop main menu and one
-to the mobile menu. It is the way into the AI interface (`ai.lms.innotel.us`)
-from any learner page, on the same Authentik session the LMS already uses, so
-the click does not ask for a second sign-in.
+The header is the same mechanism: an env-config runtime definition plus a
+`PLUGIN_SLOTS` entry that adds one nav to the desktop main menu and one to the
+mobile menu. That nav is the platform's own — Courses · Programs · Classrooms ·
+Studio · Platform — so every app in the estate opens the same workspace, on the
+same Authentik session the LMS already uses. The authoring app additionally gets
+a create row (+ New Program · + New Course · + New Classroom · + New Library) in
+its page banner, because creating any of the three is one action in the console,
+not three different apps.
 
 The LMS footer itself is replaced by `contrib/atheniq-theme` (no rebuild); this
 plugin is only for the learner MFEs.
@@ -53,14 +56,42 @@ FOOTER_SLOT = "org.openedx.frontend.layout.footer.v1"
 #: The AI interface the header link opens. Kept as one value so the label, the
 #: URL and any future move of the console cannot drift apart.
 AI_CONSOLE_URL = "https://ai.lms.innotel.us/"
-AI_CONSOLE_LABEL = "AI Classroom"
 
-#: Where the header link goes. These are the *legacy* layout slot ids: the
+#: The one workspace behind every authoring entry point. Courses, programs and
+#: classrooms are created and maintained there; Studio edits the course those
+#: specs describe. Each label points at the page that does the thing, so the
+#: header is the same everywhere instead of five apps with five menus.
+PLATFORM_SECTIONS = (
+    ("Courses", AI_CONSOLE_URL + "courses.html"),
+    ("Programs", AI_CONSOLE_URL + "programs.html"),
+    ("Classrooms", AI_CONSOLE_URL + "index.html"),
+    ("Studio", "https://studio.innotel.us/"),
+    ("Platform", AI_CONSOLE_URL + "platform.html"),
+)
+
+#: What the authoring app's create buttons become. The stock page offers one
+#: "+ New Course"; a program, a classroom and a media library are created the
+#: same way, in the workspace, and land in the same catalogue.
+STUDIO_ACTIONS = (
+    ("+ New Program", AI_CONSOLE_URL + "programs.html"),
+    ("+ New Course", AI_CONSOLE_URL + "course-create.html"),
+    ("+ New Classroom", AI_CONSOLE_URL + "classroom-create.html"),
+    ("+ New Library", AI_CONSOLE_URL + "library.html"),
+)
+
+#: Where the platform nav goes. These are the *legacy* layout slot ids: the
 #: frontend-base compatibility shim maps them onto the new sub-slots
 #: (`...slot.header.primaryLinks.v1` for desktop, the mobile menu for phones),
 #: and a slot id that is not in that map is skipped with a warning.
 HEADER_DESKTOP_SLOT = "org.openedx.frontend.layout.header_desktop_main_menu.v1"
 HEADER_MOBILE_SLOT = "org.openedx.frontend.layout.header_mobile_main_menu.v1"
+
+#: The authoring home's banner slot, above the course list. The stock page puts
+#: one "+ New Course" button beside its heading; this slot is where the four
+#: create entries sit instead, so the action is in the same place on every
+#: authoring screen. `additional_course_plugin.v1` was the alternative and is
+#: per-card, which is the wrong place for a create action.
+AUTHORING_SLOT = "org.openedx.frontend.authoring.page_banner.v1"
 
 #: `all`, because that is the only value this deployment's MFE build honours:
 #: tutor-mfe compiles one `env.config.jsx` and every app target copies it, so a
@@ -129,29 +160,68 @@ RenderWidget: AthenIQFooter,
 },
 """
 
-# The header link. A plain anchor, not a Paragon Nav.Link: the desktop slot
+# The platform nav. Plain anchors, not Paragon Nav.Links: the desktop slot
 # renders beside the nav rather than inside its <Nav>, and `nav-link` carries
 # the same styling in both places.
 HEADER_COMPONENT = f"""
-const AthenIQHeaderLink = () => {{
+const ATHENIQ_SECTIONS = {[list(pair) for pair in PLATFORM_SECTIONS]!r};
+const AthenIQPlatformNav = () => {{
   // Studio only. One env.config.jsx is compiled into every MFE here, so the
   // widget has to decide for itself which app it is in: authoring is served
   // under /authoring, and the learner apps (course page, dashboard, profile)
-  // are not. A learner has no use for the generator, an instructor writing a
+  // are not. A learner has no use for the workspace, an instructor writing a
   // course does.
   if (!window.location.pathname.startsWith('/authoring')) return null;
-  return <a className="nav-link" href={{{AI_CONSOLE_URL!r}}}>{AI_CONSOLE_LABEL}</a>;
+  return (
+  <nav className="atheniq-nav" aria-label="AthenIQ Platform Services">
+    {{ATHENIQ_SECTIONS.map(([label, href]) => (
+      <a key={{label}} className="nav-link atheniq-nav-link" href={{href}}>{{label}}</a>
+    ))}}
+  </nav>
+  );
 }};
+"""
+
+# The authoring app's own create row. The stock heading and "+ New course"
+# button are hidden rather than edited, because they live in the compiled
+# bundle; the four entries below are the whole create surface.
+STUDIO_COMPONENT = f"""
+const ATHENIQ_STUDIO_ACTIONS = {[list(pair) for pair in STUDIO_ACTIONS]!r};
+const AthenIQStudioActions = () => (
+  <div className="atheniq-studio-actions">
+    <style>{{`
+      .atheniq-studio-actions {{ display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }}
+      .atheniq-studio-actions a {{ text-decoration: none; }}
+      .atheniq-nav {{ display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-inline-start: auto; }}
+      .atheniq-nav-link {{ white-space: nowrap; }}
+    `}}</style>
+    {{ATHENIQ_STUDIO_ACTIONS.map(([label, href]) => (
+      <a key={{label}} className="btn btn-outline-primary btn-sm" href={{href}}>{{label}}</a>
+    ))}}
+  </div>
+);
 """
 
 HEADER_SLOT_CONFIG = """
 {
 op: PLUGIN_OPERATIONS.Insert,
 widget: {
-id: 'atheniq_ai_link',
+id: 'atheniq_platform_nav',
 type: DIRECT_PLUGIN,
 priority: 30,
-RenderWidget: AthenIQHeaderLink,
+RenderWidget: AthenIQPlatformNav,
+},
+},
+"""
+
+STUDIO_SLOT_CONFIG = """
+{
+op: PLUGIN_OPERATIONS.Insert,
+widget: {
+id: 'atheniq_studio_actions',
+type: DIRECT_PLUGIN,
+priority: 10,
+RenderWidget: AthenIQStudioActions,
 },
 },
 """
@@ -194,6 +264,9 @@ _tutor_hooks.Filters.ENV_PATCHES.add_item(
 _tutor_hooks.Filters.ENV_PATCHES.add_item(
     ("mfe-env-config-runtime-definitions", HEADER_COMPONENT)
 )
+_tutor_hooks.Filters.ENV_PATCHES.add_item(
+    ("mfe-env-config-runtime-definitions", STUDIO_COMPONENT)
+)
 
 # The legacy per-app stages and the site stage each build webpack, and each
 # carries its own "before the build" hook; refresh browserslist data in both.
@@ -206,6 +279,9 @@ if PLUGIN_SLOTS is not None:
     PLUGIN_SLOTS.add_items([(mfe, slot, HEADER_SLOT_CONFIG)
                             for mfe in HEADER_MFES
                             for slot in (HEADER_DESKTOP_SLOT, HEADER_MOBILE_SLOT)])
+    # The authoring app's create row, in the page slot rather than the header:
+    # the four buttons belong over the studio list, not inside the nav.
+    PLUGIN_SLOTS.add_items([("authoring", AUTHORING_SLOT, STUDIO_SLOT_CONFIG)])
 
 # Declarative hooks surface expected by the Tutor plugin loader (v0).
 hooks: dict = {}

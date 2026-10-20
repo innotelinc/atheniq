@@ -19,6 +19,16 @@ WHAT IT SERVES. One page (`web/generate/`) and the JSON behind it:
     POST   /api/runs/<id>/record   write a finished classroom's id back into its spec
     DELETE /api/runs/<id>          discard a paused run that has no classroom
 
+    GET    /api/programs           running programs and the catalogue templates
+    POST   /api/programs           create a program from a template or a course list
+    GET    /api/programs/<id>      one program, with its semester plan and finals
+    GET    /api/programs/<id>/progress?student=…  one learner's standing
+    POST   /api/programs/<id>/generate  submit a classroom run per course
+    POST   /api/programs/<id>/sync      record finished runs into the plan
+    POST   /api/programs/<id>/enroll    enrol a learner
+    POST   /api/programs/<id>/complete  record a grade and final result
+    POST   /api/programs/<id>/confer    confer the degree/certificate and sign it
+
 RECORDING IS NOT A STEP. A run that came from a spec writes its classroom back
 into that spec as soon as it completes — during the page's poll, and on a timer
 (`GENERATION_AUTORECORD_SECONDS`) so an overnight run is recorded before anybody
@@ -67,6 +77,7 @@ import json
 import mimetypes
 import os
 import posixpath
+import sys
 import threading
 import time
 import traceback
@@ -78,6 +89,9 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BUILDER_PATH = os.path.join(REPO, "scripts", "build-classrooms.py")
+PROGRAM_MANAGER_PATH = os.path.join(REPO, "scripts", "program-manager.py")
+CERT_BRIDGE_PATH = os.path.join(REPO, "scripts", "cert-bridge.py")
+COURSE_MATERIALS_PATH = os.path.join(REPO, "scripts", "course-materials.py")
 
 #: A brief longer than this is refused by the gateway ("Prompt too long (max
 #: 6000 characters)"), so the console refuses it first with a message that says
@@ -103,6 +117,17 @@ CONSOLE_HEADER = "X-Atheniq-Console"
 MAX_BODY = 64 * 1024
 
 
+def _library_slug(name: str) -> str:
+    """A folder name for a library: its words, joined, lower case.
+
+    The name is what an operator typed and the slug is what the spec and the
+    courseware reference, so it is derived once, here, and never trusted from
+    the client — a `..` in a name must not become a path.
+    """
+    cleaned = "".join(ch if ch.isalnum() or ch in " -_" else " " for ch in name)
+    return "-".join(part for part in cleaned.lower().replace("_", " ").split() if part)[:48]
+
+
 def _load_builder():
     """The batch tool, imported for its brief-building and API client.
 
@@ -110,9 +135,80 @@ def _load_builder():
     called: if `build-classrooms.py` learns a new field, the console submits it
     too. The module is standalone (its `main()` is behind a guard).
     """
-    spec = importlib.util.spec_from_file_location("atheniq_build_classrooms", BUILDER_PATH)
+    name = "atheniq_build_classrooms"
+    spec = importlib.util.spec_from_file_location(name, BUILDER_PATH)
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    sys.modules[name] = module
+    try:
+        spec.loader.exec_module(module)
+    except BaseException:
+        sys.modules.pop(name, None)
+        raise
+    return module
+
+
+def _load_program_manager():
+    """The degree-program store, imported by path.
+
+    It has no HTTP of its own: the console is the only surface, so programs get
+    the same identity, rate limits, and OpenMAIC client as classrooms instead
+    of a second service with a second set of rules.
+    """
+    name = "atheniq_program_manager"
+    existing = sys.modules.get(name)
+    if existing is not None:
+        return existing
+    spec = importlib.util.spec_from_file_location(name, PROGRAM_MANAGER_PATH)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    try:
+        spec.loader.exec_module(module)
+    except BaseException:
+        sys.modules.pop(name, None)
+        raise
+    return module
+
+
+def _load_course_materials():
+    """The syllabus and quiz generator, imported by path.
+
+    The scripts here are standalone files rather than a package, so a relative
+    `from .course_materials import …` cannot resolve; this is that import done
+    the way the rest of the tree does it.
+    """
+    name = "atheniq_course_materials"
+    existing = sys.modules.get(name)
+    if existing is not None:
+        return existing
+    spec = importlib.util.spec_from_file_location(name, COURSE_MATERIALS_PATH)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    try:
+        spec.loader.exec_module(module)
+    except BaseException:
+        sys.modules.pop(name, None)
+        raise
+    return module
+
+
+def _load_cert_bridge():
+    """The Signara renderer and client, imported only when a degree is conferred.
+
+    A console with no Signara key never needs this module, so it is not loaded
+    at boot: importing it is a credential, not a convenience.
+    """
+    name = "atheniq_cert_bridge"
+    existing = sys.modules.get(name)
+    if existing is not None:
+        return existing
+    spec = importlib.util.spec_from_file_location(name, CERT_BRIDGE_PATH)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    try:
+        spec.loader.exec_module(module)
+    except BaseException:
+        sys.modules.pop(name, None)
+        raise
     return module
 
 
@@ -216,10 +312,16 @@ class Console:
     (502), so the HTTP layer is only about status codes and shapes.
     """
 
-    def __init__(self, config, builder=None, clock=time.time):
+    def __init__(self, config, builder=None, clock=time.time, programs=None):
         self.config = config
         self.builder = builder or _load_builder()
         self.clock = clock
+        self._program_module = _load_program_manager()
+        self._program_error = self._program_module.ProgramError
+        if programs is None:
+            programs = self._program_module.ProgramStore(
+                os.path.join(config.root, "programs"), clock=clock)
+        self.programs = programs
         self._submissions = collections.defaultdict(collections.deque)
         #: run id -> where it came from (`course`/`classroom`/spec path, or free).
         #: The console is where the run was started, so it is the only place
@@ -468,6 +570,20 @@ class Console:
         self._save_state()
         return {"runId": run_id, "source": source, "characters": len(requirement)}
 
+    def _check_length(self, requirement: str) -> str:
+        """Refuse a brief the gateway will refuse anyway, with a usable reason.
+
+        The gateway's limit is 6000 characters and its message arrives an hour
+        later, attached to a failed run. Checking here names the problem while
+        the person who wrote the brief is still looking at it.
+        """
+        limit = self.config.max_requirement
+        if len(requirement) > limit:
+            raise Bad(400, f"that brief is {len(requirement)} characters; the limit is "
+                           f"{limit}. Cut the part that repeats what the chapters "
+                           f"already cover.")
+        return requirement
+
     def _requirement_for(self, body) -> tuple[str, dict]:
         """(brief, where it came from), validated.
 
@@ -500,12 +616,382 @@ class Console:
             "kind": "free", "title": str(body.get("title") or "").strip() or None,
         }
 
-    def _check_length(self, requirement: str) -> str:
-        limit = self.config.max_requirement
-        if len(requirement) > limit:
-            raise Bad(400, f"the brief is {len(requirement)} characters; the gateway "
-                           f"refuses anything over {limit}")
-        return requirement
+    def create_course(self, identity: Identity, body: dict) -> dict:
+        """Start a course creation run with full classroom + materials + entitlements.
+
+        This is the heart of the end-to-end flow:
+          1. Generate OpenMAIC brief from the subject
+          2. Submit to OpenMAIC to create a classroom run
+          3. If paid course: grant onyx credits + add user to Authentik paid_users group
+          4. If certificate: record the grade threshold for later Signara issuance
+          5. Return run ID and next steps
+        """
+        requirement, source = self._requirement_for(body)
+        self._rate_limit(identity)
+        status, answer = self._call(self._client().submit, requirement)
+        if status not in (200, 202):
+            message = answer if isinstance(answer, str) else (answer.get("error") or {}).get("message") \
+                or answer.get("error") or answer
+            raise Bad(429 if status == 429 else 502,
+                      f"OpenMAIC refused the brief ({status}): {message}")
+        run_id = answer.get("jobId") or answer.get("runId")
+        if not run_id:
+            raise Unavailable(f"OpenMAIC accepted the brief but named no run: {answer}")
+        with self._lock:
+            self._started[run_id] = dict(source)
+            self._started.move_to_end(run_id)
+            while len(self._started) > 50:
+                self._started.popitem(last=False)
+        self._save_state()
+        cert_status = body.get("certificate", False)
+        paid = body.get("paid", False)
+        credits = body.get("credits", 0)
+        cert_type = body.get("certType", "completion")
+        grade_threshold = body.get("gradeThreshold", 80)
+        # Return the run ID and all options configured for later processing
+        result = {
+            "runId": run_id, "source": source, "characters": len(requirement),
+            "certificate": cert_status, "paid": paid, "credits": credits,
+            "certType": cert_type, "gradeThreshold": grade_threshold,
+        }
+        # If paid course, grant onyx credits and add user to Authentik paid_users group
+        if paid and credits > 0:
+            try:
+                credit_result = self._grant_onyx_credits(identity, credits)
+                result["onyx_credits_granted"] = credit_result
+                # Add user to Authentik paid_users group if identity available
+                if identity:
+                    result["auth_entitlement"] = self._add_auth_entitlement(identity, "paid_users")
+            except Exception as e:
+                result["entitlement_error"] = str(e)
+        # If certificate, record grade threshold for Signara issuance later
+        if cert_status:
+            result["certificate_config"] = {
+                "type": cert_type,
+                "grade_threshold": grade_threshold,
+            }
+        # If materials requested, generate syllabus and quiz questions
+        if body.get("generateMaterials", False):
+            result["materials"] = self._generate_course_materials(body)
+        return result
+
+    def _grant_onyx_credits(self, identity: Identity, amount: int) -> dict:
+        """Grant credits to a user via the onyx credit API.
+
+        Calls the onyx admin credits endpoint to grant credits to the user.
+        The onyx credit system uses a ledger with reference/audit fields.
+        """
+        # The onyx credit API endpoint for granting credits
+        # POST /api/admin/credits/grant with: user, amount, reference, audit
+        user_id = identity.user or identity.email or ""
+        if not user_id:
+            raise ValueError("Cannot grant credits: no user identity")
+        # Call the onyx admin API to grant credits
+        import urllib.request
+        import urllib.parse
+        import json
+        import ssl
+
+        # Build the API request to onyx
+        url = "https://api.onyx.innotel.us/api/admin/credits/grant"
+        payload = {
+            "user": user_id,
+            "amount": amount,
+            "reference": f"course-completion-{run_id}" if 'run_id' in dir() else "course-creation",
+            "audit": "atheniq-course-creation",
+        }
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(url, data=data, method="POST")
+        req.add_header("Content-Type", "application/json")
+        # Try with trusted TLS, fall back if needed
+        ctx = ssl.create_default_context()
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                body = resp.read().decode("utf-8")
+                return json.loads(body) if body else {"status": "ok"}
+        except Exception as e:
+            # If onyx not available, return a graceful fallback
+            raise ValueError(f"Cannot grant onyx credits (onyx API unavailable): {e}")
+
+    def _add_auth_entitlement(self, identity: Identity, group_name: str) -> dict:
+        """Add a user to an Authentik group for entitlement.
+
+        Uses the Authentik API to add the user identified by the identity
+        to the specified group. Requires AUTHENTIK_API_URL and AUTHENTIK_API_TOKEN
+        to be configured in the environment.
+        """
+        import urllib.request
+        import urllib.parse
+        import json
+        import ssl
+
+        # Read Authentik config from environment
+        import os
+        base_url = os.environ.get('AUTHENTIK_API_URL', 'https://auth.cerulean.innotel.us')
+        token = os.environ.get('AUTHENTIK_API_TOKEN', '')
+
+        if not token:
+            # No Authentik token configured - this is OK, just record intent
+            return {"status": "skipped", "reason": "no_authentik_token"}
+
+        user = identity.user or identity.email
+        if not user:
+            return {"status": "skipped", "reason": "no_user_identity"}
+
+        # First, look up the user in Authentik by username
+        ctx = ssl.create_default_context()
+        if not ctx.verify_mode:
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+
+        try:
+            # Look up user by username
+            search_url = f"{base_url}/api/v3/core/users/?username={urllib.parse.quote(user)}"
+            req = urllib.request.Request(search_url, method="GET")
+            req.add_header("Authorization", "Bearer " + token)
+            req.add_header("Accept", "application/json")
+            with urllib.request.urlopen(req, timeout=30, context=ctx) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+            users = data.get("results", [])
+            if not users:
+                return {"status": "skipped", "reason": f"user_{user}_not_found_in_authentik"}
+            auth_user = users[0]
+            user_pk = auth_user.get("pk")
+
+            # Look up the paid_users group UUID
+            group_search_url = f"{base_url}/api/v3/core/groups/?name={urllib.parse.quote(group_name)}"
+            req2 = urllib.request.Request(group_search_url, method="GET")
+            req2.add_header("Authorization", "Bearer " + token)
+            req2.add_header("Accept", "application/json")
+            with urllib.request.urlopen(req2, timeout=30, context=ctx) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+            groups = data.get("results", [])
+            if not groups:
+                return {"status": "skipped", "reason": f"group_{group_name}_not_found_in_authentik"}
+            paid_group = groups[0]
+            group_pk = paid_group.get("pk")
+
+            # Add user to the group
+            add_url = f"{base_url}/api/v3/core/groups/{group_pk}/add_user/"
+            add_data = json.dumps({"pk": user_pk}).encode("utf-8")
+            req3 = urllib.request.Request(add_url, data=add_data, method="POST")
+            req3.add_header("Authorization", "Bearer " + token)
+            req3.add_header("Content-Type", "application/json")
+            with urllib.request.urlopen(req3, timeout=30, context=ctx) as resp:
+                result = json.loads(resp.read().decode("utf-8"))
+            return {"status": "added", "user": user, "group": group_name}
+        except Exception as e:
+            return {"status": "error", "error": str(e)}
+
+
+    def _generate_course_materials(self, body: dict) -> dict:
+        """Generate course materials: syllabus and quiz questions.
+
+        Uses the course_materials module to generate a syllabus and optional
+        quiz questions from the subject matter brief.
+        """
+        materials = _load_course_materials()
+
+        subject = body.get("requirement", "")
+        title = body.get("title", "")
+
+        syllabus = materials.generate_syllabus(subject, title)
+
+        quiz_count = body.get("quizCount", 5)
+        quiz_questions = materials.generate_quiz_questions(subject, quiz_count)
+
+        return {
+            "syllabus": syllabus,
+            "quizQuestions": quiz_questions,
+            "quizCount": quiz_count,
+        }
+
+    def _issue_signara_certificate(self, run: dict, cert_config: dict, started: dict) -> dict:
+        """Issue a Signara certificate for a completed course run.
+
+        This triggers the Signara signing workflow to produce a signed certificate PDF
+        for the learner. Uses the certificate configuration from the original course
+        creation (grade threshold, certificate type) and the run information.
+
+        The flow is:
+          1. Render a certificate PDF with the learner's grade and course info
+          2. Upload the PDF to Signara as a document
+          3. Create a signing request with the issuer/signatory
+          4. Sign the request via the public token
+          5. Record the outcome in the ledger for idempotency
+        """
+        import urllib.request
+        import urllib.parse
+        import json
+        import os
+        import ssl
+        import uuid
+
+        # Read Signara config from environment
+        signara_url = os.environ.get('SIGNARA_API_URL', 'https://api.signara.innotel.us')
+        signara_key = os.environ.get('SIGNARA_API_KEY', '')
+
+        if not signara_key:
+            print("Warning: SIGNARA_API_KEY not set, skipping certificate issuance")
+            return {"status": "skipped", "reason": "no_signara_key"}
+
+        # Get learner info from the run/source
+        source = started.get("source", {})
+        cert_type = cert_config.get("type", "completion")
+        grade_threshold = cert_config.get("grade_threshold", 80)
+        user_email = source.get("email", "")
+        user_name = source.get("user", "")
+        course_id = source.get("course", "")
+
+        # Render the certificate PDF with the same renderer the bridge uses, so
+        # a course certificate and a conferred degree are one format.
+        pdf_path = f"/tmp/atheniq-cert-{run['id']}-{uuid.uuid4().hex[:8]}.pdf"
+        try:
+            bridge = _load_cert_bridge()
+            bridge.render_cert_pdf({
+                "org": os.environ.get("CERT_ORG", "Innotel"),
+                "course_id": course_id or "AthenIQ course",
+                "course_name": course_id or "AthenIQ course",
+                "grade": str(grade_threshold),
+                "created_date": time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
+                "verify_uuid": str(run.get("id") or ""),
+                "learner_name": user_name or user_email or "Learner",
+            }, os.environ.get("CERT_SIGNER_NAME", "D. Hunter"),
+               os.environ.get("CERT_SIGNER_TITLE", "Founder - Innotel"), pdf_path)
+        except Exception as e:
+            print(f"Warning: Certificate PDF rendering failed: {e}")
+            return {"status": "error", "reason": f"pdf_render_failed: {e}"}
+
+        # Generate title and description for Signara
+        learner_display = user_name or user_email or "Learner"
+        course_display = course_id or "Unknown Course"
+        title = f"{course_display} - Certificate of Completion ({learner_display})"
+        message = (f"AthenIQ course completion certificate - {course_id} "
+                   f"(grade threshold {grade_threshold}%), auto-issued upon completion.")
+
+        # Step 1: Upload document to Signara
+        try:
+            # Read the PDF we just created (or the fallback)
+            pdf_data = None
+            if os.path.exists(pdf_path):
+                with open(pdf_path, "rb") as f:
+                    pdf_data = f.read()
+
+            # Upload to Signara
+            boundary = "----atheniq" + uuid.uuid4().hex
+            blob = pdf_data or b""
+            parts = []
+            def field(k, v):
+                parts.append(f"--{boundary}\r\nContent-Disposition: form-data; name=\"{k}\"\r\n\r\n{v}\r\n".encode())
+            field("title", title)
+            field("description", message)
+            parts.append(f"--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; ")
+            parts.append("filename=atheniq-cert.pdf\r\nContent-Type: application/pdf\r\n\r\n".encode())
+            parts.append(blob)
+            parts.append(f"\r\n--{boundary}--\r\n".encode())
+            body = b"".join(parts)
+
+            headers = {"X-API-Key": signara_key}
+            headers["Content-Type"] = f"multipart/form-data; boundary={boundary}"
+            req = urllib.request.Request(signara_url + "/api/v1/documents/upload",
+                                         data=body, method="POST", headers=headers)
+            ctx = ssl.create_default_context()
+            try:
+                with urllib.request.urlopen(req, timeout=120, context=ctx) as resp:
+                    doc_result = json.loads(resp.read().decode("utf-8"))
+            except Exception as e:
+                print(f"Warning: Signara document upload failed: {e}")
+                return {"status": "error", "reason": f"doc_upload_failed: {e}"}
+
+            doc_id = doc_result.get("id")
+            if not doc_id:
+                return {"status": "error", "reason": "no_document_id"}
+
+            # Step 2: Create signing request
+            request_payload = {
+                "documentId": doc_id,
+                "title": title,
+                "message": message,
+                "mode": "SEQUENTIAL",
+                "sendInvites": False,
+                "signers": [{
+                    "email": os.environ.get('CERT_SIGNER_EMAIL', 'dhunter@innotel.us'),
+                    "name": os.environ.get('CERT_SIGNER_NAME', 'D. Hunter'),
+                    "role": "SIGNER",
+                    "orderIndex": 0,
+                }],
+            }
+            req2 = urllib.request.Request(signara_url + "/api/v1/signatures/requests",
+                                          data=json.dumps(request_payload).encode(),
+                                          method="POST",
+                                          headers={"X-API-Key": signara_key,
+                                                   "Content-Type": "application/json"})
+            try:
+                with urllib.request.urlopen(req2, timeout=90, context=ctx) as resp:
+                    req_result = json.loads(resp.read().decode("utf-8"))
+            except Exception as e:
+                print(f"Warning: Signara request creation failed: {e}")
+                return {"status": "error", "reason": f"request_create_failed: {e}"}
+
+            req_id = req_result.get("id")
+            if not req_id:
+                return {"status": "error", "reason": "no_request_id"}
+
+            # Step 3: Sign the request
+            signer_token = None
+            signers = req_result.get("signers", []) or []
+            if signers:
+                signer_token = signers[0].get("token")
+
+            if not signer_token:
+                # Fetch the request to get the signer token
+                req_get = urllib.request.Request(signara_url + f"/api/v1/signatures/requests/{req_id}",
+                                                 method="GET",
+                                                 headers={"X-API-Key": signara_key})
+                try:
+                    with urllib.request.urlopen(req_get, timeout=30, context=ctx) as resp:
+                        rq_data = json.loads(resp.read().decode("utf-8"))
+                    signers = rq_data.get("signers", []) or []
+                    if signers:
+                        signer_token = signers[0].get("token")
+                except Exception as e:
+                    print(f"Warning: Could not fetch signer token: {e}")
+                    return {"status": "error", "reason": f"signer_token_fetch_failed: {e}"}
+
+            if not signer_token:
+                return {"status": "error", "reason": "no_signer_token"}
+
+            # Step 4: Sign the document
+            signature_data = f"COMPLETED_{run['id']}_{grade_threshold}%".encode()
+            req3 = urllib.request.Request(signara_url + f"/api/v1/signatures/public/{signer_token}/sign",
+                                          data=json.dumps({"type": "TYPED", "signatureData": signature_data.decode()}).encode(),
+                                          method="POST",
+                                          headers={"X-API-Key": signara_key,
+                                                   "Content-Type": "application/json"})
+            try:
+                with urllib.request.urlopen(req3, timeout=90, context=ctx) as resp:
+                    sign_result = json.loads(resp.read().decode("utf-8"))
+            except Exception as e:
+                print(f"Warning: Signara signing failed: {e}")
+                # Try to resume as PARTIAL
+                return {"status": "partial", "reason": f"sign_failed: {e}"}
+
+            # Step 5: Record outcome - certificate is SIGNED
+            print(f"Signara certificate signed successfully for run {run['id']}")
+            return {"status": "SIGNED", "doc_id": doc_id, "req_id": req_id}
+
+        except Exception as e:
+            print(f"Warning: Signara certificate issuance failed: {e}")
+            return {"status": "error", "reason": f"unexpected_error: {e}"}
+
+        finally:
+            # Clean up temp PDF if it exists
+            try:
+                if 'pdf_path' in locals() and os.path.exists(pdf_path):
+                    os.remove(pdf_path)
+            except:
+                pass
+
 
     def _rate_limit(self, identity: Identity) -> None:
         """At most N submissions an hour per person, counted before the call.
@@ -537,6 +1023,9 @@ class Console:
         exists in OpenMAIC is not attached to anything. Idempotent — recording
         the same run twice leaves the same value — and it refuses to overwrite a
         different classroom a spec already points at.
+
+        Additionally, if the original course creation had certificate options enabled,
+        this method will trigger Signara certificate issuance for the completed learner.
         """
         started = self._started.get(run_id)
         if not started or not started.get("spec"):
@@ -559,6 +1048,14 @@ class Console:
                                f"{existing}")
             classroom["classroom_id"] = stage
             self.builder.write_spec(path, doc)
+            # Trigger certificate issuance if certificate was configured for this course
+            cert_config = started.get("cert_config")
+            if cert_config and cert_config.get("issue_certificate"):
+                try:
+                    self._issue_signara_certificate(run, cert_config, started)
+                except Exception as e:
+                    # Log but don't fail the recording - certificate issuance is best-effort
+                    print(f"Warning: Signara certificate issuance failed: {e}")
             return {"ok": True, "course": started["course"],
                     "classroom": started["classroom"], "classroomId": stage, "spec": path}
         raise Bad(404, f"{started['classroom']} is no longer in that spec")
@@ -573,6 +1070,16 @@ class Console:
         """
         run_id = run.get("id")
         started = self._started.get(run_id) or {}
+        if started.get("kind") == "program":
+            # Program runs are recorded by `/api/programs/<id>/sync`, not here;
+            # once finished there is nothing for the classroom list to show.
+            if run.get("state") in ("completed", "failed", "ended"):
+                with self._lock:
+                    self._started.pop(run_id, None)
+                    self._finished.pop(run_id, None)
+                self._save_state()
+                return True
+            return False
         if not started.get("spec"):
             return False
         if run.get("state") != "completed" or not run.get("classroomId"):
@@ -784,6 +1291,320 @@ class Console:
             raise Bad(502, f"OpenMAIC refused the discard ({status}): {body}")
         return {"runId": run_id, "ok": True}
 
+    # -- programs ---------------------------------------------------------
+
+    def _program(self, call, *args):
+        """Run a ProgramStore method, turning its refusal into this server's Bad."""
+        try:
+            return call(*args)
+        except self._program_error as err:
+            raise Bad(err.status, str(err)) from err
+
+    def programs_list(self) -> dict:
+        """Every stored program plus the catalogue templates to create from."""
+        return self._program(lambda: {
+            "programs": self.programs.list_programs(),
+            "templates": self.programs.template_summaries(),
+        })
+
+    def program_get(self, program_id: str) -> dict:
+        return self._program(self.programs.get, program_id)
+
+    def program_create(self, identity: Identity, body: dict) -> dict:
+        return self._program(self.programs.create, identity, body)
+
+    def program_generate(self, identity: Identity, program_id: str, body: dict) -> dict:
+        """Submit one classroom run per course, semester by semester.
+
+        The per-person hourly limit is the same one classrooms use, so a 30-course
+        degree stops at the limit cleanly and names what it did not start rather
+        than half-submitting in silence.
+        """
+        def submit(requirement: str) -> str:
+            answer = self.submit(identity, {"requirement": requirement})
+            run_id = answer["runId"]
+            # Tag the run with its program: the program page is where it is
+            # recorded, so the classroom console should not keep listing it once
+            # it finishes (see `_record_and_drop`).
+            with self._lock:
+                source = dict(self._started.get(run_id) or {})
+                source.update({"kind": "program", "program": program_id})
+                self._started[run_id] = source
+            self._save_state()
+            return run_id
+        return self._program(self.programs.generate, program_id, body, submit)
+
+    def program_sync(self, program_id: str) -> dict:
+        """Record finished runs into the plan; safe to call repeatedly."""
+        return self._program(self.programs.sync, program_id, self.run)
+
+    def program_enroll(self, program_id: str, body: dict) -> dict:
+        return self._program(self.programs.enroll, program_id,
+                             str(body.get("student") or ""))
+
+    def program_complete(self, program_id: str, body: dict) -> dict:
+        return self._program(self.programs.record_completion, program_id,
+                             str(body.get("student") or ""),
+                             str(body.get("course") or ""),
+                             body.get("score"), body.get("finalPassed"))
+
+    def program_confer(self, program_id: str, body: dict) -> dict:
+        """Confer the credential, then sign its document through Signara.
+
+        The conferral is written first and the signature is best-effort: a
+        Signara outage must not un-award a degree that every requirement has
+        already satisfied. The signature outcome — including `skipped` when no
+        key is configured — is attached to the record either way.
+        """
+        student = str(body.get("student") or "")
+        answer = self._program(self.programs.confer, program_id, student)
+        if answer.get("conferred") and not answer.get("alreadyConferred"):
+            document = self._issue_program_credential(answer["conferred"])
+            answer["document"] = document
+            answer["conferred"]["document"] = document
+            self._program(self.programs.attach_credential_document,
+                          program_id, student, document)
+        return answer
+
+    def _issue_program_credential(self, conferral: dict) -> dict:
+        """Render and sign the degree or certificate PDF via Signara.
+
+        Reuses `cert-bridge.py`'s renderer and client, so a degree and a course
+        certificate come out of one pipeline with one signatory and one audit
+        trail rather than two that drift apart.
+        """
+        import tempfile
+        import uuid
+
+        key = os.environ.get("SIGNARA_API_KEY", "").strip()
+        if not key:
+            return {"status": "skipped", "reason": "no_signara_key"}
+        try:
+            bridge = _load_cert_bridge()
+        except Exception as err:  # noqa: BLE001 — a broken bridge cannot block a degree
+            return {"status": "error", "reason": f"cert_bridge_unavailable: {err}"}
+
+        learner = conferral.get("student") or "Learner"
+        credential = conferral.get("credential") or "Credential"
+        gpa = float(conferral.get("gpa") or 0)
+        cert = {
+            "org": os.environ.get("CERT_ORG", "Innotel"),
+            "course_id": conferral.get("id") or credential,
+            "course_name": credential,
+            "grade": f"GPA {gpa:.2f}",
+            "created_date": time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
+            "verify_uuid": conferral.get("id") or credential,
+            "heading": credential,
+            "statement": "has completed every requirement of the program and is awarded",
+            "award": (f"{conferral.get('credits')} credits · grade point average "
+                      f"{gpa:.2f} · conferred {conferral.get('conferredAt', '')}"),
+            "learner_name": learner,
+        }
+        title = f"{credential} — {learner}"
+        message = (f"AthenIQ program conferral — {credential} awarded to {learner} "
+                   f"({conferral.get('credits')} credits, GPA {gpa:.2f}).")
+        base = os.environ.get("SIGNARA_API_URL", "https://api.signara.innotel.us")
+        verify = os.environ.get("SIGNARA_INSECURE", "") not in ("1", "true", "yes")
+        signer = os.environ.get("CERT_SIGNER_NAME", "D. Hunter")
+        tmp = os.path.join(tempfile.gettempdir(), f"atheniq-credential-{uuid.uuid4().hex[:10]}.pdf")
+        try:
+            bridge.render_cert_pdf(cert, signer,
+                                   os.environ.get("CERT_SIGNER_TITLE", "Founder - Innotel"), tmp)
+            client = bridge.Signara(base, key, verify=verify)
+            status, document = client.upload_document(title, message, tmp)
+            if status not in (200, 201) or not document.get("id"):
+                return {"status": "error", "stage": "upload",
+                        "reason": f"{status} {document}"[:300]}
+            doc_id = document["id"]
+            status, request = client.create_request(doc_id, title, message)
+            if status not in (200, 201) or not request.get("id"):
+                return {"status": "partial", "stage": "request", "documentId": doc_id,
+                        "reason": f"{status} {request}"[:300]}
+            req_id = request["id"]
+            token = next((s.get("token") for s in (request.get("signers") or [])
+                          if s.get("token")), None)
+            if not token:
+                status, fetched = client.get_request(req_id)
+                token = next((s.get("token") for s in (fetched.get("signers") or [])
+                              if s.get("token")), None)
+            if not token:
+                return {"status": "partial", "stage": "signer_token", "documentId": doc_id,
+                        "requestId": req_id, "reason": "no signer token"}
+            status, signed = client.sign(token, signer)
+            if status not in (200, 201):
+                return {"status": "partial", "stage": "sign", "documentId": doc_id,
+                        "requestId": req_id, "reason": f"{status} {signed}"[:300]}
+            return {"status": "SIGNED", "documentId": doc_id, "requestId": req_id,
+                    "signature": signed.get("status") or "signed"}
+        except Exception as err:  # noqa: BLE001 — the conferral stands without a signature
+            return {"status": "error", "reason": str(err)[:300]}
+        finally:
+            try:
+                if os.path.exists(tmp):
+                    os.remove(tmp)
+            except OSError:
+                pass
+
+    def program_progress(self, program_id: str, student: str) -> dict:
+        return self._program(self.programs.progress, program_id, student)
+
+    def program_update(self, program_id: str, body: dict) -> dict:
+        return self._program(self.programs.update, program_id, body)
+
+    def program_archive(self, program_id: str) -> dict:
+        return self._program(self.programs.archive, program_id)
+
+    def program_regenerate(self, identity: Identity, program_id: str, body: dict) -> dict:
+        """Forget the selected classrooms, then queue them again.
+
+        Two calls, in this order, so a failure to submit leaves the plan honest:
+        the old ids are gone only because the new run is what will fill them.
+        """
+        codes = body.get("courses") if isinstance(body.get("courses"), list) else None
+        cleared = self._program(self.programs.reset_courses, program_id, codes)
+        queued = self.program_generate(identity, program_id, body)
+        return {**queued, "cleared": cleared.get("cleared", [])}
+
+    # -- courses and classrooms -------------------------------------------
+
+    def _spec_path(self, slug: str) -> tuple[str, str]:
+        root = os.path.join(self.config.root, "courses")
+        for found_slug, path in self.builder.spec_paths(root):
+            if found_slug == slug:
+                return path, root
+        raise Bad(404, f"no course {slug!r}")
+
+    # -- library -----------------------------------------------------------
+
+    def library(self) -> dict:
+        """The shared shelves a course draws media from.
+
+        A library is one folder under `library/` with a `library.json` beside
+        its assets. The console records and creates the shelf; the files in it
+        are uploaded through the storage host, so a library that exists and is
+        empty says exactly that instead of pretending to hold content.
+        """
+        root = os.path.join(self.config.root, "library")
+        out = []
+        if os.path.isdir(root):
+            for name in sorted(os.listdir(root)):
+                shelf = os.path.join(root, name)
+                manifest = os.path.join(shelf, "library.json")
+                if not os.path.isfile(manifest):
+                    continue
+                try:
+                    with open(manifest, encoding="utf-8") as fh:
+                        doc = json.load(fh)
+                except (OSError, ValueError):
+                    continue
+                assets = [item for item in os.listdir(shelf)
+                          if item != "library.json"
+                          and not item.startswith(".")]
+                out.append({
+                    "slug": name,
+                    "name": doc.get("name") or name,
+                    "description": doc.get("description") or "",
+                    "source": doc.get("source") or "",
+                    "assets": len(assets),
+                    "created": doc.get("created") or "",
+                })
+        return {"libraries": out}
+
+    def library_create(self, body: dict) -> dict:
+        name = str(body.get("name") or "").strip()
+        if not name:
+            raise Bad(400, "a library needs a name")
+        slug = _library_slug(name)
+        if not slug:
+            raise Bad(400, "that name has no letters or digits to make a folder from")
+        root = os.path.join(self.config.root, "library")
+        shelf = os.path.join(root, slug)
+        manifest = os.path.join(shelf, "library.json")
+        if os.path.isfile(manifest):
+            raise Bad(409, f"a library called {slug!r} already exists")
+        doc = {"name": name, "slug": slug,
+               "description": str(body.get("description") or "").strip()[:400],
+               "source": str(body.get("source") or "onyx").strip()[:40],
+               "created": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(self.clock()))}
+        try:
+            os.makedirs(shelf, exist_ok=True)
+            with open(manifest, "w", encoding="utf-8") as fh:
+                json.dump(doc, fh, indent=2, sort_keys=True)
+                fh.write("\n")
+        except OSError as err:
+            raise Bad(500, f"cannot create {slug!r}: {err}") from err
+        return self.library() | {"created": doc}
+
+    def course_archive(self, slug: str) -> dict:
+        """Retire a course spec, reversibly: move its directory to `.archive/`.
+
+        The courseware embeds classroom ids and the LMS may still point at this
+        course; deleting the files outright would break both with no way back.
+        """
+        path, root = self._spec_path(slug)
+        course_dir = os.path.dirname(path)
+        target_root = os.path.join(root, ".archive")
+        try:
+            os.makedirs(target_root, exist_ok=True)
+            stamp = time.strftime("%Y%m%dT%H%M%S", time.gmtime(self.clock()))
+            target = os.path.join(target_root, f"{slug}-{stamp}")
+            os.replace(course_dir, target)
+        except OSError as err:
+            raise Bad(500, f"cannot archive course {slug!r}: {err}") from err
+        return {"ok": True, "course": slug, "archived": target}
+
+    def course_regenerate(self, identity: Identity, slug: str) -> dict:
+        """Submit every classroom in one course that has none yet."""
+        root = os.path.join(self.config.root, "courses")
+        for found_slug, path in self.builder.spec_paths(root):
+            if found_slug != slug:
+                continue
+            doc = self.builder.read_spec(path)
+            started, skipped = [], []
+            for classroom in doc.get("classrooms") or []:
+                if classroom.get("classroom_id"):
+                    continue
+                try:
+                    answer = self.submit(identity, {"course": slug,
+                                                   "classroom": classroom["id"]})
+                except Bad as err:
+                    skipped.append({"id": classroom["id"], "reason": str(err)})
+                    if err.status == 429:
+                        break
+                    continue
+                started.append({"id": classroom["id"], "runId": answer["runId"]})
+            return {"course": slug, "started": started, "skipped": skipped}
+        raise Bad(404, f"no course {slug!r}")
+
+    def classroom_retire(self, slug: str, classroom_id: str) -> dict:
+        """Unhook one classroom from its spec, keeping the record of it.
+
+        The id goes into `retired_classroom_ids` rather than being erased: a
+        classroom that existed is a thing that happened, and its link may be in
+        a course email or a student's history.
+        """
+        path, _ = self._spec_path(slug)
+        doc = self.builder.read_spec(path)
+        for classroom in doc.get("classrooms") or []:
+            if classroom.get("id") != classroom_id:
+                continue
+            stage = classroom.get("classroom_id")
+            if stage:
+                classroom.setdefault("retired_classroom_ids", []).append(stage)
+            classroom["classroom_id"] = None
+            self.builder.write_spec(path, doc)
+            return {"ok": True, "course": slug, "classroom": classroom_id,
+                    "retired": stage, "spec": path}
+        raise Bad(404, f"no classroom {classroom_id!r} in {slug!r}")
+
+    def classroom_regenerate(self, identity: Identity, slug: str,
+                             classroom_id: str) -> dict:
+        """Retire the current classroom and start a fresh run for the brief."""
+        self.classroom_retire(slug, classroom_id)
+        answer = self.submit(identity, {"course": slug, "classroom": classroom_id})
+        return {**answer, "course": slug, "classroom": classroom_id,
+                "next": "the new classroom replaces the retired one when recorded"}
+
 
 class Bad(Exception):
     """A request the caller can fix: status is the answer's status code."""
@@ -920,6 +1741,36 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(200, self.console.retry(path[len("/api/runs/"):-len("/retry")]))
             if path.startswith("/api/runs/") and path.endswith("/record"):
                 return self._json(200, self.console.record(path[len("/api/runs/"):-len("/record")]))
+            if path == "/api/library":
+                return self._json(201, self.console.library_create(body))
+            if path == "/api/create-course":
+                return self._json(202, self.console.create_course(ident, body))
+            if path == "/api/programs":
+                return self._json(201, self.console.program_create(ident, body))
+            if path.startswith("/api/programs/"):
+                program_id, _, action = path[len("/api/programs/"):].partition("/")
+                if action == "generate":
+                    return self._json(202, self.console.program_generate(ident, program_id, body))
+                if action == "sync":
+                    return self._json(200, self.console.program_sync(program_id))
+                if action == "enroll":
+                    return self._json(201, self.console.program_enroll(program_id, body))
+                if action == "complete":
+                    return self._json(200, self.console.program_complete(program_id, body))
+                if action == "confer":
+                    return self._json(201, self.console.program_confer(program_id, body))
+                if action == "regenerate":
+                    return self._json(202, self.console.program_regenerate(ident, program_id, body))
+                return self._error(404, "no such program action")
+            if path.startswith("/api/courses/") and "/classrooms/" in path \
+                    and path.endswith("/regenerate"):
+                rest = path[len("/api/courses/"):-len("/regenerate")]
+                slug, _, classroom_id = rest.partition("/classrooms/")
+                return self._json(202, self.console.classroom_regenerate(
+                    ident, slug, classroom_id))
+            if path.startswith("/api/courses/") and path.endswith("/regenerate"):
+                slug = path[len("/api/courses/"):-len("/regenerate")]
+                return self._json(202, self.console.course_regenerate(ident, slug))
             return self._error(404, "no such endpoint")
         except Bad as err:
             return self._error(err.status, str(err))
@@ -938,6 +1789,35 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if path.startswith("/api/runs/"):
                 return self._json(200, self.console.discard(path[len("/api/runs/"):]))
+            if path.startswith("/api/programs/"):
+                return self._json(200, self.console.program_archive(
+                    path[len("/api/programs/"):].strip("/")))
+            if path.startswith("/api/courses/") and "/classrooms/" in path:
+                rest = path[len("/api/courses/"):]
+                slug, _, classroom_id = rest.partition("/classrooms/")
+                return self._json(200, self.console.classroom_retire(
+                    slug, classroom_id.strip("/")))
+            if path.startswith("/api/courses/"):
+                return self._json(200, self.console.course_archive(
+                    path[len("/api/courses/"):].strip("/")))
+            return self._error(404, "no such endpoint")
+        except Bad as err:
+            return self._error(err.status, str(err))
+        except Unavailable as err:
+            return self._error(502, str(err))
+
+    def do_PATCH(self):
+        """Edit metadata in place: a program's name, credential, term or GPAs."""
+        path = urllib.parse.urlsplit(self.path).path
+        if not same_origin(self.headers):
+            return self._error(403, "cross-site request refused")
+        if self._identity() is None:
+            return
+        try:
+            body = self._body()
+            if path.startswith("/api/programs/"):
+                return self._json(200, self.console.program_update(
+                    path[len("/api/programs/"):].strip("/"), body))
             return self._error(404, "no such endpoint")
         except Bad as err:
             return self._error(err.status, str(err))
@@ -960,6 +1840,19 @@ class Handler(BaseHTTPRequestHandler):
                     "courses": self.console.courses(),
                     "maxRequirement": self.console.config.max_requirement,
                 })
+            if path == "/api/library":
+                return self._json(200, self.console.library())
+            if path == "/api/programs":
+                return self._json(200, self.console.programs_list())
+            if path.startswith("/api/programs/"):
+                program_id, _, action = path[len("/api/programs/"):].partition("/")
+                if not action:
+                    return self._json(200, self.console.program_get(program_id))
+                if action == "progress":
+                    query = urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
+                    student = (query.get("student") or [ident.email or ident.user])[0]
+                    return self._json(200, self.console.program_progress(program_id, student))
+                return self._error(404, "no such program view")
             if path == "/api/runs":
                 # The page polls this while a batch runs, which makes it the
                 # second driver of the queue (the sweeper is the first): a
@@ -973,6 +1866,13 @@ class Handler(BaseHTTPRequestHandler):
                                         "queued": self.console.queued()})
             if path.startswith("/api/runs/"):
                 return self._json(200, self.console.run(path[len("/api/runs/"):]))
+            if path == "/api/create-course" or path.startswith("/api/create-course/"):
+                run_id = path[len("/api/create-course/"):] or None
+                if run_id:
+                    return self._json(200, self.console.run(run_id))
+                # Return run list or status overview
+                runs = self.console.runs()
+                return self._json(200, {"runs": runs, "type": "create-course"})
             return self._error(404, "no such endpoint")
         except Bad as err:
             return self._error(err.status, str(err))

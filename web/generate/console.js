@@ -131,6 +131,36 @@ const classroomRow = (course, classroom) => {
   }, "Generate");
   if (button) actions.push(button);
 
+  // A live classroom can be replaced or retired. Both act on the spec, which is
+  // what the courseware reads, so the page re-reads it after either one.
+  const staff = Boolean(state.me && state.me.mayGenerate);
+  const path = `/api/courses/${encodeURIComponent(course.slug)}` +
+               `/classrooms/${encodeURIComponent(classroom.id)}`;
+  const act = (label, method, suffix, confirmText, done) => el("button", {
+    class: "btn btn-secondary btn-small", type: "button",
+    onclick: async (event) => {
+      if (confirmText && !window.confirm(confirmText)) return;
+      const node = event.currentTarget;
+      node.disabled = true;
+      try {
+        await api(path + suffix, { method, body: method === "POST" ? "{}" : undefined });
+        toast(done);
+        await loadCourses();
+      } catch (error) {
+        toast(error.message, "bad");
+        node.disabled = false;
+      }
+    },
+  }, label);
+  if (staff && classroom.generated) {
+    actions.push(act("Regenerate", "POST", "/regenerate",
+      `Regenerate “${classroom.title || classroom.id}”? Its classroom id is cleared and queued again.`,
+      `Regenerating “${classroom.title || classroom.id}”`));
+    actions.push(act("Delete", "DELETE", "",
+      `Delete the classroom for “${classroom.title || classroom.id}”? The spec keeps the lesson and marks it missing; nothing else is touched.`,
+      `${classroom.id} retired`));
+  }
+
   return el("div", { class: "row" },
     el("div", {},
       el("div", { class: "t" }, classroom.title || classroom.id),
@@ -151,7 +181,7 @@ const classroomRow = (course, classroom) => {
 
 const courseCard = (course) => {
   const open = state.open.has(course.slug);
-  const card = el("div", { class: "course", dataset: { open: open ? "1" : "0" } });
+  const card = el("div", { class: "course", dataset: { open: open ? "1" : "0", token: course.slug } });
   const head = el("button", {
     class: "course-head", type: "button", "aria-expanded": open ? "true" : "false",
     onclick: () => {
@@ -419,6 +449,27 @@ const submitBrief = async (event) => {
 
 // -- boot ------------------------------------------------------------------
 
+/** A link from Courses or Programs names the spec it means. Open that course,
+ *  put it in view, and drop the parameter so a refresh lands on the plain list
+ *  rather than re-flashing a card the operator has already read. */
+const focusLinkedCourse = () => {
+  const wanted = new URLSearchParams(window.location.search).get("course");
+  if (!wanted) return;
+  const course = state.courses.find((c) => c.slug === wanted || c.course === wanted);
+  if (!course) {
+    toast(`No course spec named ${wanted}`, "bad");
+  } else {
+    state.open.add(course.slug);
+    renderCourses();
+    const card = document.querySelector(`.course[data-token="${CSS.escape(course.slug)}"]`);
+    if (card) {
+      card.scrollIntoView({ block: "center", behavior: "smooth" });
+      card.classList.add("linked");
+    }
+  }
+  history.replaceState(null, "", "index.html");
+};
+
 const boot = async () => {
   document.getElementById("filter").addEventListener("input", (event) => {
     state.filter = event.target.value.trim();
@@ -434,6 +485,7 @@ const boot = async () => {
 
   await Promise.all([loadMe(), loadHealth()]);
   await Promise.all([loadCourses(), loadRuns()]);
+  focusLinkedCourse();
 
   // Runs change every few seconds while something generates; the specs only
   // change when a classroom is recorded, so they are polled far less often.

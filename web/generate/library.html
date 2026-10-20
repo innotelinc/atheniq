@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AthenIQ Platform Services — Library</title>
+  <meta name="description" content="Shared media shelves — the images, decks, recordings and readings courses draw from.">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="console.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <span class="brand">
+        <span class="mark" aria-hidden="true"></span>
+        AthenIQ <span class="sep">/</span> <span class="muted">Platform Services</span>
+      </span>
+      <nav class="nav">
+        <a href="courses.html">Courses</a>
+        <a href="programs.html">Programs</a>
+        <a href="index.html">Classrooms</a>
+        <a href="https://studio.innotel.us/" rel="noopener">Studio</a>
+        <a href="platform.html">Platform</a>
+      </nav>
+      <span class="who" id="who">checking sign-in…</span>
+    </div>
+  </header>
+
+  <main class="wrap layout">
+    <section class="panel" aria-labelledby="lib-h">
+      <div class="panel-head">
+        <h1 id="lib-h">Library</h1>
+        <span class="counts" id="counts"></span>
+      </div>
+      <p class="sub">A library is one shelf of assets — images, decks, recordings, readings — that more than one course can point at. Creating one here records the shelf; files go into it through the storage host, so a shelf that exists and holds nothing says so.</p>
+      <div id="libraries" class="course-list" aria-live="polite">
+        <p class="empty">loading…</p>
+      </div>
+    </section>
+
+    <aside class="side">
+      <section class="panel" aria-labelledby="new-h">
+        <div class="panel-head"><h2 id="new-h">New library</h2></div>
+        <p class="sub">Name it for what is on the shelf, not for the course that asked for it first.</p>
+        <form id="library-form" class="brief" autocomplete="off">
+          <label for="library-name">Name</label>
+          <input id="library-name" name="name" type="text" maxlength="48" required placeholder="Clinical simulation media">
+          <label for="library-description">What belongs on it</label>
+          <textarea id="library-description" name="description" rows="3" maxlength="400"
+                    placeholder="Manikin setup photos, monitor traces, and debrief audio for the nursing simulations."></textarea>
+          <label for="library-source">Storage</label>
+          <select id="library-source" name="source">
+            <option value="onyx">ONYX object storage</option>
+            <option value="local">This host</option>
+          </select>
+          <div class="brief-actions">
+            <button class="btn btn-primary" id="library-submit" type="submit">Create library</button>
+            <span class="hint" id="library-hint"></span>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h2>Where it is used</h2></div>
+        <p class="sub">A classroom that needs a file from a shelf names the library and the asset; the generator writes that reference into the spec instead of embedding a copy, so replacing an asset updates every course that draws on it.</p>
+      </section>
+    </aside>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <script src="library.js"></script>
+</body>
+</html>

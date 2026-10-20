@@ -72,7 +72,10 @@ if not THEME_DIR.is_dir():  # pragma: no cover - a broken install, said plainly
     )
 
 #: Where Indigo keeps its theme inside the image, and therefore where ours goes.
+#: The LMS and the CMS are two overlays with two roots; Studio's chrome (the
+#: Platform Services link and its Unity bar) rides with the authoring templates.
 THEME_ROOT = "/openedx/themes/indigo/lms"
+CMS_THEME_ROOT = "/openedx/themes/indigo/cms"
 
 #: The Tutor settings patches that carry the Unity skin into the MFEs.
 MFE_SETTINGS_PATCH = "mfe-lms-common-settings"
@@ -123,6 +126,7 @@ hooks.Filters.ENV_PATCHES.add_item(
 # directory: without the second step the templates change and the served logo
 # does not.
 COPY --chown=app:app ./atheniq-theme/lms/ {THEME_ROOT}/
+COPY --chown=app:app ./atheniq-theme/cms/ {CMS_THEME_ROOT}/
 RUN ./manage.py lms collectstatic --noinput --settings=tutor.assets && \\
     ./manage.py cms collectstatic --noinput --settings=tutor.assets
 """,

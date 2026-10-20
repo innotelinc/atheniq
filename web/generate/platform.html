@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AthenIQ Platform Services — Platform</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="console.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <span class="brand">
+        <span class="mark" aria-hidden="true"></span>
+        AthenIQ <span class="sep">/</span> <span class="muted">Platform Services</span>
+      </span>
+      <nav class="nav">
+        <a href="courses.html">Courses</a>
+        <a href="programs.html">Programs</a>
+        <a href="index.html">Classrooms</a>
+        <a href="https://studio.innotel.us/" rel="noopener">Studio</a>
+        <a href="platform.html">Platform</a>
+      </nav>
+      <span class="who" id="who">checking sign-in…</span>
+      <span class="pill" id="health" data-state="pending">OpenMAIC …</span>
+    </div>
+  </header>
+
+  <main class="wrap layout">
+    <section class="panel" aria-labelledby="plat-h">
+      <div class="panel-head"><h1 id="plat-h">Platform</h1></div>
+      <p class="sub">One workspace for authoring: courses, programs and classrooms are created and maintained here, and Studio is the course editor that renders what they produce. The learner portal is the same catalogue without the controls.</p>
+      <div class="program-grid">
+        <a class="program-card" href="courses.html"><span class="program-name">Courses</span><span class="program-meta">Specs, classrooms, regeneration</span></a>
+        <a class="program-card" href="programs.html"><span class="program-name">Programs</span><span class="program-meta">Degrees, semesters, conferral</span></a>
+        <a class="program-card" href="index.html"><span class="program-name">Classrooms</span><span class="program-meta">Runs, briefs, recording</span></a>
+        <a class="program-card" href="library.html"><span class="program-name">Library</span><span class="program-meta">Shared media shelves</span></a>
+        <a class="program-card" href="https://studio.innotel.us/" rel="noopener"><span class="program-name">Studio</span><span class="program-meta">Course editor</span></a>
+        <a class="program-card" href="https://lms.innotel.us/" rel="noopener"><span class="program-name">Learner portal</span><span class="program-meta">Programs and courses, public</span></a>
+      </div>
+    </section>
+    <aside class="side">
+      <section class="panel">
+        <div class="panel-head"><h2>Services</h2></div>
+        <div id="services" class="run-list" aria-live="polite"><p class="empty">checking…</p></div>
+      </section>
+    </aside>
+  </main>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <script>
+    const api = async (path) => {
+      const response = await fetch(path, { credentials: "same-origin", headers: { "X-Atheniq-Console": "1" } });
+      const text = await response.text();
+      if (!response.ok) throw new Error(text || `request failed (${response.status})`);
+      return text ? JSON.parse(text) : null;
+    };
+    const pill = document.getElementById("health");
+    const services = document.getElementById("services");
+    (async () => {
+      try {
+        const me = await api("/api/me");
+        document.getElementById("who").innerHTML = "";
+        document.getElementById("who").append(me.user + (me.mayGenerate ? " · staff" : " · student"));
+      } catch (_) { document.getElementById("who").textContent = "signed out"; }
+      try {
+        const health = await api("/api/health");
+        pill.dataset.state = health.ok ? "ok" : "bad";
+        pill.textContent = health.ok ? `OpenMAIC ${health.version || ""}`.trim() : "OpenMAIC unhealthy";
+        services.replaceChildren(...[
+          ["OpenMAIC", health.ok ? "healthy" : "unhealthy"],
+          ...(health.slots || []).map((slot) => [slot.slot, slot.model || "—"]),
+        ].map(([name, value]) => {
+          const row = document.createElement("div");
+          row.className = "run";
+          row.textContent = `${name}: ${value}`;
+          return row;
+        }));
+      } catch (error) {
+        pill.dataset.state = "bad";
+        pill.textContent = "OpenMAIC unreachable";
+        services.replaceChildren(Object.assign(document.createElement("p"), { className: "empty", textContent: error.message }));
+      }
+    })();
+  </script>
+</body>
+</html>

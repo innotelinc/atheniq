@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AthenIQ — Programs and courses</title>
+  <meta name="description" content="The programs and courses AthenIQ teaches: semesters, course sequences, final examinations, degrees and certificates.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="student.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <a class="brand" href="/">
+        <span class="mark" aria-hidden="true"></span>
+        AthenIQ <span class="sep">/</span> <span class="muted">Learning</span>
+      </a>
+      <nav class="nav" aria-label="Sections">
+        <a href="#programs">Programs</a>
+        <a href="#courses">Courses</a>
+      </nav>
+      <span class="spacer"></span>
+      <nav class="nav nav-secondary" aria-label="Platform">
+        <a href="https://ai.lms.innotel.us/programs.html" rel="noopener">Platform Services</a>
+        <a href="https://studio.innotel.us/" rel="noopener">Studio</a>
+        <a class="signin" href="https://apps.learn.innotel.us/catalog/">Sign in</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="hero" aria-labelledby="hero-h">
+      <h1 id="hero-h">Programs and courses</h1>
+      <p class="lede">Whole credentials, not single classes: every semester, every course, every prerequisite and final examination, ending in a degree or a stackable certificate.</p>
+      <div class="stats" id="stats" aria-live="polite"></div>
+    </section>
+
+    <section id="program-view" hidden aria-live="polite"></section>
+
+    <section id="programs" aria-labelledby="programs-h">
+      <div class="section-head">
+        <h2 id="programs-h">Programs</h2>
+        <span class="hint" id="programs-count"></span>
+      </div>
+      <div id="program-grid" class="grid" aria-live="polite">
+        <p class="empty">loading…</p>
+      </div>
+    </section>
+
+    <section id="courses" aria-labelledby="courses-h">
+      <div class="section-head">
+        <h2 id="courses-h">Courses</h2>
+        <span class="hint" id="courses-count"></span>
+      </div>
+      <p class="lede small">The classrooms behind each course. A live one opens in the classroom; the rest are being built.</p>
+      <div id="course-grid" class="grid" aria-live="polite">
+        <p class="empty">loading…</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer-inner">
+      <span>© AthenIQ</span>
+      <nav class="nav" aria-label="Footer">
+        <a href="https://apps.learn.innotel.us/catalog/">Course catalogue</a>
+        <a href="https://ai.lms.innotel.us/programs.html">Platform Services</a>
+        <a href="https://studio.innotel.us/">Studio</a>
+      </nav>
+    </div>
+  </footer>
+
+  <script src="student.js"></script>
+</body>
+</html>

@@ -1,0 +1,172 @@
+/* AthenIQ learner portal — Unity.
+ *
+ * Same palette and type as the console, the Studio chrome and the landing page:
+ * one product, three surfaces. A catalogue is read, not operated, so this page
+ * is quieter than the console: fewer borders, more space, one accent.
+ */
+:root {
+  color-scheme: dark;
+  --bg: #0a1118;
+  --bg-elevated: #101a22;
+  --surface: #16222c;
+  --surface-hover: #1d2b36;
+  --border: #22323d;
+  --text: #eef4f8;
+  --text-secondary: #c2cfd9;
+  --text-muted: #93a4b1;
+  --accent: #10b981;
+  --accent-hover: #34d399;
+  --accent-tint: rgba(16, 185, 129, 0.12);
+  --gold: #fbbf24;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --ease: cubic-bezier(.2, .8, .2, 1);
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  font-size: 15px; line-height: 1.55; -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent-hover); }
+code { font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+.muted { color: var(--text-muted); }
+
+/* -- topbar ---------------------------------------------------------------- */
+.topbar {
+  position: sticky; top: 0; z-index: 10;
+  background: rgba(10, 17, 24, 0.86); backdrop-filter: blur(24px);
+  border-bottom: 1px solid var(--border);
+}
+.topbar-inner { display: flex; align-items: center; gap: 18px; height: 60px; }
+.brand { display: inline-flex; align-items: center; gap: 9px; font-weight: 650; color: var(--text); letter-spacing: 0.03em; }
+.brand:hover { color: var(--text); }
+.brand .mark {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, var(--accent-hover), var(--accent) 60%, #055c42);
+}
+.brand .sep { color: var(--border); font-weight: 400; }
+.nav { display: flex; gap: 16px; }
+.nav a { font-size: 13.5px; color: var(--text-secondary); }
+.nav a:hover { color: var(--text); }
+.nav-secondary { margin-left: auto; align-items: center; }
+.nav-secondary .signin {
+  border: 1px solid var(--accent); color: var(--accent);
+  border-radius: 999px; padding: 4px 13px; font-weight: 600;
+}
+.nav-secondary .signin:hover { background: var(--accent-tint); }
+.spacer { flex: 1; }
+
+/* -- hero ------------------------------------------------------------------ */
+.hero { padding: 56px 0 22px; }
+.hero h1 { margin: 0; font-size: clamp(1.9rem, 4vw, 2.7rem); letter-spacing: -0.02em; }
+.lede { color: var(--text-secondary); max-width: 66ch; margin: 10px 0 0; }
+.lede.small { font-size: 13.5px; color: var(--text-muted); margin: 0 0 14px; }
+.stats { display: flex; flex-wrap: wrap; gap: 22px; margin-top: 22px; }
+.stats .stat-value { font-size: 1.3rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+.stats .stat-label { font-size: 11.5px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-muted); }
+
+/* -- sections -------------------------------------------------------------- */
+section { padding-top: 34px; }
+.section-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 12px; }
+.section-head h2 { margin: 0; font-size: 1.15rem; letter-spacing: -0.01em; }
+.hint { font-size: 12.5px; color: var(--text-muted); margin-left: auto; font-variant-numeric: tabular-nums; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+
+/* -- programme card -------------------------------------------------------- */
+.program-card {
+  display: flex; flex-direction: column; gap: 6px; text-align: left; cursor: pointer;
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 18px 20px; color: inherit; font: inherit;
+  transition: border-color .15s var(--ease), transform .15s var(--ease);
+}
+.program-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+.kind {
+  align-self: flex-start; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--text-muted); border: 1px solid var(--border); border-radius: 999px; padding: 1px 8px;
+}
+.program-name { font-size: 1.08rem; font-weight: 650; }
+.program-credential { font-size: 12.5px; color: var(--accent); }
+.program-meta { font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.program-desc {
+  font-size: 13px; color: var(--text-secondary);
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.program-certs { font-size: 12px; color: var(--gold); }
+
+/* -- course card ----------------------------------------------------------- */
+.course-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-md); padding: 14px 16px;
+}
+.course-card .slug { font-size: 13.5px; font-weight: 600; }
+.course-card .key { font-size: 11.5px; color: var(--text-muted); }
+.course-card .tally { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+.rooms { display: flex; flex-direction: column; gap: 3px; margin-top: 10px; }
+.room { display: flex; gap: 8px; align-items: baseline; font-size: 12.5px; color: var(--text-secondary); }
+.room .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border); flex: 0 0 auto; }
+.room a { color: var(--text-secondary); }
+.room a:hover { color: var(--accent); }
+.room.live .dot { background: var(--accent); }
+
+/* -- programme detail ------------------------------------------------------ */
+#program-view { padding-top: 30px; }
+.detail-head { display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.back {
+  background: transparent; border: 1px solid var(--border); color: var(--text-secondary);
+  border-radius: 999px; padding: 4px 12px; font: inherit; font-size: 12.5px; cursor: pointer;
+}
+.back:hover { border-color: var(--accent); color: var(--text); }
+.detail h2 { margin: 6px 0 2px; font-size: 1.6rem; letter-spacing: -0.015em; }
+.badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 4px; }
+.badge {
+  font-size: 11.5px; border: 1px solid var(--border); border-radius: 999px;
+  padding: 2px 9px; color: var(--text-secondary);
+}
+.badge.ok { color: var(--accent); border-color: rgba(16, 185, 129, 0.4); }
+.cta-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0 4px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 6px; border-radius: var(--radius-sm);
+  padding: 8px 15px; font-size: 13.5px; font-weight: 600; border: 1px solid transparent;
+}
+.btn-primary { background: var(--accent); color: var(--bg); }
+.btn-primary:hover { background: var(--accent-hover); color: var(--bg); }
+.btn-secondary { border-color: var(--border); color: var(--text); }
+.btn-secondary:hover { border-color: var(--accent); color: var(--text); }
+
+.semester { border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); margin-top: 10px; overflow: hidden; }
+.semester-head { display: flex; align-items: baseline; gap: 10px; padding: 11px 14px; cursor: pointer; }
+.semester-head:hover { background: var(--surface-hover); }
+.semester-name { font-weight: 600; font-size: 14px; }
+.semester-tally { margin-left: auto; font-size: 12px; color: var(--text-muted); }
+.chev { color: var(--text-muted); transition: transform .15s var(--ease); }
+.semester[data-open="1"] .chev { transform: rotate(90deg); }
+.semester-body { display: none; border-top: 1px solid var(--border); }
+.semester[data-open="1"] .semester-body { display: block; }
+.course-row { padding: 11px 14px; border-top: 1px solid rgba(34, 50, 61, 0.55); }
+.course-row:first-child { border-top: 0; }
+.course-title { font-size: 13.5px; }
+.course-title code { color: var(--accent); font-size: 12px; margin-right: 3px; }
+.course-sub { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+.course-desc { font-size: 12.5px; color: var(--text-secondary); margin-top: 4px; max-width: 85ch; }
+
+.empty { color: var(--text-muted); font-size: 13.5px; }
+
+/* -- footer ---------------------------------------------------------------- */
+.footer { border-top: 1px solid var(--border); margin-top: 64px; padding: 22px 0 34px; }
+.footer-inner { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-muted); }
+.footer .nav { margin-left: auto; }
+
+@media (max-width: 760px) {
+  .nav-secondary a:not(.signin) { display: none; }
+  .hero { padding-top: 36px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; }
+  html { scroll-behavior: auto; }
+}

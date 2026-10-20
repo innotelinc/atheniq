@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AthenIQ Platform Services — Programs</title>
+  <meta name="description" content="Whole programs: semesters, courses, prerequisites, final examinations, stackable certificates, and degree conferral.">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="console.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <span class="brand">
+        <span class="mark" aria-hidden="true"></span>
+        AthenIQ <span class="sep">/</span> <span class="muted">Platform Services</span>
+      </span>
+      <nav class="nav">
+        <a href="courses.html">Courses</a>
+        <a href="programs.html">Programs</a>
+        <a href="index.html">Classrooms</a>
+        <a href="https://studio.innotel.us/" rel="noopener">Studio</a>
+        <a href="platform.html">Platform</a>
+      </nav>
+      <span class="who" id="who">checking sign-in…</span>
+      <span class="pill" id="mode" data-state="pending">student view</span>
+    </div>
+  </header>
+
+  <main class="wrap layout">
+    <section class="panel" aria-labelledby="catalogue-h">
+      <div class="panel-head">
+        <h1 id="catalogue-h">Programs</h1>
+        <div class="head-tools">
+          <span class="counts" id="counts"></span>
+        </div>
+      </div>
+      <p class="sub">A program is the whole credential: every semester, every course, every prerequisite and final examination, ending in a degree or a stackable certificate. Pick one to see its curriculum and your progress through it.</p>
+      <div id="catalogue" class="program-grid" aria-live="polite"><p class="empty">loading…</p></div>
+    </section>
+
+    <aside class="side">
+      <section class="panel" aria-labelledby="create-h" id="create-panel" hidden>
+        <div class="panel-head"><h2 id="create-h">Run a program</h2></div>
+        <p class="sub">Start a programme from a catalogue template. The full curriculum — semesters, courses, finals — is created in one step, then generated classroom by classroom.</p>
+        <form id="create-form" class="brief" autocomplete="off">
+          <label for="create-template">Template</label>
+          <select id="create-template" name="template"></select>
+          <label for="create-term">First term</label>
+          <input id="create-term" name="startTerm" type="text" maxlength="40" placeholder="Fall 2026">
+          <label for="create-name">Name (optional)</label>
+          <input id="create-name" name="name" type="text" maxlength="120" placeholder="Criminal Justice — Evening cohort">
+          <div class="brief-actions">
+            <button class="btn btn-primary" id="create-submit" type="submit">Create program</button>
+            <span class="hint">staff only</span>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel" aria-labelledby="student-h">
+        <div class="panel-head"><h2 id="student-h">My progress</h2></div>
+        <p class="sub">Enrol with the identity on your account, then the page tracks credits, GPA, finals, and what you can take next.</p>
+        <form id="enroll-form" class="brief" autocomplete="off">
+          <label for="enroll-program">Program</label>
+          <select id="enroll-program" name="program"></select>
+          <label for="enroll-student">Learner identity</label>
+          <input id="enroll-student" name="student" type="email" placeholder="you@example.org" required>
+          <div class="brief-actions">
+            <button class="btn btn-primary" id="enroll-submit" type="submit">View my progress</button>
+            <span class="hint" id="enroll-hint"></span>
+          </div>
+        </form>
+      </section>
+    </aside>
+  </main>
+
+  <section class="wrap" id="detail-wrap" hidden>
+    <article class="panel program-detail" id="detail" aria-live="polite"></article>
+  </section>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="programs.js"></script>
+</body>
+</html>

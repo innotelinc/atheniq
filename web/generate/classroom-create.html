@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AthenIQ — Create Classroom</title>
+  <meta name="description" content="Create a new OpenMAIC classroom from course subject matter">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="console.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <span class="brand">
+        <span class="mark" aria-hidden="true"></span>
+        AthenIQ <span class="sep">/</span> <span class="muted">Create classroom</span>
+      </span>
+      <span class="who" id="who">checking sign-in…</span>
+      <span class="pill" id="health" data-state="pending">OpenMAIC …</span>
+    </div>
+  </header>
+
+  <main class="wrap layout">
+    <section class="panel" aria-labelledby="create-h">
+      <div class="panel-head">
+        <h1 id="create-h">Create classroom from subject</h1>
+      </div>
+      <p class="sub">Enter the course subject matter below. The AI will generate a complete OpenMAIC classroom brief including prompt, objectives, activities, and assessment. A course key and run number will be auto-generated.</p>
+
+      <form id="subject-form" class="subject-form" autocomplete="off">
+        <div class="form-group">
+          <label for="subject-matter">Course subject matter</label>
+          <textarea id="subject-matter" name="matter" rows="5" spellcheck="true"
+                    placeholder="AI Classroom Facilitation: a course about teaching with generative AI, covering strengths, limits, and facilitation techniques. Students will critique AI-generated lesson plans against source material."></textarea>
+          <div class="form-hint">Describe what the class does, who is in it, and how it is assessed. 80+ characters required.</div>
+        </div>
+
+        <div class="form-group">
+          <label for="subject-title">Title (optional, auto-generated)</label>
+          <input id="subject-title" name="title" type="text" maxlength="120"
+                 placeholder="What the Model Can and Cannot Do">
+          <div class="form-hint">Leave blank to auto-generate from your subject matter.</div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn btn-primary" id="subject-submit" type="submit">Generate classroom</button>
+          <span class="hint" id="subject-hint">80 characters minimum</span>
+        </div>
+      </form>
+
+      <div id="result" class="result" hidden>
+        <h3>Generated classroom</h3>
+        <div id="result-details"></div>
+        <div id="result-actions"></div>
+      </div>
+
+      <div id="error" class="error" hidden></div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="console.js"></script>
+  <script>
+  // -- classroom creation form ----------------------------------------------------
+
+  const form = document.getElementById('subject-form');
+  const result = document.getElementById('result');
+  const resultDetails = document.getElementById('result-details');
+  const resultActions = document.getElementById('result-actions');
+  const errorDiv = document.getElementById('error');
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    const matter = document.getElementById('subject-matter').value.trim();
+    const title = document.getElementById('subject-title').value.trim() || undefined;
+
+    if (matter.length < 80) {
+      toast('A brief needs at least 80 characters.', 'bad');
+      document.getElementById('subject-matter').focus();
+      return;
+    }
+
+    // Show loading state
+    const submitBtn = document.getElementById('subject-submit');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'generating…';
+    result.hidden = true;
+    errorDiv.hidden = true;
+
+    try {
+      // Step 1: Generate the OpenMAIC brief from subject matter
+      const brief = await generateBriefFromSubject(matter, title);
+
+      // Step 2: Submit to the generation console
+      const answer = await api('/api/generate', {
+        method: 'POST',
+        body: JSON.stringify({ title: brief.title, requirement: brief.requirement }),
+      });
+
+      // Step 3: Display results
+      displayResult(brief, answer);
+    } catch (err) {
+      console.error(err);
+      toast(err.message || 'Failed to generate classroom', 'bad');
+      errorDiv.hidden = false;
+      errorDiv.textContent = err.message || 'Unknown error';
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Generate classroom';
+    }
+  });
+
+  /**
+   * Generate an OpenMAIC brief from raw subject matter.
+   * Maps free-form subject to the structured brief format expected by the gateway.
+   */
+  async function generateBriefFromSubject(subject, optionalTitle) {
+    // Build the brief structurally from the subject using a prompt template.
+    // The brief format expected by OpenMAIC's /api/generate-classroom is a
+    // requirement string folded into these sections (see requirement_text()
+    // in build-classrooms.py):
+
+    const teacher = optionalTitle || 'An experienced learning designer who runs generative-AI classrooms and always names the risk before the reward.';
+    const classmates = 'A subject-matter expert who is new to generative AI and openly sceptical of it; An instructor who has already tried a chatbot with a class and hit a problem';
+    const interaction = 'Workshop-style: the teacher models one move, then the peers attempt it and compare what they got.';
+    const assessment = 'Each classroom ends with 3-5 checks aligned to the chapter\'s graded activity.';
+
+    // Extract a simple objective from the subject
+    const objectives = extractObjectives(subject);
+
+    // Extract simple activities
+    const activities = extractActivities(subject);
+
+    const locale = 'en';
+
+    const requirement = [
+      `The AI teacher: ${teacher}`,
+      ...(classmates ? [`The AI classmates (cast one per description): ${classmates}`] : []),
+      interaction ? `Interaction: ${interaction}` : null,
+      assessment ? `Assessment: ${assessment}` : null,
+      ...(objectives ? [`By the end, learners can: ${objectives.join('; ')}`] : []),
+      ...(activities ? [`The classroom should include: ${activities.map(a => a.type + ' (' + a.title + ')').join(', ')}`] : []),
+      ...(locale ? [`Language: ${locale}`] : []),
+    ].filter(Boolean).join('\n\n');
+
+    // Derive a title if not provided
+    const title = optionalTitle || deriveTitle(subject);
+
+    return { title, requirement };
+  }
+
+  /**
+   * Extract learning objectives from subject matter text.
+   */
+  function extractObjectives(text) {
+    const lower = text.toLowerCase();
+    const objectives = [];
+
+    if (/(objective|goal|aim|learn|outcome)/i.test(text)) {
+      objectives.push('Match a teaching task to a strength of generative AI');
+    }
+    if (/confab|halluc|verify|source|fact-check/i.test(text)) {
+      objectives.push('Catch confabulation by verifying against a source');
+    }
+    if (/data|privacy|never leave|policy/i.test(text)) {
+      objectives.push('State what learner data must never leave the LMS');
+    }
+    if (!objectives.length) {
+      objectives.push('Understand the capabilities and limits of AI in education');
+    }
+    return objectives;
+  }
+
+  /**
+   * Extract classroom activities from subject matter text.
+   */
+  function extractActivities(text) {
+    const activities = [];
+    const lower = text.toLowerCase();
+
+    if (/slide|presentation/i.test(lower)) {
+      activities.push({ type: 'slides', title: 'Strengths, limits, and the facilitation stance' });
+    }
+    if /(roleplay|scenario|simulation)/i.test(lower) {
+      activities.push({ type: 'roleplay', title: 'The confident wrong answer' });
+    }
+    if (/quiz|knowledge check|assessment/i.test(lower)) {
+      activities.push({ type: 'quiz', title: 'AI literacy' });
+    }
+    if (!activities.length) {
+      activities.push({ type: 'slides', title: 'Strengths, limits, and the facilitation stance' });
+    }
+    return activities;
+  }
+
+  /**
+   * Derive a short title from the subject matter.
+   */
+  function deriveTitle(text) {
+    // Take the first sentence or a sensible snippet, cap at ~40 chars
+    const firstSentence = text.split('.')[0];
+    const snippet = firstSentence.length > 40 ? firstSentence.substring(0, 37) + '...' : firstSentence;
+    return snippet || 'Classroom';
+  }
+
+  /** -- result display -------------------------------------------------------- */
+
+  function displayResult(brief, apiAnswer) {
+    resultDetails.innerHTML = `
+      <p><strong>Title:</strong> ${brief.title}</p>
+      <p><strong>Run ID:</strong> ${apiAnswer.runId}</p>
+      <p><strong>Classroom:</strong> <a href="${state.classroomHost}/classroom/${apiAnswer.runId}" target="_blank" rel="noopener">Open classroom.innotel.us/${apiAnswer.runId}</a></p>
+    `;
+
+    resultActions.innerHTML = `
+      <button class="btn btn-primary" id="embed-btn" type="button">Embed in course spec</button>
+      <button class="btn btn-secondary" id="close-btn" type="button">Close</button>
+    `;
+
+    document.getElementById('result').hidden = false;
+
+    document.getElementById('embed-btn').onclick = async () => {
+      try {
+        // Use the /api/runs/<id>/record endpoint to record the classroom
+        const answer = await api(`/api/runs/${apiAnswer.runId}/record`, {
+          method: 'POST',
+          body: JSON.stringify({}),
+        });
+        toast('Classroom recorded in spec: ' + answer.classroomId);
+      } catch (err) {
+        toast(err.message, 'bad');
+      }
+    };
+
+    document.getElementById('close-btn').onclick = () => {
+      result.hidden = true;
+    };
+
+    toast('Classroom generation started — run ' + apiAnswer.runId);
+  }
+  </script>
+</body>
+</html>

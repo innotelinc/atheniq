@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AthenIQ Platform Services — Create course</title>
+  <meta name="description" content="Create a new complete course with classroom, certificates, and entitlements">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="console.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <span class="brand">
+        <span class="mark" aria-hidden="true"></span>
+        AthenIQ <span class="sep">/</span> <span class="muted">Platform Services</span>
+      </span>
+      <nav class="nav">
+        <a href="courses.html">Courses</a>
+        <a href="programs.html">Programs</a>
+        <a href="index.html">Classrooms</a>
+        <a href="https://studio.innotel.us/" rel="noopener">Studio</a>
+        <a href="platform.html">Platform</a>
+      </nav>
+      <span class="who" id="who">checking sign-in…</span>
+      <span class="pill" id="health" data-state="pending">OpenMAIC …</span>
+    </div>
+  </header>
+
+  <main class="wrap layout">
+    <section class="panel" aria-labelledby="create-h">
+      <div class="panel-head">
+        <h1 id="create-h">Create course from subject</h1>
+      </div>
+      <p class="sub">Enter the course subject matter below. The AI will generate a complete OpenMAIC classroom brief, syllabus, quizzes, and homework. Choose whether this is a certificate course, a paid course, and the grade threshold for certificate issuance.</p>
+
+      <form id="course-form" class="subject-form" autocomplete="off">
+        <div class="form-group">
+          <label for="subject-matter">Course subject matter</label>
+          <textarea id="subject-matter" name="matter" rows="5" spellcheck="true"
+                    placeholder="AI Classroom Facilitation: a course about teaching with generative AI, covering strengths, limits, and facilitation techniques. Students will critique AI-generated lesson plans against source material."></textarea>
+          <div class="form-hint">Describe what the class does, who is in it, and how it is assessed. 80+ characters required.</div>
+        </div>
+
+        <div class="form-group">
+          <label for="subject-title">Title (optional, auto-generated)</label>
+          <input id="subject-title" name="title" type="text" maxlength="120"
+                 placeholder="What the Model Can and Cannot Do">
+          <div class="form-hint">Leave blank to auto-generate from your subject matter.</div>
+        </div>
+
+        <div class="form-group">
+          <label>Course options</label><br>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="certificate-option" value="1">
+            <label class="form-check-label" for="certificate-option">
+              Issue certificate upon completion
+            </label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="paid-option" value="1">
+            <label class="form-check-label" for="paid-option">
+              Paid course (requires Magnate billing)
+            </label>
+          </div>
+          <!-- Certificate type visible only when certificate is selected -->
+          <div id="cert-type-section" class="form-group" style="display:none; margin-top: 8px;">
+            <label>Certificate type</label><br>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="cert-type" value="completion" id="cert-type-completion" checked>
+              <label class="form-check-label" for="cert-type-completion">
+                Issue on completion
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="cert-type" value="grade" id="cert-type-grade">
+              <label class="form-check-label" for="cert-type-grade">
+                Issue when grade threshold reached (e.g., 80%+)
+              </label>
+            </div>
+            <input type="number" id="grade-threshold" name="grade-threshold" min="50" max="100" value="80"
+                   style="margin-left: 12px; width: 60px;">
+            <span style="font-size: 0.85em; color: #666;">grade threshold</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="subject-credits">Credit amount (if paid)</label>
+          <input type="number" id="subject-credits" name="credits" min="1" max="100" value="10"
+                 style="width: 80px;"
+                 placeholder="e.g. 10">
+          <div class="form-hint">Credits to grant the learner upon completion. Required for paid courses.</div>
+        </div>
+
+        <div class="form-group" style="margin-top: 12px;">
+          <label for="course-key">Course key (auto-generated)</label>
+          <input type="text" id="course-key" name="courseKey" maxlength="120"
+                 placeholder="e.g. course-v1:InnotelLabs+MAIC101+T1"
+                 value="" readonly>
+          <div class="form-hint">Auto-derived from subject matter. Override if needed.</div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn btn-primary" id="course-submit" type="submit">Generate course</button>
+          <span class="hint" id="course-hint">80 characters minimum</span>
+        </div>
+      </form>
+
+      <div id="result" class="result" hidden>
+        <h3>Course generation in progress</h3>
+        <div id="result-details"></div>
+        <div id="result-actions"></div>
+      </div>
+
+      <div id="error" class="error" hidden></div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="console.js"></script>
+  <script>
+// Element creation helper
+const el = (tag, props = {}, ...children) => {
+  const node = document.createElement(tag);
+  for (const [key, value] of Object.entries(props)) {
+    if (key === "class") node.className = value;
+    else if (key === "dataset") Object.assign(node.dataset, value);
+    else if (key.startsWith("on")) node.addEventListener(key.slice(2), value);
+    else if (value !== null && value !== undefined) node.setAttribute(key, value);
+  }
+  for (const child of children.flat()) {
+    if (child === null || child === undefined || child === false) continue;
+    node.append(child.nodeType ? child : document.createTextNode(String(child)));
+  }
+  return node;
+};
+
+  // -- course creation form ----------------------------------------------------
+
+  const form = document.getElementById('course-form');
+  const result = document.getElementById('result');
+  const resultDetails = document.getElementById('result-details');
+  const resultActions = document.getElementById('result-actions');
+  const errorDiv = document.getElementById('error');
+
+  // Show/hide certificate type section based on certificate checkbox
+  const certCheckbox = document.getElementById('certificate-option');
+  const certTypeSection = document.getElementById('cert-type-section');
+  certCheckbox.addEventListener('change', () => {
+    certTypeSection.style.display = certCheckbox.checked ? 'block' : 'none';
+  });
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    const matter = document.getElementById('subject-matter').value.trim();
+    const title = document.getElementById('subject-title').value.trim() || undefined;
+    const isCertificate = document.getElementById('certificate-option').checked;
+    const isPaid = document.getElementById('paid-option').checked;
+    const certType = isCertificate ? document.querySelector('input[name="cert-type"]:checked').value : 'completion';
+    const gradeThreshold = isCertificate && certType === 'grade'
+      ? parseInt(document.getElementById('grade-threshold').value) : 80;
+    const credits = isPaid ? parseInt(document.getElementById('subject-credits').value) : 0;
+
+    // Derive course key and term from subject matter
+    const courseKeyInput = document.getElementById('course-key');
+    if (courseKeyInput) {
+      const derivedKey = deriveKeyFromSubject(matter);
+      courseKeyInput.value = derivedKey;
+    }
+
+    if (matter.length < 80) {
+      toast('A brief needs at least 80 characters.', 'bad');
+      document.getElementById('subject-matter').focus();
+      return;
+    }
+
+    // Show loading state
+    const submitBtn = document.getElementById('course-submit');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'generating…';
+    result.hidden = true;
+    errorDiv.hidden = true;
+
+    try {
+      // Step 1: Generate the OpenMAIC brief from subject matter
+      const brief = await generateBriefFromSubject(matter, title);
+
+      // Step 2: Submit to the generation console to create a classroom
+      const answer = await api('/api/create-course', {
+        method: 'POST',
+        body: JSON.stringify({
+          title: brief.title,
+          requirement: brief.requirement,
+          certificate: isCertificate,
+          paid: isPaid,
+          credits: credits,
+          certType: certType,
+          gradeThreshold: gradeThreshold,
+        }),
+      });
+
+      // Step 3: Display results
+      displayResult(brief, answer);
+    } catch (err) {
+      console.error(err);
+      toast(err.message || 'Failed to generate course', 'bad');
+      errorDiv.hidden = false;
+      errorDiv.textContent = err.message || 'Unknown error';
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Generate course';
+    }
+  });
+
+  /** 
+   * Generate an OpenMAIC brief from raw subject matter.
+   * Maps free-form subject to the structured brief format expected by the gateway.
+   */
+  async function generateBriefFromSubject(subject, optionalTitle) {
+    const teacher = optionalTitle || 'An experienced learning designer who runs generative-AI classrooms and always names the risk before the reward.';
+    const classmates = 'A subject-matter expert who is new to generative AI and openly sceptical of it; An instructor who has already tried a chatbot with a class and hit a problem';
+    const interaction = 'Workshop-style: the teacher models one move, then the peers attempt it and compare what they got.';
+    const assessment = 'Each classroom ends with 3-5 checks aligned to the chapter\'s graded activity.';
+
+    const objectives = extractObjectives(subject);
+
+    const activities = extractActivities(subject);
+
+    const locale = 'en';
+
+    const requirement = [
+      `The AI teacher: ${teacher}`,
+      ...(classmates ? [`The AI classmates (cast one per description): ${classmates}`] : []),
+      interaction ? `Interaction: ${interaction}` : null,
+      assessment ? `Assessment: ${assessment}` : null,
+      ...(objectives ? [`By the end, learners can: ${objectives.join('; ')}`] : []),
+      ...(activities ? [`The classroom should include: ${activities.map(a => a.type + ' (' + a.title + ')').join(', ')}`] : []),
+      ...(locale ? [`Language: ${locale}`] : []),
+    ].filter(Boolean).join('\n\n');
+
+    const title = optionalTitle || deriveTitle(subject);
+
+    return { title, requirement };
+  }
+
+  /** 
+   * Extract learning objectives from subject matter text.
+   */
+  function extractObjectives(text) {
+    const lower = text.toLowerCase();
+    const objectives = [];
+
+    if (/(objective|goal|aim|learn|outcome)/i.test(text)) {
+      objectives.push('Match a teaching task to a strength of generative AI');
+    }
+    if (/confab|halluc|verify|source|fact-check/i.test(lower)) {
+      objectives.push('Catch confabulation by verifying against a source');
+    }
+    if (/data|privacy|never leave|policy/i.test(lower)) {
+      objectives.push('State what learner data must never leave the LMS');
+    }
+    if (!objectives.length) {
+      objectives.push('Understand the capabilities and limits of AI in education');
+    }
+    return objectives;
+  }
+
+  /** 
+   * Extract classroom activities from subject matter text.
+   */
+  function extractActivities(text) {
+    const activities = [];
+    const lower = text.toLowerCase();
+
+    if (/slide|presentation/i.test(lower)) {
+      activities.push({ type: 'slides', title: 'Strengths, limits, and the facilitation stance' });
+    }
+    if /(roleplay|scenario|simulation)/i.test(lower) {
+      activities.push({ type: 'roleplay', title: 'The confident wrong answer' });
+    }
+    if (/quiz|knowledge check|assessment/i.test(lower)) {
+      activities.push({ type: 'quiz', title: 'AI literacy' });
+    }
+    if (!activities.length) {
+      activities.push({ type: 'slides', title: 'Strengths, limits, and the facilitation stance' });
+    }
+    return activities;
+  }
+
+  /** 
+   * Derive a short title from the subject matter.
+   */
+  function deriveTitle(text) {
+    const firstSentence = text.split('.')[0];
+    const snippet = firstSentence.length > 40 ? firstSentence.substring(0, 37) + '...' : firstSentence;
+    return snippet || 'Classroom';
+  }
+
+  /**
+   * Derive a course key and term from subject matter.
+   * Extracts course code from brief (e.g., MAIC101, FAI101)
+   * Falls back to user input if not found
+   * Derives term from current date (T1/Sep-Jan, T2/Feb-Aug)
+   * Returns format: course-v1:InnotelLabs+{code}+{term}
+   */
+  function deriveKeyFromSubject(text) {
+    // Extract a course code pattern (e.g., MAIC101, FAI101, CS101)
+    const codeMatch = text.match(/[A-Z]{2,4}\d{3}/i);
+    let code = codeMatch ? codeMatch[0].toUpperCase() : '';
+
+    // If no code found, try to extract from typical patterns
+    if (!code) {
+      const codePatterns = [/\b(MAIC|FAI|CS|ENGL|MATH|PHYS)\d{3}/i, /\b\w{3,5}\d{3}\b/i];
+      for (const pattern of codePatterns) {
+        const m = text.match(pattern);
+        if (m) {
+          code = m[0].toUpperCase();
+          break;
+        }
+      }
+    }
+
+    // Derive term from current date
+    const now = new Date();
+    const month = now.getMonth() + 1; // 1-12
+    let term;
+    if (month >= 9 || month <= 1) { // Sep-Jan
+      term = 'T1';
+    } else { // Feb-Aug
+      term = 'T2';
+    }
+
+    // If no code was found, use a default
+    if (!code) {
+      code = 'UNKNOWN';
+    }
+
+    return `course-v1:InnotelLabs+${code}+${term}`;
+  }
+
+  /** -- result display -------------------------------------------------------- */
+
+  function displayResult(brief, apiAnswer) {
+    resultDetails.innerHTML = `
+      <p><strong>Title:</strong> ${brief.title}</p>
+      <p><strong>Run ID:</strong> ${apiAnswer.runId}</p>
+      <p><strong>Classroom:</strong> <a href="${state.classroomHost}/classroom/${apiAnswer.runId}" target="_blank" rel="noopener">Open classroom.innotel.us/${apiAnswer.runId}</a></p>
+      ${apiAnswer.classroomId ? `<p><strong>Classroom ID recorded:</strong> ${apiAnswer.classroomId}</p>` : ''}
+    `;
+
+    let actions = '';
+    if (apiAnswer.classroomId) {
+      actions = `
+        <button class="btn btn-primary" id="record-btn" type="button">Record classroom in spec</button>
+        <button class="btn btn-secondary" id="close-btn" type="button">Close</button>
+      `;
+    } else {
+      actions = `
+        <button class="btn btn-secondary" id="close-btn" type="button">Close</button>
+      `;
+    }
+
+    resultActions.innerHTML = actions;
+
+    // Display materials if generated
+    if (apiAnswer.materials) {
+      const materialsSection = document.getElementById('materials-section');
+      if (!materialsSection) {
+        const newDiv = el('div', { id: 'materials-section', class: 'panel' },
+          el('div', { class: 'panel-head' },
+            el('h1', {}, 'Course Materials')
+          ),
+          el('div', { class: 'panel-body' },
+            el('div', { class: 'materials' },
+              el('h3', {}, 'Syllabus')
+            ),
+            el('pre', { class: 'syllabus-content' }, apiAnswer.materials.syllabus || '')
+          )
+        );
+        const actionsDiv = document.getElementById('result-actions');
+        actionsDiv.parentNode.insertBefore(newDiv, actionsDiv.nextSibling);
+      }
+      const syllabusEl = materialsSection.querySelector('.syllabus-content');
+      if (syllabusEl) {
+        syllabusEl.textContent = apiAnswer.materials.syllabus || '';
+      }
+    }
+
+    document.getElementById('result').hidden = false;
+
+    if (apiAnswer.classroomId) {
+      document.getElementById('record-btn').onclick = async () => {
+        try {
+          const answer = await api(`/api/runs/${apiAnswer.runId}/record`, {
+            method: 'POST',
+            body: JSON.stringify({}),
+          });
+          toast('Classroom recorded in spec: ' + answer.classroomId);
+        } catch (err) {
+          toast(err.message, 'bad');
+        }
+      };
+    }
+
+    toast('Course generation started — run ' + apiAnswer.runId);
+  }
+  </script>
+</body>
+</html>

@@ -31,6 +31,12 @@ container, so the LMS only has to trust their origin — the bundle itself is
 host-agnostic and reads its configuration from the LMS, so it follows a rename
 without being rebuilt.
 
+It also carries `ATHENIQ_SESSION_COOKIE_DOMAIN`, which is session unification
+rather than host naming: set to `.innotel.us`, the LMS and the CMS both write
+`sessionid`/`csrftoken` for the whole domain, so Studio and the MFEs open on the
+session the learner already has instead of each starting a second sign-in. Empty
+by default — one cookie on every name under the domain is a deployment decision.
+
 Both lists are data, not code: drop a host from `config.yml` and `tutor config
 save`, and that name stops answering. The canonical host is not listed — Tutor
 already emits it. Both lists ship empty, so a fresh install answers only on its
@@ -67,6 +73,21 @@ hooks.Filters.CONFIG_DEFAULTS.add_item(
     ("ATHENIQ_LEGACY_MFE_HOSTS", [])
 )
 
+#: The cookie domain every Open edX service should agree on, e.g. `.innotel.us`.
+#: Empty by default, which leaves Tutor's per-host cookies exactly as they are.
+#: Setting it is *session unification*: the LMS sets its session cookie for the
+#: whole domain, so Studio (`studio.<domain>`) and the MFEs read the session the
+#: learner already has instead of each asking for a second sign-in. It is a
+#: deployment decision because it means one cookie is sent to every name under
+#: the domain — including names that are not the LMS — so the value belongs in
+#: `config.yml`, not in this plugin.
+#:
+#: The services must share a `SECRET_KEY` and session backend for this to work;
+#: Tutor already does both for the LMS, CMS and the workers.
+hooks.Filters.CONFIG_DEFAULTS.add_item(
+    ("ATHENIQ_SESSION_COOKIE_DOMAIN", "")
+)
+
 #: Django-side: the host is answerable, its forms are trusted, XHR from it is
 #: allowed and login may return to it. Appended rather than assigned so Tutor's
 #: own values (and anything another plugin adds) stay exactly as configured.
@@ -88,6 +109,31 @@ CSRF_TRUSTED_ORIGINS.append("https://{{ host }}")
 CORS_ORIGIN_WHITELIST.append("https://{{ host }}")
 LOGIN_REDIRECT_WHITELIST.append("{{ host }}")
 {% endfor %}
+{% if ATHENIQ_SESSION_COOKIE_DOMAIN %}
+# AthenIQ: one session across every name the platform answers on. Studio and
+# the MFEs then open on the session the LMS already set, instead of each one
+# starting a second sign-in under its own hostname.
+SESSION_COOKIE_DOMAIN = "{{ ATHENIQ_SESSION_COOKIE_DOMAIN }}"
+CSRF_COOKIE_DOMAIN = "{{ ATHENIQ_SESSION_COOKIE_DOMAIN }}"
+SESSION_COOKIE_SAMESITE = "Lax"
+{% endif %}
+""",
+    )
+)
+
+#: The CMS (Studio) side of the same decision. Studio reads the LMS session
+#: cookie, so it must trust the same domain and the same origins, or the cookie
+#: arrives and Django still refuses the POST.
+hooks.Filters.ENV_PATCHES.add_item(
+    (
+        "openedx-cms-production-settings",
+        """
+{% if ATHENIQ_SESSION_COOKIE_DOMAIN %}
+# AthenIQ: the same session as the LMS, so authoring does not ask again.
+SESSION_COOKIE_DOMAIN = "{{ ATHENIQ_SESSION_COOKIE_DOMAIN }}"
+CSRF_COOKIE_DOMAIN = "{{ ATHENIQ_SESSION_COOKIE_DOMAIN }}"
+SESSION_COOKIE_SAMESITE = "Lax"
+{% endif %}
 """,
     )
 )

@@ -143,9 +143,38 @@ footer slot and that footer still prints the Tutor + Open edX logos. The
 slot widget with the AthenIQ lockup; because the MFE footer is compiled, it needs
 `tutor images build mfe` (see [docs/Brand.md](Brand.md)).
 
-The same plugin also puts an **AI Classroom** link in the Studio (authoring) header, opening
-`ai.lms.innotel.us` on the Authentik session the LMS already has — so it is a
-click, not a second sign-in. Build only the apps that need it: `tutor images
+The same plugin also installs the platform nav in the MFE header — **Courses ·
+Programs · Classrooms · Studio · Platform** — opening `ai.lms.innotel.us` on the
+Authentik session the LMS already has, so it is a click, not a second sign-in.
+On the authoring app it adds the create row the platform actually needs
+(**+ New Program · + New Course · + New Classroom · + New Library**) in the page
+banner; the stock page still renders its own heading and single "+ New course"
+button, which only a fork of the authoring app can remove.
+
+### One session across Studio, the LMS and the MFEs
+
+Tutor gives each service its own host cookie, so `learn.innotel.us` and
+`studio.innotel.us` each asked for a sign-in even though Authentik already knew
+the learner. `ATHENIQ_SESSION_COOKIE_DOMAIN` (in `contrib/tutor-atheniq-hosts`)
+fixes that at the Open edX layer:
+
+```bash
+tutor config save --set ATHENIQ_SESSION_COOKIE_DOMAIN=.innotel.us
+tutor local restart lms cms        # settings patches apply on restart, no rebuild
+```
+
+Both the LMS and the CMS then set `sessionid` / `csrftoken` on `.innotel.us`
+with `SameSite=Lax`, so every Open edX name reads the same session. Verified
+live: `set-cookie: sessionid=…; Domain=.innotel.us; SameSite=Lax; Secure`.
+Leaving the value empty keeps Tutor's per-host default; setting it sends one
+cookie to every name under the domain, which is why it is configuration rather
+than a plugin default.
+
+This unifies the Open edX services only. `ai.lms.innotel.us` and
+`classroom.innotel.us` sit behind their own `oauth2-proxy` instances with their
+own Authentik clients, and two proxies with different clients cannot share a
+cookie. One cookie across those needs one proxy in front of all of them (the
+`cerulean-npm-sso` pattern, `--cookie-domain=.innotel.us`), not a second client. Build only the apps that need it: `tutor images
 build mfe` compiles all thirteen in parallel and has taken a production node
 down, while `docker build --target catalog-prod` (then `learning-prod`,
 `learner-dashboard-prod`) plus a wrapper image that copies the new `/openedx/app/dist`
@@ -461,6 +490,78 @@ wider than the need. Verified live: `CN=ai.lms.innotel.us` (Let's Encrypt),
 `302` to Authentik on every path including `/api/`, and a request that sets its
 own `X-Auth-Request-*` headers is still refused — the proxy authenticates before
 it forwards.
+
+### Programs — degrees and certificates (this repo)
+
+The console also runs whole credentials. A program is the ordered set of
+semesters, courses, prerequisites and final assessments that ends in a degree or
+a stackable certificate; `scripts/program-catalog.py` ships three
+(`criminal-justice`, `business-administration`, `nursing`) and
+`scripts/program-manager.py` holds the rules. Programs are stored as JSON under
+`GENERATION_ROOT/programs/`, so the store must be writable by the unit's user
+(`tutor` on this host) and `conferrals/` beside it receives the signed record.
+
+```text
+GET    /api/programs                     running programs + catalogue templates
+POST   /api/programs                     create from a template or a course list
+GET    /api/programs/<id>                the program with its semester plan and finals
+GET    /api/programs/<id>/progress?student=…
+POST   /api/programs/<id>/generate       one classroom run per course (semester/course filters)
+POST   /api/programs/<id>/sync           record finished runs into the plan
+POST   /api/programs/<id>/enroll         enrol a learner
+POST   /api/programs/<id>/complete       record a grade and final result
+POST   /api/programs/<id>/confer         confer the credential and sign it
+```
+
+`/programs.html` is the learner's page (catalogue, progress, what they can take
+next); the instructor/administrator controls on the same page appear only when
+the caller holds `GENERATION_ALLOWED_GROUPS`. Conferral is refused until every
+course, credit, GPA and final requirement is met, and the signed degree is
+rendered by `scripts/cert-bridge.py` and pushed through Signara using the same
+signer as course certificates. Because the service runs as `tutor`, the unit
+creates `programs/` and `conferrals/` owned by that user.
+
+### Learner portal — `lms.innotel.us`
+
+`scripts/student-portal.py` serves the learner-facing catalogue: the programs the
+platform runs and the courses it teaches, with the semesters, prerequisites and
+final examinations behind each one. It is deliberately **public and read-only** —
+a learner should not need a staff account to read what the school teaches, and a
+public page must not be able to reach a gradebook. The JSON it answers with
+(`/api/public/programs`, `/api/public/programs/<id>`, `/api/public/courses`)
+drops enrolments, grades and the creating account before it leaves the process.
+
+```text
+STUDENT_BIND=192.168.1.59   STUDENT_PORT=8092   STUDENT_ROOT=/home/tutor/atheniq-generation
+```
+
+It runs as `atheniq-student.service`. The page is `web/student/` and wears the
+same Unity palette as the console and the Studio chrome. **Live:** the edge
+proxy host for `lms.innotel.us` now forwards to `192.168.1.59:8092` instead of
+the LMS root (which only ever answered with a redirect to
+`apps.learn.innotel.us/catalog/`), and `https://lms.innotel.us/` serves the
+portal with `/api/public/programs` answering 200.
+
+### Library — shared media shelves
+
+The console's **Library** page (`web/generate/library.html`, `/api/library`)
+records the shelves courses draw media from: one folder per library under
+`library/<slug>/` with a `library.json` manifest, created by staff and listed
+with its asset count. Files are put into a shelf through the storage host, so an
+empty shelf says it is empty rather than pretending to hold content. The slug is
+derived server-side from the name, so a name can never become a path.
+
+### Studio chrome — `studio.innotel.us`
+
+`contrib/atheniq-theme/cms/` is the CMS half of the theme overlay: a header
+template that adds the **AthenIQ Platform Services** entry (and a learner-portal
+link) beside the Studio logo, and `unity-cms.css`, which paints the Studio header
+in Unity while leaving the course editor itself on the platform's light default.
+The Tutor theme plugin copies both halves into `/openedx/themes/indigo/`. On a
+running deployment the files can be copied into the CMS container and followed by
+`./manage.py cms collectstatic --noinput --settings=tutor.production`; the theme
+namespace makes the stylesheet answer at
+`/static/studio/indigo/atheniq/unity-cms.css`.
 
 ### Stage 3b — OpenMAIC persistence Postgres (this repo)
 

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AthenIQ Platform Services — Courses</title>
+  <meta name="description" content="Every course spec, its classrooms, and the actions that keep them current.">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="console.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <span class="brand">
+        <span class="mark" aria-hidden="true"></span>
+        AthenIQ <span class="sep">/</span> <span class="muted">Platform Services</span>
+      </span>
+      <nav class="nav">
+        <a href="courses.html">Courses</a>
+        <a href="programs.html">Programs</a>
+        <a href="index.html">Classrooms</a>
+        <a href="https://studio.innotel.us/" rel="noopener">Studio</a>
+        <a href="platform.html">Platform</a>
+      </nav>
+      <span class="who" id="who">checking sign-in…</span>
+    </div>
+  </header>
+
+  <main class="wrap layout">
+    <section class="panel" aria-labelledby="courses-h">
+      <div class="panel-head">
+        <h1 id="courses-h">Courses</h1>
+        <div class="head-tools"><span class="counts" id="counts"></span></div>
+      </div>
+      <p class="sub">A course is its spec plus the classrooms that teach it. Regeneration queues a run for every classroom that has none; archiving retires the whole spec to <code>courses/.archive/</code>, where it can be restored.</p>
+      <div class="bulk">
+        <a class="btn btn-primary" href="course-create.html">New course</a>
+        <span class="hint" id="hint"></span>
+      </div>
+      <div id="courses" class="course-list" aria-live="polite"><p class="empty">loading…</p></div>
+    </section>
+
+    <aside class="side">
+      <section class="panel" aria-labelledby="how-h">
+        <div class="panel-head"><h2 id="how-h">How creation works</h2></div>
+        <p class="sub">A course is generated from subject matter: the brief goes to OpenMAIC, the classroom comes back, and the syllabus, quizzes and final examination come from the same text. Certificates and paid enrolment are configured at creation, with the same rules everywhere.</p>
+        <p class="sub">Programs compose courses into semesters; classrooms are the individual scenes inside a course. Nothing here duplicates another page: each action lives where the thing it changes is listed.</p>
+      </section>
+    </aside>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <script src="courses.js"></script>
+</body>
+</html>

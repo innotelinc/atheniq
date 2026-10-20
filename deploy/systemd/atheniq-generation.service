@@ -13,6 +13,12 @@ Wants=network-online.target
 # The values below are the deployment's; the unit ships with the paths this
 # box uses. Copy to /etc/systemd/system/ and adjust GENERATION_BIND /
 # GENERATION_ROOT / GENERATION_ALLOWED_GROUPS for another host.
+#
+# The two integrations a program touches need credentials the unit itself must
+# not carry: Signara signs the conferred degree, and Authentik receives the
+# paid-course entitlement. `-` keeps the service startable on a host without
+# the file (conferral then reports `skipped`, it does not fail).
+EnvironmentFile=-/usr/src/projects/complete/atheniq/.env
 Environment=PYTHONUNBUFFERED=1
 Environment=OPENMAIC_BASE_URL=http://127.0.0.1:3000
 Environment=GENERATION_BIND=192.168.1.59
