@@ -626,7 +626,9 @@ class HttpSurface(GatewayCase):
     def test_the_page_is_served_with_a_script_free_policy(self):
         status, body, headers = self.call("/")
         self.assertEqual(status, 200)
-        self.assertIn(b"Course generation", body)
+        # The page's own markup, not its <title>: the heading is wording somebody
+        # can change, the batch button is the interface this policy protects.
+        self.assertIn(b'id="generate-missing"', body)
         self.assertIn("script-src 'self'", headers["Content-Security-Policy"])
         self.assertEqual(headers["X-Content-Type-Options"], "nosniff")
         status, body, headers = self.call("/console.js")
