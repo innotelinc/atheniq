@@ -395,24 +395,28 @@ sudo systemctl enable --now atheniq-generation-uptime.timer
 journalctl -u atheniq-generation-uptime.service -n 20
 ```
 
-A failing probe leaves the unit failed; it also alerts when
-`ATHENIQ_ALERT_WEBHOOK_URL` is set. This host posts to an ntfy topic (a plain-text
-POST with `Title`/`Priority`/`Tags`), configured in a drop-in so a repository
-update keeps the topic:
+A failing probe leaves the unit failed; it also emails `ATHENIQ_ALERT_EMAIL`
+through the site's Mailcow relay (`mail.innotel.us`, `192.168.1.15`, port 25 with
+STARTTLS and no credentials; set `ATHENIQ_SMTP_USER`/`ATHENIQ_SMTP_PASSWORD` for
+a relay that wants submission auth on 587). The values live in a drop-in so a
+repository update keeps them:
 
 ```bash
 sudo mkdir -p /etc/systemd/system/atheniq-generation-uptime.service.d
 sudo tee /etc/systemd/system/atheniq-generation-uptime.service.d/alert.conf >/dev/null <<'CONF'
 [Service]
-Environment=ATHENIQ_ALERT_WEBHOOK_URL=https://ntfy.sh/<topic>
+Environment=ATHENIQ_ALERT_EMAIL=ops@example.edu
+Environment=ATHENIQ_SMTP_HOST=mail.example.edu
+Environment=ATHENIQ_SMTP_PORT=25
+Environment=ATHENIQ_SMTP_FROM=atheniq-uptime@example.edu
 CONF
 sudo systemctl daemon-reload
 ```
 
-Subscribe to the topic in the ntfy app (or open the topic URL). A failed probe
-arrives with the failing URL and curl's error, at high priority, and the unit is
-left failed either way. Email is not used on this host: outbound SMTP (port 25)
-is blocked, so `tutor_local-smtp-1` queues rather than delivers.
+`ATHENIQ_ALERT_WEBHOOK_URL` remains supported as a second channel (a plain-text
+POST for ntfy-style endpoints); this host sends email only. The unit is left
+failed whether or not a channel is configured, and a failed delivery is printed
+in the journal without masking the probe's own failure.
 
 **Realized (2026-10, `ai.lms.innotel.us`).** The console runs from
 `atheniq-generation.service` (`deploy/systemd/atheniq-generation.service`):
