@@ -66,6 +66,7 @@ import os
 import posixpath
 import threading
 import time
+import traceback
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -110,6 +111,32 @@ def _load_builder():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def _error_text(value) -> str:
+    """The sentence inside an upstream error, whatever shape it arrived in.
+
+    OpenMAIC reports `error` as either a string or an object with a `message`.
+    Reading only the object raised AttributeError on the string form, inside
+    the request handler, which closed the socket, and a closed socket is what
+    the SSO proxy in front of this console reports as a 502. The refusal was
+    real; the crash was in describing it.
+    """
+    if isinstance(value, str):
+        return value
+    if isinstance(value, dict):
+        error = value.get("error")
+        if isinstance(error, dict):
+            for key in ("message", "detail"):
+                if error.get(key):
+                    return str(error[key])
+        elif error:
+            return str(error)
+        for key in ("message", "detail", "error_description"):
+            if value.get(key):
+                return str(value[key])
+        return json.dumps(value, default=str)[:500]
+    return str(value)
 
 
 @dataclass
@@ -385,15 +412,19 @@ class Console:
         return self._run_view(body.get("run", body))
 
     def _run_view(self, run: dict) -> dict:
-        error = run.get("error") or {}
+        error = run.get("error")
         progress = run.get("progress") or {}
+        if isinstance(error, dict):
+            error = {"code": error.get("errorCode"), "status": error.get("statusCode"),
+                     "message": _error_text(error)}
+        elif error:
+            error = {"code": None, "status": None, "message": _error_text(error)}
         return {
             "id": run.get("id"),
             "state": run.get("state"),
             "step": run.get("step"),
             "progress": {"done": progress.get("completed"), "total": progress.get("total")},
-            "error": {"code": error.get("errorCode"), "status": error.get("statusCode"),
-                      "message": error.get("message")} if error else None,
+            "error": error if error else None,
             "classroomId": run.get("stageId") or run.get("classroomId"),
             "createdAt": run.get("createdAt"),
             "updatedAt": run.get("updatedAt"),
@@ -407,10 +438,8 @@ class Console:
         self._rate_limit(identity)
         status, answer = self._call(self._client().submit, requirement)
         if status not in (200, 202):
-            message = answer if isinstance(answer, str) else (answer.get("error") or {}).get("message") \
-                or answer.get("error") or answer
             raise Bad(429 if status == 429 else 502,
-                      f"OpenMAIC refused the brief ({status}): {message}")
+                      f"OpenMAIC refused the brief ({status}): {_error_text(answer)}")
         run_id = answer.get("jobId") or answer.get("runId")
         if not run_id:
             raise Unavailable(f"OpenMAIC accepted the brief but named no run: {answer}")
@@ -776,6 +805,9 @@ class Handler(BaseHTTPRequestHandler):
             return self._error(err.status, str(err))
         except Unavailable as err:
             return self._error(502, str(err))
+        except Exception as err:  # a handler answers; an uncaught bug drops the socket (a 502)
+            traceback.print_exc()
+            return self._error(500, f"the console failed while handling this request: {err}")
 
     def do_DELETE(self):
         path = urllib.parse.urlsplit(self.path).path
