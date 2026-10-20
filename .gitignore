@@ -40,3 +40,6 @@ Thumbs.db
 # Docker volumes (if mounted into the repo)
 .pgdata/
 omniroute-data/
+
+# Editable installs of the plugins (pip install -e .)
+*.egg-info/
