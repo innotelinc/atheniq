@@ -48,7 +48,10 @@ Configuration (environment):
     GENERATION_TRUST_LOCAL     "1" accepts requests without proxy headers (local only)
     GENERATION_MAX_REQUIREMENT longest brief accepted, in characters (default 6000 —
                                the gateway refuses prompts longer than that)
-    GENERATION_SUBMITS_PER_HOUR submissions one person may start per hour (default 10)
+    GENERATION_SUBMITS_PER_HOUR submissions one person may start per hour
+                               (default 10; 0 disables the ceiling, which is
+                               how a deployment that starts a whole course
+                               at once runs)
     GENERATION_ROOT            repository root holding courses/ and web/ (default: this repo)
     CLASSROOM_HOST             public classroom host for links (default https://classroom.innotel.us)
 

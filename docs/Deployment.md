@@ -329,10 +329,20 @@ docstring in `scripts/generation-console.py` for the full route list):
   silently repoint a course's embeds — so that run stays visible with the reason
   attached.
 - **Generate all missing** — one run per classroom without a `classroom_id`,
-  across every spec in `courses/`. The hourly per-person limit still applies: the
-  batch stops at it, starts nothing more, and answers with what it started, what
-  it skipped and why. Classrooms already in flight are skipped rather than
-  submitted twice, because the spec does not learn about a run until it finishes.
+  across every spec in `courses/`. Two ceilings decide how much of that batch
+  starts, and both are configuration rather than code:
+  `GENERATION_SUBMITS_PER_HOUR` (the console's own per-person hourly limit,
+  default 10, `0` disables it) and OpenMAIC's
+  `OPENMAIC_MAX_ACTIVE_RUNS_PER_OWNER` (how many of one owner's runs may be in
+  progress at once, platform default 2). The batch stops cleanly at whichever it
+  reaches first, starts nothing more, and answers with what it started, what it
+  skipped and why — so the number of classrooms that run at once is the
+  active-run limit, and a deployment that wants five sets it to `5` (with
+  `OPENMAIC_AGENT_RUNTIME_MAX_CONCURRENT` and
+  `OPENMAIC_GENERATION_RUN_MAX_CONCURRENT` at least that high, since the lowest
+  ceiling wins). `ai.lms` runs that way: the hourly limit is off and all three
+  are `5`. Classrooms already in flight are skipped rather than submitted twice,
+  because the spec does not learn about a run until it finishes.
 - **New brief** — a free-form classroom for something not in a spec yet.
 
 Recording does not depend on somebody having the page open: the service sweeps
