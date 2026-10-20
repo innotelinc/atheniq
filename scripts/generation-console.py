@@ -11,12 +11,19 @@ WHAT IT SERVES. One page (`web/generate/`) and the JSON behind it:
     GET    /api/me                 who the proxy says you are, and whether you may generate
     GET    /api/health             OpenMAIC's health and the model each slot resolves to
     GET    /api/courses            every course's classrooms: generated, missing, or in flight
-    GET    /api/runs               the runs OpenMAIC still holds (paused or generating)
+    GET    /api/runs               the runs OpenMAIC still holds, plus what was recorded
     GET    /api/runs/<id>          one run, with its step, error and progress
     POST   /api/generate           submit a classroom — from a spec, or a free-form brief
+    POST   /api/generate-missing   submit every classroom the specs say is missing
     POST   /api/runs/<id>/retry    resume a paused run
     POST   /api/runs/<id>/record   write a finished classroom's id back into its spec
     DELETE /api/runs/<id>          discard a paused run that has no classroom
+
+RECORDING IS NOT A STEP. A run that came from a spec writes its classroom back
+into that spec as soon as it completes — during the page's poll, and on a timer
+(`GENERATION_AUTORECORD_SECONDS`) so an overnight run is recorded before anybody
+looks — and the entry leaves the list. The manual `/record` route remains for a
+run that was started before the console learned to do this.
 
 WHO MAY USE IT. It sits behind oauth2-proxy, and it does not trust that: every
 request has to carry the identity headers the proxy sets (`--set-xauthrequest`
@@ -73,10 +80,16 @@ BUILDER_PATH = os.path.join(REPO, "scripts", "build-classrooms.py")
 #: what to cut instead of a 502 an hour later.
 DEFAULT_MAX_REQUIREMENT = 6000
 
-#: The headers oauth2-proxy sets when `--set-xauthrequest` and
-#: `--pass-user-headers` are on. Anything else is treated as unauthenticated.
-USER_HEADERS = ("X-Auth-Request-User", "X-Auth-Request-Email")
-GROUPS_HEADER = "X-Auth-Request-Groups"
+#: The identity headers oauth2-proxy can supply. Two families, because the two
+#: flags write to different places: `--set-xauthrequest` sets `X-Auth-Request-*`
+#: on the *response* (for an nginx `auth_request` in front of it), while
+#: `--pass-user-headers` sets `X-Forwarded-*` on the request it proxies
+#: *upstream* — which is the request this console actually receives. Accept
+#: both, preferring the explicit `X-Auth-Request-*` names, and treat a request
+#: that carries neither as unauthenticated.
+USER_HEADERS = (("X-Auth-Request-User", "X-Forwarded-User"),
+                ("X-Auth-Request-Email", "X-Forwarded-Email"))
+GROUPS_HEADERS = ("X-Auth-Request-Groups", "X-Forwarded-Groups")
 
 #: A mutating request must carry this header. A browser form cannot set it
 #: cross-origin without a CORS preflight (which this server never grants), so it
@@ -110,6 +123,14 @@ class Config:
     submits_per_hour: int = 10
     root: str = REPO
     classroom_host: str = "https://classroom.innotel.us"
+    #: How often the service records finished classrooms on its own, in seconds.
+    #: 0 is "only when the page polls": the sweeper exists so a classroom is
+    #: written back while nobody is looking, which is the whole point of doing it
+    #: automatically, so a deployment sets this (the unit ships 20).
+    autorecord_seconds: int = 0
+    #: Where the run -> spec map is kept, so a restart does not forget a classroom
+    #: that finished while the process was down. Empty keeps it in memory.
+    state_path: str = ""
 
     @classmethod
     def from_env(cls, env=None):
@@ -127,6 +148,8 @@ class Config:
             submits_per_hour=int(env.get("GENERATION_SUBMITS_PER_HOUR", "10")),
             root=env.get("GENERATION_ROOT", REPO),
             classroom_host=env.get("CLASSROOM_HOST", "https://classroom.innotel.us").rstrip("/"),
+            autorecord_seconds=int(env.get("GENERATION_AUTORECORD_SECONDS", "0")),
+            state_path=env.get("GENERATION_STATE", ""),
         )
 
 
@@ -175,7 +198,56 @@ class Console:
         #: runs that left the active list, kept so the page can still show how
         #: they ended (a completed run is not "active" and would vanish).
         self._finished = {}
+        #: the classrooms written back without a click, newest last. Shown so an
+        #: operator sees the recording happened rather than inferring it from a
+        #: run disappearing out of a list.
+        self._recorded = collections.deque(maxlen=20)
         self._lock = threading.Lock()
+        self._load_state()
+
+    # -- what survives a restart ------------------------------------------
+
+    def _load_state(self) -> None:
+        """Remember which run belongs to which spec, across a service restart.
+
+        Without this, a classroom that finished while the process was restarting
+        is never recorded: the run's origin lived only in memory, and the spec is
+        the only thing the course actually embeds.
+        """
+        path = self.config.state_path
+        if not path:
+            return
+        try:
+            with open(path, encoding="utf-8") as fh:
+                data = json.load(fh)
+        except (OSError, ValueError):
+            return
+        started = data.get("started") if isinstance(data, dict) else None
+        if not isinstance(started, dict):
+            return
+        for run_id, source in list(started.items())[-50:]:
+            if isinstance(source, dict):
+                self._started[str(run_id)] = source
+
+    def _save_state(self) -> None:
+        """Write the run -> spec map, atomically, and never fail a request for it.
+
+        The state file is an optimisation for the restart case; a read-only
+        GENERATION_STATE must not turn a generation into an error.
+        """
+        path = self.config.state_path
+        if not path:
+            return
+        with self._lock:
+            payload = {"started": dict(self._started)}
+        try:
+            os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+            tmp = f"{path}.{os.getpid()}.tmp"
+            with open(tmp, "w", encoding="utf-8") as fh:
+                json.dump(payload, fh, indent=2, sort_keys=True)
+            os.replace(tmp, path)
+        except OSError:
+            pass
 
     # -- courses ---------------------------------------------------------
 
@@ -296,7 +368,15 @@ class Console:
             run["recordable"] = bool(started.get("spec")) and run.get("state") == "completed" \
                 and bool(run.get("classroomId"))
         runs.sort(key=lambda r: r.get("createdAt") or "", reverse=True)
-        return runs
+        # A finished classroom is written back here rather than by a click, and its
+        # entry leaves the list: the spec is what the course embeds, and a run that
+        # has produced one has nothing left for a person to decide.
+        return [run for run in runs if not self._record_and_drop(run)]
+
+    def recent_recordings(self) -> list[dict]:
+        """The classrooms recorded automatically, newest last."""
+        with self._lock:
+            return list(self._recorded)
 
     def run(self, run_id: str) -> dict:
         status, body = self._call(self._client().run, run_id)
@@ -339,6 +419,7 @@ class Console:
             self._started.move_to_end(run_id)
             while len(self._started) > 50:
                 self._started.popitem(last=False)
+        self._save_state()
         return {"runId": run_id, "source": source, "characters": len(requirement)}
 
     def _requirement_for(self, body) -> tuple[str, dict]:
@@ -436,6 +517,110 @@ class Console:
                     "classroom": started["classroom"], "classroomId": stage, "spec": path}
         raise Bad(404, f"{started['classroom']} is no longer in that spec")
 
+    def _record_and_drop(self, run: dict) -> bool:
+        """Record one finished run's classroom, and forget the run if it worked.
+
+        Returns True when the entry should leave the list. A spec that already
+        points at a different classroom is the one case kept visible: overwriting
+        it would silently repoint a course's embeds, so the run stays with the
+        reason attached for somebody to settle.
+        """
+        run_id = run.get("id")
+        started = self._started.get(run_id) or {}
+        if not started.get("spec"):
+            return False
+        if run.get("state") != "completed" or not run.get("classroomId"):
+            return False
+        try:
+            result = self.record(run_id)
+        except Bad as err:
+            run["recordError"] = str(err)
+            return False
+        except Unavailable as err:
+            run["recordError"] = str(err)
+            return False
+        with self._lock:
+            self._started.pop(run_id, None)
+            self._finished.pop(run_id, None)
+            self._recorded.append(result)
+        self._save_state()
+        return True
+
+    def sweep(self) -> list[dict]:
+        """Record finished classrooms without waiting for a page to be open.
+
+        Called on a timer by the service (see `GENERATION_AUTORECORD_SECONDS`), so
+        a classroom generated overnight is in its spec before anybody looks. Each
+        run is read from OpenMAIC and then decided by the same `_record_and_drop`
+        the page's poll uses, so there is one behaviour rather than two.
+        """
+        with self._lock:
+            pending = [run_id for run_id, started in self._started.items()
+                       if started.get("spec")]
+        recorded: list[dict] = []
+        for run_id in pending:
+            try:
+                run = self._finished.get(run_id) or self.run(run_id)
+            except (Bad, Unavailable):
+                # A run OpenMAIC no longer knows about, or a generator that is down:
+                # the next tick asks again. Nothing here is decided by a failure.
+                continue
+            if self._record_and_drop(dict(run)):
+                recorded.append(run)
+        return recorded
+
+    # -- the whole course -----------------------------------------------
+
+    def missing(self) -> list[dict]:
+        """Every classroom a spec describes that has no classroom yet."""
+        out: list[dict] = []
+        for course in self.courses():
+            for classroom in course["classrooms"]:
+                if not classroom["generated"]:
+                    out.append({"course": course["slug"], "classroom": classroom["id"],
+                                "title": classroom["title"]})
+        return out
+
+    def submit_missing(self, identity: Identity) -> dict:
+        """Start a run for every classroom the specs say is missing.
+
+        The hourly limit is per person and this can be asked for a whole course
+        catalogue at once, so the batch stops cleanly at the limit and names what it
+        did not start. A classroom that already has a run in flight is skipped
+        rather than submitted twice — the spec does not know about it until the run
+        finishes, which is the gap this closes.
+        """
+        with self._lock:
+            in_flight = {(started.get("course"), started.get("classroom"))
+                         for started in self._started.values() if started.get("kind") == "spec"}
+        queue = self.missing()
+        started: list[dict] = []
+        skipped: list[dict] = []
+        blocked = ""
+        for item in queue:
+            key = (item["course"], item["classroom"])
+            if key in in_flight:
+                skipped.append({**item, "reason": "already generating"})
+                continue
+            if blocked:
+                skipped.append({**item, "reason": blocked})
+                continue
+            try:
+                answer = self.submit(identity, {"course": item["course"],
+                                                "classroom": item["classroom"]})
+            except Bad as err:
+                if err.status == 429:
+                    blocked = str(err)
+                skipped.append({**item, "reason": str(err)})
+                continue
+            except Unavailable as err:
+                blocked = str(err)
+                skipped.append({**item, "reason": str(err)})
+                continue
+            started.append({**item, "runId": answer["runId"]})
+        return {"started": started, "skipped": skipped, "missing": len(queue),
+                "blocked": blocked}
+
     def retry(self, run_id: str) -> dict:
         status, body = self._call(self._client().retry, run_id)
         if status not in (200, 202):
@@ -459,11 +644,21 @@ class Bad(Exception):
         super().__init__(message)
 
 
+def _first_header(headers, names) -> str:
+    """The first of `names` that carries a value; empty string if none does."""
+    for name in names:
+        value = (headers.get(name) or "").strip()
+        if value:
+            return value
+    return ""
+
+
 def identity_from_headers(headers, config) -> Identity | None:
     """The caller as the SSO proxy described them, or None."""
-    user = (headers.get(USER_HEADERS[0]) or "").strip()
-    email = (headers.get(USER_HEADERS[1]) or "").strip()
-    groups = tuple(g.strip() for g in (headers.get(GROUPS_HEADER) or "").split(",") if g.strip())
+    user = _first_header(headers, USER_HEADERS[0])
+    email = _first_header(headers, USER_HEADERS[1])
+    groups = tuple(g.strip() for g in _first_header(headers, GROUPS_HEADERS).split(",")
+                   if g.strip())
     if user or email:
         return Identity(user or email, email, groups)
     if config.trust_local:
@@ -568,6 +763,10 @@ class Handler(BaseHTTPRequestHandler):
             body = self._body()
             if path == "/api/generate":
                 return self._json(202, self.console.submit(ident, body))
+            if path == "/api/generate-missing":
+                # 202 whether or not everything started: the answer says what ran
+                # and what did not, and a partial batch is not a failed request.
+                return self._json(202, self.console.submit_missing(ident))
             if path.startswith("/api/runs/") and path.endswith("/retry"):
                 return self._json(200, self.console.retry(path[len("/api/runs/"):-len("/retry")]))
             if path.startswith("/api/runs/") and path.endswith("/record"):
@@ -610,7 +809,8 @@ class Handler(BaseHTTPRequestHandler):
                     "maxRequirement": self.console.config.max_requirement,
                 })
             if path == "/api/runs":
-                return self._json(200, {"runs": self.console.runs()})
+                return self._json(200, {"runs": self.console.runs(),
+                                        "recorded": self.console.recent_recordings()})
             if path.startswith("/api/runs/"):
                 return self._json(200, self.console.run(path[len("/api/runs/"):]))
             return self._error(404, "no such endpoint")
@@ -646,9 +846,35 @@ class Handler(BaseHTTPRequestHandler):
         self._send(200, body, ctype, extra)
 
 
+def start_recorder(console: Console, interval: int):
+    """Record finished classrooms on a timer, for as long as the process lives.
+
+    A daemon thread rather than a second process: the work is one HTTP read per
+    tracked run every `interval` seconds, and the console is already the only
+    thing that knows which spec each run came from. A failed tick is swallowed —
+    the next one asks again — because a generator that is briefly down must not
+    take the recorder with it.
+    """
+    if interval <= 0:
+        return None
+
+    def loop() -> None:
+        while True:
+            time.sleep(interval)
+            try:
+                console.sweep()
+            except Exception:  # noqa: BLE001 — a recorder never dies of a bad tick
+                continue
+
+    thread = threading.Thread(target=loop, name="atheniq-record", daemon=True)
+    thread.start()
+    return thread
+
+
 def make_server(config, builder=None):
     console = Console(config, builder=builder)
     handler = type("BoundHandler", (Handler,), {"console": console})
+    start_recorder(console, config.autorecord_seconds)
     return ThreadingHTTPServer((config.bind, config.port), handler), console
 
 

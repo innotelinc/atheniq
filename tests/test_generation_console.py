@@ -323,17 +323,79 @@ class DirectConsole(unittest.TestCase):
             self.console.record(answer["runId"])
         self.assertEqual(caught.exception.status, 400)
 
-    def test_runs_keep_finished_ones_and_mark_them_recordable(self):
+    def test_a_finished_classroom_is_recorded_and_leaves_the_list(self):
+        """The click is gone: the poll itself writes the spec and drops the run."""
         answer = self.console.submit(self.dana, {"course": "demo", "classroom": "demo-ch01"})
         run_id = answer["runId"]
-        # A finished run leaves OpenMAIC's active list but is still readable by
-        # id — which is what keeps it on the page long enough to be recorded.
+        # A finished run leaves OpenMAIC's active list but is still readable by id.
         FakeOpenMAIC.runs[run_id].update({"state": "completed", "stageId": "stage-new"})
+        self.assertEqual([], self.console.runs())
+        self.assertEqual(self.read_spec()["classrooms"][0]["classroom_id"], "stage-new")
+        # And the page can say what happened rather than just showing an empty list.
+        self.assertEqual(self.console.recent_recordings()[-1]["classroomId"], "stage-new")
+
+    def test_a_run_still_generating_stays_listed_with_its_source(self):
+        answer = self.console.submit(self.dana, {"course": "demo", "classroom": "demo-ch01"})
         runs = self.console.runs()
-        self.assertEqual([r["id"] for r in runs], [run_id])
-        self.assertTrue(runs[0]["recordable"])
+        self.assertEqual([answer["runId"]], [run["id"] for run in runs])
         self.assertEqual(runs[0]["source"]["title"], "Read a Queue")
+        # The spec path stays on this side: the page needs the label, not the file.
         self.assertNotIn("spec", runs[0]["source"])
+        self.assertIsNone(self.read_spec()["classrooms"][0].get("classroom_id"))
+
+    def test_a_spec_that_moved_on_keeps_the_run_and_the_reason(self):
+        """Overwriting would silently repoint a course's embeds, so it is a person's
+        decision and the run stays visible until they make it."""
+        answer = self.console.submit(self.dana, {"course": "demo", "classroom": "demo-ch01"})
+        run_id = answer["runId"]
+        FakeOpenMAIC.runs[run_id].update({"state": "completed", "stageId": "stage-new"})
+        doc = self.read_spec()
+        doc["classrooms"][0]["classroom_id"] = "stage-someone-else"
+        with open(self.spec_path, "w") as fh:
+            json.dump(doc, fh)
+        runs = self.console.runs()
+        self.assertEqual([run_id], [run["id"] for run in runs])
+        self.assertIn("stage-someone-else", runs[0]["recordError"])
+        self.assertEqual(self.read_spec()["classrooms"][0]["classroom_id"], "stage-someone-else")
+
+    def test_the_sweeper_records_without_a_page_being_open(self):
+        answer = self.console.submit(self.dana, {"course": "demo", "classroom": "demo-ch01"})
+        FakeOpenMAIC.runs[answer["runId"]].update({"state": "completed", "stageId": "stage-night"})
+        recorded = self.console.sweep()
+        self.assertEqual(["stage-night"], [item["classroomId"] for item in recorded])
+        self.assertEqual(self.read_spec()["classrooms"][0]["classroom_id"], "stage-night")
+        # Recorded once, not on every tick.
+        self.assertEqual([], self.console.sweep())
+
+    def test_generate_all_missing_submits_every_classroom_without_one(self):
+        result = self.console.submit_missing(self.dana)
+        self.assertEqual(1, result["missing"])
+        self.assertEqual(["demo-ch01"], [item["classroom"] for item in result["started"]])
+        self.assertEqual([], result["skipped"])
+        self.assertEqual(1, len(FakeOpenMAIC.submissions))
+        self.assertIn("Work a small ticket queue", FakeOpenMAIC.submissions[-1])
+
+    def test_generate_all_missing_does_not_resubmit_what_is_in_flight(self):
+        # The spec only learns a classroom's id when the run finishes, so the
+        # console's own map is what stops a second run for the same classroom.
+        self.console.submit_missing(self.dana)
+        again = self.console.submit_missing(self.dana)
+        self.assertEqual([], again["started"])
+        self.assertEqual("already generating", again["skipped"][0]["reason"])
+        self.assertEqual(1, len(FakeOpenMAIC.submissions))
+
+    def test_generate_all_missing_stops_at_the_hourly_limit(self):
+        doc = self.read_spec()
+        doc["classrooms"][1]["classroom_id"] = None
+        with open(self.spec_path, "w") as fh:
+            json.dump(doc, fh)
+        self.console.config.submits_per_hour = 1
+        result = self.console.submit_missing(self.dana)
+        self.assertEqual(2, result["missing"])
+        self.assertEqual(1, len(result["started"]))
+        self.assertEqual(1, len(result["skipped"]))
+        self.assertIn("limit", result["blocked"])
+        self.assertEqual(1, len(FakeOpenMAIC.submissions))
 
     def test_health_reports_only_the_slots_a_person_can_act_on(self):
         health = self.console.health()
@@ -367,6 +429,30 @@ class HttpSurface(GatewayCase):
         self.assertEqual(body["user"], "dana")
         self.assertTrue(body["mayGenerate"])
         self.assertTrue(body["classroomHost"].startswith("https://"))
+
+    def test_the_forwarded_identity_headers_are_accepted(self):
+        """The family oauth2-proxy actually puts on the upstream request.
+
+        `--set-xauthrequest` writes X-Auth-Request-* to the *response*; the
+        request that reaches this console carries X-Forwarded-* from
+        `--pass-user-headers`. Accepting only the response family is what made
+        a signed-in browser see the console's "signed out" state on every API
+        call while the proxy logged an authenticated user.
+        """
+        headers = {"X-Forwarded-User": "dana",
+                   "X-Forwarded-Email": "dana@innotel.us",
+                   "X-Forwarded-Groups": "atheniq-admins,AthenIQ LMS"}
+        status, body, _ = self.call("/api/me", headers=headers)
+        self.assertEqual(status, 200)
+        self.assertEqual(body["user"], "dana")
+        self.assertTrue(body["mayGenerate"])
+
+    def test_a_forwarded_group_list_is_still_gated(self):
+        headers = {"X-Auth-Request-User": "sam",
+                   "X-Auth-Request-Email": "sam@innotel.us",
+                   "X-Forwarded-Groups": "learners"}
+        status, _, _ = self.call("/api/me", headers=headers)
+        self.assertEqual(status, 403)
 
     def test_group_match_ignores_case(self):
         status, _, _ = self.call("/api/me", headers=self.signed(groups="ATHENIQ-ADMINS"))
@@ -412,6 +498,27 @@ class HttpSurface(GatewayCase):
         status, body, _ = self.call("/api/runs", headers=self.signed())
         self.assertEqual(status, 200)
         self.assertEqual(body["runs"][0]["state"], "generating")
+
+    def test_generate_all_missing_is_one_authenticated_post(self):
+        status, body, _ = self.mutate("/api/generate-missing")
+        self.assertEqual(status, 202)
+        self.assertEqual(1, body["missing"])
+        self.assertEqual(["demo-ch01"], [item["classroom"] for item in body["started"]])
+        # And it is a mutation: without the console header it is a cross-site request.
+        status, _, _ = self.call("/api/generate-missing", method="POST", body={},
+                                 headers=self.signed())
+        self.assertEqual(status, 403)
+
+    def test_a_recorded_classroom_is_reported_and_gone_from_the_runs(self):
+        run_id = self.mutate("/api/generate",
+                             body={"course": "demo", "classroom": "demo-ch01"})[1]["runId"]
+        FakeOpenMAIC.runs[run_id].update({"state": "completed", "stageId": "stage-api"})
+        status, body, _ = self.call("/api/runs", headers=self.signed())
+        self.assertEqual(status, 200)
+        self.assertEqual([], body["runs"])
+        self.assertEqual("stage-api", body["recorded"][-1]["classroomId"])
+        with open(self.spec_path) as fh:
+            self.assertEqual(json.load(fh)["classrooms"][0]["classroom_id"], "stage-api")
 
     def test_retry_and_discard_reach_the_generator(self):
         run_id = self.mutate("/api/generate", body={"requirement": "d" * 120})[1]["runId"]

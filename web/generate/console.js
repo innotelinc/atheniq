@@ -8,6 +8,7 @@
 const state = {
   courses: [],
   runs: [],
+  recorded: [],
   maxRequirement: 6000,
   filter: "",
   open: new Set(),
@@ -174,7 +175,14 @@ const renderCourses = () => {
   const courses = state.courses.filter(matches);
   const live = state.courses.reduce((n, c) => n + c.generated, 0);
   const total = state.courses.reduce((n, c) => n + c.total, 0);
+  const missing = total - live;
   document.getElementById("counts").textContent = `${live}/${total} classrooms live`;
+  const bulk = document.getElementById("generate-missing");
+  bulk.textContent = missing ? `Generate all missing (${missing})` : "Nothing missing";
+  bulk.disabled = missing === 0 || !(state.me && state.me.mayGenerate);
+  document.getElementById("missing-hint").textContent = missing
+    ? "One run each, recorded into its spec when it finishes."
+    : "Every classroom in every spec has one.";
   host.replaceChildren();
   if (!courses.length) {
     host.append(el("p", { class: "empty" }, state.courses.length ? "No course matches that filter." : "No course specs found."));
@@ -228,7 +236,9 @@ const runCard = (run) => {
     actions.push(runAction(run, "Retry", `/api/runs/${run.id}/retry`, "POST"));
     actions.push(runAction(run, "Discard", `/api/runs/${run.id}`, "DELETE"));
   }
-  if (run.recordable) actions.push(runAction(run, "Record in spec", `/api/runs/${run.id}/record`, "POST"));
+  if (run.recordError) {
+    card.append(el("div", { class: "err" }, `not recorded: ${run.recordError}`));
+  }
   if (run.classroomId) {
     const host = (state.me && state.me.classroomHost) || "https://classroom.innotel.us";
     actions.push(el("a", {
@@ -240,14 +250,31 @@ const runCard = (run) => {
   return card;
 };
 
+//: The last few classrooms written back without a click. Shown so the recording
+//: is something an operator watched happen, rather than something they infer from
+//: a run silently leaving the list.
+const renderRecorded = () => {
+  const host = document.getElementById("recorded");
+  host.replaceChildren();
+  const recent = state.recorded.slice(-3).reverse();
+  if (!recent.length) return;
+  host.append(el("p", { class: "hint" }, "Recorded into the spec automatically"));
+  for (const item of recent) {
+    host.append(el("div", { class: "recorded-row" },
+      el("code", {}, item.classroomId || ""),
+      ` ${item.course}/${item.classroom}`));
+  }
+};
+
 const renderRuns = () => {
   const host = document.getElementById("runs");
   host.replaceChildren();
   if (!state.runs.length) {
-    host.append(el("p", { class: "empty" }, "Nothing in flight. A finished classroom shows up in its course once it is recorded."));
-    return;
+    host.append(el("p", { class: "empty" }, "Nothing in flight. A finished classroom is recorded into its spec and leaves this list."));
+  } else {
+    for (const run of state.runs) host.append(runCard(run));
   }
-  for (const run of state.runs) host.append(runCard(run));
+  renderRecorded();
 };
 
 // -- loading ---------------------------------------------------------------
@@ -273,6 +300,7 @@ const loadRuns = async () => {
   try {
     const answer = await api("/api/runs");
     state.runs = answer.runs || [];
+    state.recorded = answer.recorded || [];
     renderRuns();
   } catch (error) {
     document.getElementById("runs").replaceChildren(el("p", { class: "empty" }, error.message));
@@ -298,6 +326,29 @@ const loadMe = async () => {
       state.me.mayGenerate ? "" : " · read-only");
   } catch (error) {
     document.getElementById("who").replaceChildren(el("b", {}, error.status === 401 ? "signed out" : "unknown"));
+  }
+};
+
+// -- the whole catalogue ---------------------------------------------------
+
+const generateMissing = async (event) => {
+  const button = event.currentTarget;
+  button.disabled = true;
+  button.textContent = "starting…";
+  try {
+    const answer = await api("/api/generate-missing", { method: "POST", body: "{}" });
+    const started = (answer.started || []).length;
+    const skipped = (answer.skipped || []).length;
+    const why = answer.blocked ? ` — ${answer.blocked}` : "";
+    toast(started
+      ? `Started ${started} classroom${started === 1 ? "" : "s"}${skipped ? `, ${skipped} not started` : ""}${why}`
+      : `Nothing started${skipped ? ` (${skipped} skipped)` : ""}${why}`,
+      started ? "ok" : "bad");
+    await Promise.all([loadRuns(), loadCourses()]);
+  } catch (error) {
+    toast(error.message, "bad");
+  } finally {
+    renderCourses();
   }
 };
 
@@ -358,6 +409,7 @@ const boot = async () => {
     loadRuns();
     loadHealth();
   });
+  document.getElementById("generate-missing").addEventListener("click", generateMissing);
   document.getElementById("brief").addEventListener("submit", submitBrief);
   document.getElementById("brief-requirement").addEventListener("input", updateCharHint);
 

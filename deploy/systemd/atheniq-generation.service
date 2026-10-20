@@ -20,6 +20,13 @@ Environment=GENERATION_PORT=8090
 Environment=GENERATION_ALLOWED_GROUPS=atheniq-admins,AthenIQ
 Environment=GENERATION_ROOT=/home/tutor/atheniq-generation
 Environment=CLASSROOM_HOST=https://classroom.innotel.us
+# A finished classroom is written into its spec without waiting for the page.
+# 0 disables the sweeper; the page's own poll still records.
+Environment=GENERATION_AUTORECORD_SECONDS=20
+# The run -> spec map, so a restart does not forget a classroom that finished.
+Environment=GENERATION_STATE=/var/lib/atheniq-generation/runs.json
+StateDirectory=atheniq-generation
+StateDirectoryMode=0750
 ExecStart=/usr/bin/python3 /home/tutor/atheniq-generation/scripts/generation-console.py
 Restart=on-failure
 RestartSec=5

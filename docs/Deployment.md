@@ -143,6 +143,23 @@ footer slot and that footer still prints the Tutor + Open edX logos. The
 slot widget with the AthenIQ lockup; because the MFE footer is compiled, it needs
 `tutor images build mfe` (see [docs/Brand.md](Brand.md)).
 
+The same plugin also puts an **AI Classroom** link in the MFE header nav, opening
+`ai.lms.innotel.us` on the Authentik session the LMS already has — so it is a
+click, not a second sign-in. Build only the apps that need it: `tutor images
+build mfe` compiles all thirteen in parallel and has taken a production node
+down, while `docker build --target catalog-prod` (then `learning-prod`,
+`learner-dashboard-prod`) plus a wrapper image that copies the new `/openedx/app/dist`
+over `/openedx/dist/<app>` is one webpack build per page. The plugin's README has
+the commands, including the rollback tag.
+
+It also refreshes `caniuse-lite` at the `mfe-dockerfile-pre-npm-build` and
+`mfe-dockerfile-pre-npm-build-site` hooks. Browserslist reads that snapshot from
+the lockfile, which is months old by build time; `npm install
+caniuse-lite@latest` fails there with `ERESOLVE`, so the hook unpacks the current
+tarball over `$(pwd)/node_modules` instead. `$(pwd)` matters: the per-app stages
+build in `/openedx/app`, the site stage in `/openedx/site`, and the site stage is
+the one that actually compiles the bundles.
+
 ## Stage 3 — AI classroom (OpenMAIC)
 
 ```bash
@@ -151,7 +168,20 @@ cd services/OpenMAIC
 cp .env.example .env.local
 # point models at OmniRoute (Stage 6) or add provider keys as usual
 docker compose up -d --build
+# research and document parsing are separate projects on the classroom network
+node scripts/vault-env.mjs --in .env.classroom-secrets.example \
+    --out .env.classroom-secrets
+docker compose --env-file .env.classroom-secrets -f docker-compose.websearch.yml up -d
+docker compose -f docker-compose.mineru.yml up -d
 ```
+
+The two extras are not part of `docker-compose.yml` (that file stays an
+upstream checkout), so `docker compose up -d` alone does not start them. A
+classroom whose research step answers `INTERNAL_ERROR: fetch failed` or whose
+outline ends in a 503 usually has them stopped: check
+`docker ps | grep -E 'searxng|mineru'` before blaming the model. Both carry
+`restart: unless-stopped`, but a clean `docker compose stop` is remembered, so
+they stay down until they are started again.
 
 - Compose interpolation knobs live in `services/OpenMAIC/.env` —
   `OPENMAIC_PORT`, `OPENMAIC_PUBLISH_ADDRESS`, `PERSISTENCE_POSTGRES_PASSWORD`.
@@ -249,6 +279,15 @@ run in place instead, which is only worth it when the pause really was
 transient. A run that is merely slow is not a failure: `--run-timeout`
 (default 5400s) is the limit.
 
+A slot in `services/OpenMAIC/openmaic.yml` may carry a `fallback`, and the
+shipped file gives every language slot one (`auto/best-chat` for prose,
+`auto/best-coding` for the interactive writer and the workbench agent). That is
+what keeps a single provider's five-hour quota from pausing every run while the
+rest of the gateway is idle: the primary is tried first, the fallback once when
+the primary answers with a retryable error. A deployment that pins all four
+slots to one model has no such second chance, and `--models` is then the only
+way through a cooldown.
+
 The models a classroom may be pointed at are the ones the deployment declares in
 `services/OpenMAIC/openmaic.yml` — anything else is refused with
 `PROVIDER_DISABLED`, so the chain has to be built from those names (the shipped
@@ -264,8 +303,8 @@ stays classroom-free.
 one long command, and reads the log. The console is the same work from a
 browser — the staff screen that lists every course's classroom briefs, starts
 one, shows the run's step, and writes a finished classroom's id back into the
-spec. It is a **front for OpenMAIC**, not a second generator: OpenMAIC keeps the
-runs, the classrooms and the model settings.
+spec on its own. It is a **front for OpenMAIC**, not a second generator:
+OpenMAIC keeps the runs, the classrooms and the model settings.
 
 ```bash
 make up                       # this repo's compose: landing + generation
@@ -282,18 +321,40 @@ docstring in `scripts/generation-console.py` for the full route list):
   links straight to `classroom.<domain>/classroom/<id>`.
 - **Runs** — what OpenMAIC is holding: step, progress, and the gateway's own
   error words on a paused run. A paused run can be **retried** or **discarded**
-  (a run that already produced a classroom answers 409 and is kept); a finished
-  one that came from a spec gets **Record in spec**, which is the step the batch
-  tool does in `--execute` — without it the classroom exists but no course unit
-  points at it.
+  (a run that already produced a classroom answers 409 and is kept). A run that
+  came from a spec is **recorded without a click**: the moment it completes, its
+  `classroom_id` is written into the spec and the entry leaves the list, which is
+  what the batch tool does in `--execute`. A spec that has meanwhile been given a
+  *different* classroom is the one case left for a person — overwriting it would
+  silently repoint a course's embeds — so that run stays visible with the reason
+  attached.
+- **Generate all missing** — one run per classroom without a `classroom_id`,
+  across every spec in `courses/`. The hourly per-person limit still applies: the
+  batch stops at it, starts nothing more, and answers with what it started, what
+  it skipped and why. Classrooms already in flight are skipped rather than
+  submitted twice, because the spec does not learn about a run until it finishes.
 - **New brief** — a free-form classroom for something not in a spec yet.
 
+Recording does not depend on somebody having the page open: the service sweeps
+finished runs every `GENERATION_AUTORECORD_SECONDS` (the unit ships `20`), and
+keeps the run → spec map in `GENERATION_STATE` so a restart between a run
+finishing and its recording does not lose it.
+
 **Who may generate.** The console sits behind an oauth2-proxy and does not trust
-it blindly: every request must carry the identity headers that
-`--set-xauthrequest` and `--pass-user-headers` set, and the caller must hold one
-of `GENERATION_ALLOWED_GROUPS` (default `atheniq-admins,instructors`). No
-headers is a 401, the wrong groups is a 403, so a misrouted proxy fails closed
-instead of publishing an endpoint that spends model budget. Mutating calls also
+it blindly: every request must carry the identity headers the proxy sets, and
+the caller must hold one of `GENERATION_ALLOWED_GROUPS` (default
+`atheniq-admins,instructors`). No headers is a 401, the wrong groups is a 403,
+so a misrouted proxy fails closed instead of publishing an endpoint that spends
+model budget.
+
+The console reads **both** header families oauth2-proxy can supply, because the
+two flags write to different places: `--set-xauthrequest` sets
+`X-Auth-Request-*` on the *response* (for an nginx `auth_request` in front),
+while `--pass-user-headers` sets `X-Forwarded-*` on the request it proxies
+*upstream* — the request the console receives. Accepting only the first family
+is what made a signed-in browser get 401 from every `/api/` call, and the
+console's "signed out" label, while the proxy logged the same user as
+authenticated. `X-Auth-Request-*` wins when both are present. Mutating calls also
 require the console's own header plus a same-origin `Origin`, which is what stops
 a cross-site post.
 
@@ -302,7 +363,7 @@ a cross-site post.
 # listens (GENERATION_BIND), not OpenMAIC itself
 oauth2-proxy \
   --provider=oidc --oidc-issuer-url=https://auth.cerulean.innotel.us/application/o/classroom/ \
-  --oidc-groups-claim=groups --scope=openid --email-domain='*' \
+  --oidc-groups-claim=groups --scope="openid email profile groups" --email-domain='*' \
   --allowed-group=atheniq-admins --allowed-group=AthenIQ \
   --set-xauthrequest=true --pass-user-headers=true --cookie-secure=true \
   --reverse-proxy=true --http-address=0.0.0.0:3001 \
