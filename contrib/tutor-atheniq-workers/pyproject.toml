@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tutor-atheniq-workers"
+version = "0.1.0"
+description = "Cap the AthenIQ LMS/CMS Celery worker pools so they fit the host"
+
+[project.entry-points."tutor.plugin.v0"]
+atheniqworkers = "atheniqworkers.plugin"
+
+[tool.setuptools]
+packages = ["atheniqworkers"]

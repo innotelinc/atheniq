@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tutor-atheniq-copy"
+version = "0.1.0"
+description = "AthenIQ white-label copy overrides for the legacy MFEs"
+
+[project.entry-points."tutor.plugin.v0"]
+atheniqcopy = "atheniqcopy.plugin"
+
+[tool.setuptools]
+packages = ["atheniqcopy"]
