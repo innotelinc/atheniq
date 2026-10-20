@@ -395,6 +395,25 @@ sudo systemctl enable --now atheniq-generation-uptime.timer
 journalctl -u atheniq-generation-uptime.service -n 20
 ```
 
+A failing probe leaves the unit failed; it also alerts when
+`ATHENIQ_ALERT_WEBHOOK_URL` is set. This host posts to an ntfy topic (a plain-text
+POST with `Title`/`Priority`/`Tags`), configured in a drop-in so a repository
+update keeps the topic:
+
+```bash
+sudo mkdir -p /etc/systemd/system/atheniq-generation-uptime.service.d
+sudo tee /etc/systemd/system/atheniq-generation-uptime.service.d/alert.conf >/dev/null <<'CONF'
+[Service]
+Environment=ATHENIQ_ALERT_WEBHOOK_URL=https://ntfy.sh/<topic>
+CONF
+sudo systemctl daemon-reload
+```
+
+Subscribe to the topic in the ntfy app (or open the topic URL). A failed probe
+arrives with the failing URL and curl's error, at high priority, and the unit is
+left failed either way. Email is not used on this host: outbound SMTP (port 25)
+is blocked, so `tutor_local-smtp-1` queues rather than delivers.
+
 **Realized (2026-10, `ai.lms.innotel.us`).** The console runs from
 `atheniq-generation.service` (`deploy/systemd/atheniq-generation.service`):
 `/home/tutor/atheniq-generation` holds this repo's `scripts/generation-console.py`,
