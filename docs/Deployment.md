@@ -382,6 +382,19 @@ a classroom id in its spec; `scripts/` and `web/` are read-only.
 `/healthz` answers without an identity (it says the process is up and nothing
 else) so the container healthcheck does not need to sign in.
 
+`generation-sso` skips authentication for exactly that path
+(`--skip-auth-route=^/healthz$`), so an uptime probe can cross the same
+NPM -> oauth2-proxy -> console path a browser takes. The timer below runs
+`scripts/check-generation-console.sh` every five minutes and leaves the unit
+failed when the console or the proxy stops answering:
+
+```bash
+sudo cp deploy/systemd/atheniq-generation-uptime.service deploy/systemd/atheniq-generation-uptime.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now atheniq-generation-uptime.timer
+journalctl -u atheniq-generation-uptime.service -n 20
+```
+
 **Realized (2026-10, `ai.lms.innotel.us`).** The console runs from
 `atheniq-generation.service` (`deploy/systemd/atheniq-generation.service`):
 `/home/tutor/atheniq-generation` holds this repo's `scripts/generation-console.py`,

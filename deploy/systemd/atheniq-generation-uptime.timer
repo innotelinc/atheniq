@@ -1,0 +1,11 @@
+[Unit]
+Description=Check the AthenIQ generation console every five minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+Unit=atheniq-generation-uptime.service
+Persistent=true
+
+[Install]
+WantedBy=timers.target

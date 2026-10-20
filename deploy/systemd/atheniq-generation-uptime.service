@@ -1,0 +1,12 @@
+[Unit]
+Description=Probe the AthenIQ generation console through its SSO proxy
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=tutor
+# generation-sso skips auth for /healthz only, so this crosses the same
+# NPM -> oauth2-proxy -> console path staff use and fails on a proxy 502.
+Environment=ATHENIQ_CONSOLE_HEALTH_URL=https://ai.lms.innotel.us/healthz
+ExecStart=/bin/bash /home/tutor/atheniq/scripts/check-generation-console.sh
