@@ -384,7 +384,8 @@ class DirectConsole(unittest.TestCase):
         self.assertEqual("already generating", again["skipped"][0]["reason"])
         self.assertEqual(1, len(FakeOpenMAIC.submissions))
 
-    def test_generate_all_missing_stops_at_the_hourly_limit(self):
+    def test_generate_all_missing_queues_what_the_limit_would_have_dropped(self):
+        """A ceiling is not a reason to forget classrooms the operator asked for."""
         doc = self.read_spec()
         doc["classrooms"][1]["classroom_id"] = None
         with open(self.spec_path, "w") as fh:
@@ -393,9 +394,83 @@ class DirectConsole(unittest.TestCase):
         result = self.console.submit_missing(self.dana)
         self.assertEqual(2, result["missing"])
         self.assertEqual(1, len(result["started"]))
-        self.assertEqual(1, len(result["skipped"]))
+        self.assertEqual([], result["skipped"])
+        self.assertEqual(1, result["queued"])
         self.assertIn("limit", result["blocked"])
         self.assertEqual(1, len(FakeOpenMAIC.submissions))
+        self.assertEqual(["demo-ch02"], [item["classroom"] for item in self.console.queued()])
+
+    def test_the_queue_starts_the_next_classroom_when_a_slot_frees(self):
+        doc = self.read_spec()
+        doc["classrooms"][1]["classroom_id"] = None
+        with open(self.spec_path, "w") as fh:
+            json.dump(doc, fh)
+        self.console.config.submits_per_hour = 1
+        self.console.submit_missing(self.dana)
+        self.assertEqual(1, len(self.console.runs()))
+        # The ceiling lifts and the sweeper's next pass is what starts the one
+        # that did not fit — the operator does not click again.
+        self.console.config.submits_per_hour = 0
+        self.console.sweep()
+        self.assertEqual([], self.console.queued())
+        self.assertEqual(2, len(FakeOpenMAIC.submissions))
+        sources = {run["source"]["classroom"] for run in self.console.runs()}
+        self.assertEqual({"demo-ch01", "demo-ch02"}, sources)
+        # A classroom off the queue is mapped to its spec like any other run, so
+        # the sweeper records it without a click.
+        for run in self.console.runs():
+            self.assertEqual("demo", run["source"]["course"])
+        queued_run = [run for run in self.console.runs()
+                      if run["source"]["classroom"] == "demo-ch02"][0]
+        FakeOpenMAIC.runs[queued_run["id"]].update({"state": "completed",
+                                                    "stageId": "stage-ch02"})
+        self.assertEqual(["stage-ch02"], [item["classroomId"]
+                                          for item in self.console.sweep()])
+
+    def test_the_queue_leaves_a_classroom_the_spec_now_has(self):
+        doc = self.read_spec()
+        doc["classrooms"][1]["classroom_id"] = None
+        with open(self.spec_path, "w") as fh:
+            json.dump(doc, fh)
+        self.console.config.submits_per_hour = 1
+        self.console.submit_missing(self.dana)
+        doc = self.read_spec()
+        doc["classrooms"][1]["classroom_id"] = "stage-elsewhere"
+        with open(self.spec_path, "w") as fh:
+            json.dump(doc, fh)
+        self.console.config.submits_per_hour = 0
+        answer = self.console.pump()
+        self.assertEqual([], self.console.queued())
+        self.assertEqual(1, len(FakeOpenMAIC.submissions))
+        self.assertIn("already has a classroom", answer["skipped"][0]["reason"])
+
+    def test_the_queue_does_not_resubmit_the_same_classroom(self):
+        doc = self.read_spec()
+        doc["classrooms"][1]["classroom_id"] = None
+        with open(self.spec_path, "w") as fh:
+            json.dump(doc, fh)
+        self.console.config.submits_per_hour = 1
+        self.console.submit_missing(self.dana)
+        # Clicking the button again must not queue the waiting classroom twice.
+        again = self.console.submit_missing(self.dana)
+        self.assertEqual(1, again["queued"])
+        self.assertEqual(1, len(self.console.queued()))
+        self.console.config.submits_per_hour = 0
+        self.console.pump()
+        self.assertEqual(2, len(FakeOpenMAIC.submissions))
+
+    def test_the_queue_survives_a_restart(self):
+        doc = self.read_spec()
+        doc["classrooms"][1]["classroom_id"] = None
+        with open(self.spec_path, "w") as fh:
+            json.dump(doc, fh)
+        state_path = os.path.join(self.root, "runs.json")
+        config = console.Config(
+            base_url=f"http://127.0.0.1:{self.gateway.server_address[1]}",
+            root=self.root, submits_per_hour=1, state_path=state_path)
+        console.Console(config).submit_missing(self.dana)
+        restarted = console.Console(config)
+        self.assertEqual(["demo-ch02"], [item["classroom"] for item in restarted.queued()])
 
     def test_health_reports_only_the_slots_a_person_can_act_on(self):
         health = self.console.health()

@@ -9,6 +9,7 @@ const state = {
   courses: [],
   runs: [],
   recorded: [],
+  queued: [],
   maxRequirement: 6000,
   filter: "",
   open: new Set(),
@@ -266,9 +267,21 @@ const renderRecorded = () => {
   }
 };
 
+//: Classrooms a batch could not start yet. Shown above the runs because it is
+//: the queue that explains why "Generate all missing" reported more than started.
+const renderQueued = (host) => {
+  if (!state.queued.length) return;
+  const titles = state.queued.slice(0, 3).map((item) => item.title || item.classroom);
+  const more = state.queued.length - titles.length;
+  host.append(el("p", { class: "hint" },
+    `${state.queued.length} waiting for a slot — they start as runs finish: `,
+    el("span", {}, titles.join(" · ") + (more > 0 ? ` · +${more} more` : ""))));
+};
+
 const renderRuns = () => {
   const host = document.getElementById("runs");
   host.replaceChildren();
+  renderQueued(host);
   if (!state.runs.length) {
     host.append(el("p", { class: "empty" }, "Nothing in flight. A finished classroom is recorded into its spec and leaves this list."));
   } else {
@@ -301,6 +314,7 @@ const loadRuns = async () => {
     const answer = await api("/api/runs");
     state.runs = answer.runs || [];
     state.recorded = answer.recorded || [];
+    state.queued = answer.queued || [];
     renderRuns();
   } catch (error) {
     document.getElementById("runs").replaceChildren(el("p", { class: "empty" }, error.message));
@@ -339,11 +353,16 @@ const generateMissing = async (event) => {
     const answer = await api("/api/generate-missing", { method: "POST", body: "{}" });
     const started = (answer.started || []).length;
     const skipped = (answer.skipped || []).length;
+    const queued = answer.queued || 0;
     const why = answer.blocked ? ` — ${answer.blocked}` : "";
-    toast(started
-      ? `Started ${started} classroom${started === 1 ? "" : "s"}${skipped ? `, ${skipped} not started` : ""}${why}`
-      : `Nothing started${skipped ? ` (${skipped} skipped)` : ""}${why}`,
-      started ? "ok" : "bad");
+    const parts = [];
+    if (started) parts.push(`Started ${started} classroom${started === 1 ? "" : "s"}`);
+    if (queued) parts.push(`${queued} queued`);
+    if (skipped) parts.push(`${skipped} not started`);
+    toast(parts.length
+      ? `${parts.join(", ")}${queued ? " — the rest start as runs finish" : ""}${why}`
+      : `Nothing to start${skipped ? ` (${skipped} skipped)` : ""}${why}`,
+      started || queued ? "ok" : "bad");
     await Promise.all([loadRuns(), loadCourses()]);
   } catch (error) {
     toast(error.message, "bad");

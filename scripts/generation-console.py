@@ -225,6 +225,12 @@ class Console:
         #: The console is where the run was started, so it is the only place
         #: that can write the result back to the right line of the right spec.
         self._started = collections.OrderedDict()
+        #: classrooms a batch asked for that OpenMAIC had no room for yet, in the
+        #: order they were asked for. They are started by `pump()` as runs finish,
+        #: so one click covers a course with more classrooms than the generator
+        #: will run at once. Each entry carries the identity that asked, because
+        #: the hourly limit is that person's whatever thread ends up submitting.
+        self._queue = collections.deque()
         #: runs that left the active list, kept so the page can still show how
         #: they ended (a completed run is not "active" and would vanish).
         self._finished = {}
@@ -233,6 +239,10 @@ class Console:
         #: run disappearing out of a list.
         self._recorded = collections.deque(maxlen=20)
         self._lock = threading.Lock()
+        #: Held for a whole pass of `pump()`. The sweeper thread and an open page
+        #: both pump, and this is what stops them starting the same classroom
+        #: twice; it is separate from `_lock`, which only guards the data.
+        self._pump_lock = threading.Lock()
         self._load_state()
 
     # -- what survives a restart ------------------------------------------
@@ -253,11 +263,15 @@ class Console:
         except (OSError, ValueError):
             return
         started = data.get("started") if isinstance(data, dict) else None
-        if not isinstance(started, dict):
-            return
-        for run_id, source in list(started.items())[-50:]:
-            if isinstance(source, dict):
-                self._started[str(run_id)] = source
+        queued = data.get("queue") if isinstance(data, dict) else None
+        if isinstance(started, dict):
+            for run_id, source in list(started.items())[-50:]:
+                if isinstance(source, dict):
+                    self._started[str(run_id)] = source
+        if isinstance(queued, list):
+            for item in queued[:100]:
+                if isinstance(item, dict) and item.get("course") and item.get("classroom"):
+                    self._queue.append(item)
 
     def _save_state(self) -> None:
         """Write the run -> spec map, atomically, and never fail a request for it.
@@ -269,7 +283,7 @@ class Console:
         if not path:
             return
         with self._lock:
-            payload = {"started": dict(self._started)}
+            payload = {"started": dict(self._started), "queue": list(self._queue)}
         try:
             os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
             tmp = f"{path}.{os.getpid()}.tmp"
@@ -599,6 +613,9 @@ class Console:
                 continue
             if self._record_and_drop(dict(run)):
                 recorded.append(run)
+        # A finished run frees the slot it held, so this is also when the next
+        # queued classroom goes out — whether or not this tick recorded anything.
+        self.pump()
         return recorded
 
     # -- the whole course -----------------------------------------------
@@ -613,45 +630,145 @@ class Console:
                                 "title": classroom["title"]})
         return out
 
-    def submit_missing(self, identity: Identity) -> dict:
-        """Start a run for every classroom the specs say is missing.
+    def queued(self) -> list[dict]:
+        """The classrooms waiting for a slot, in the order they will start."""
+        with self._lock:
+            return [{key: item[key] for key in ("course", "classroom", "title")
+                     if key in item} for item in self._queue]
 
-        The hourly limit is per person and this can be asked for a whole course
-        catalogue at once, so the batch stops cleanly at the limit and names what it
-        did not start. A classroom that already has a run in flight is skipped
-        rather than submitted twice — the spec does not know about it until the run
-        finishes, which is the gap this closes.
+    def _enqueue(self, identity: Identity | None, items: list[dict]) -> list[dict]:
+        """Append classrooms that are neither queued nor already in flight.
+
+        Deduplication is by (course, classroom) against both the queue and the
+        console's own run map: the spec does not know about a run until it
+        finishes, so without the second half a second click would pay for the
+        same classroom twice.
+        """
+        added: list[dict] = []
+        owner = {"user": identity.user if identity else "console",
+                 "email": identity.email if identity else "",
+                 "groups": list(identity.groups) if identity else []}
+        with self._lock:
+            known = {(item.get("course"), item.get("classroom")) for item in self._queue}
+            known |= {(started.get("course"), started.get("classroom"))
+                      for started in self._started.values()
+                      if started.get("kind") == "spec"}
+            for item in items:
+                key = (item["course"], item["classroom"])
+                if key in known:
+                    continue
+                self._queue.append({"course": item["course"], "classroom": item["classroom"],
+                                    "title": item.get("title"), "owner": owner})
+                known.add(key)
+                added.append(item)
+        if added:
+            self._save_state()
+        return added
+
+    def _drop_queued(self, item: dict) -> None:
+        """Forget one queued classroom, whether it started or was refused for good."""
+        with self._lock:
+            try:
+                self._queue.remove(item)
+            except ValueError:
+                pass
+
+    @staticmethod
+    def _owner(item: dict) -> Identity:
+        """The person who asked for a queued classroom, for the hourly limit.
+
+        A state file written before the queue carried an owner gives the bucket
+        `console`: the limit still exists, it is just not attributable.
+        """
+        owner = item.get("owner") or {}
+        return Identity(owner.get("user") or "console", owner.get("email") or "",
+                        tuple(owner.get("groups") or ()))
+
+    def pump(self) -> dict:
+        """Start queued classrooms until OpenMAIC runs out of room.
+
+        A course has more classrooms than the generator will run at once, so the
+        spare ones wait here instead of being reported as skipped and left for
+        the operator to click again. Each starts through `submit`, so a classroom
+        that came off the queue is recorded into its spec exactly like one
+        started by a click.
+
+        A refusal that waiting cannot fix (the spec has since been given a
+        classroom) leaves the queue with its reason. One that waiting can fix —
+        the active-run cap, the hourly limit, a generator that is down — leaves
+        the item at the head and ends the pass, because the next tick asks again
+        and hammering a refusal only spends calls.
+        """
+        started: list[dict] = []
+        skipped: list[dict] = []
+        blocked = ""
+        if not self._pump_lock.acquire(blocking=False):
+            return {"started": started, "skipped": skipped, "blocked": "",
+                    "remaining": self._queue_depth()}
+        try:
+            while True:
+                with self._lock:
+                    if not self._queue:
+                        break
+                    item = self._queue[0]
+                    in_flight = {(started_run.get("course"), started_run.get("classroom"))
+                                 for started_run in self._started.values()
+                                 if started_run.get("kind") == "spec"}
+                label = {key: item[key] for key in ("course", "classroom", "title")
+                         if key in item}
+                if (item["course"], item["classroom"]) in in_flight:
+                    self._drop_queued(item)
+                    skipped.append({**label, "reason": "already generating"})
+                    continue
+                try:
+                    answer = self.submit(self._owner(item),
+                                         {"course": item["course"],
+                                          "classroom": item["classroom"]})
+                except Bad as err:
+                    if err.status == 429:
+                        blocked = str(err)
+                        break
+                    self._drop_queued(item)
+                    skipped.append({**label, "reason": str(err)})
+                    continue
+                except Unavailable as err:
+                    blocked = str(err)
+                    break
+                self._drop_queued(item)
+                started.append({**label, "runId": answer["runId"]})
+            remaining = self._queue_depth()
+        finally:
+            self._pump_lock.release()
+        self._save_state()
+        return {"started": started, "skipped": skipped, "blocked": blocked,
+                "remaining": remaining}
+
+    def _queue_depth(self) -> int:
+        with self._lock:
+            return len(self._queue)
+
+    def submit_missing(self, identity: Identity) -> dict:
+        """Queue every classroom the specs say is missing, then start what fits.
+
+        The batch no longer treats "the generator is full" as a reason to drop
+        classrooms: the ones that do not fit wait in the queue and go out as
+        runs finish, so one click covers a whole course. A classroom that
+        already has a run in flight is never queued again — the spec only learns
+        about it when the run finishes, which is the gap this closes.
         """
         with self._lock:
             in_flight = {(started.get("course"), started.get("classroom"))
                          for started in self._started.values() if started.get("kind") == "spec"}
         queue = self.missing()
-        started: list[dict] = []
-        skipped: list[dict] = []
-        blocked = ""
-        for item in queue:
-            key = (item["course"], item["classroom"])
-            if key in in_flight:
-                skipped.append({**item, "reason": "already generating"})
-                continue
-            if blocked:
-                skipped.append({**item, "reason": blocked})
-                continue
-            try:
-                answer = self.submit(identity, {"course": item["course"],
-                                                "classroom": item["classroom"]})
-            except Bad as err:
-                if err.status == 429:
-                    blocked = str(err)
-                skipped.append({**item, "reason": str(err)})
-                continue
-            except Unavailable as err:
-                blocked = str(err)
-                skipped.append({**item, "reason": str(err)})
-                continue
-            started.append({**item, "runId": answer["runId"]})
-        return {"started": started, "skipped": skipped, "missing": len(queue),
-                "blocked": blocked}
+        skipped = [{**item, "reason": "already generating"} for item in queue
+                   if (item["course"], item["classroom"]) in in_flight]
+        self._enqueue(identity, [item for item in queue
+                                 if (item["course"], item["classroom"]) not in in_flight])
+        pumped = self.pump()
+        skipped.extend(pumped["skipped"])
+        return {"started": pumped["started"], "skipped": skipped,
+                "missing": len(queue), "blocked": pumped["blocked"],
+                "queued": pumped["remaining"]}
 
     def retry(self, run_id: str) -> dict:
         status, body = self._call(self._client().retry, run_id)
@@ -844,8 +961,16 @@ class Handler(BaseHTTPRequestHandler):
                     "maxRequirement": self.console.config.max_requirement,
                 })
             if path == "/api/runs":
+                # The page polls this while a batch runs, which makes it the
+                # second driver of the queue (the sweeper is the first): a
+                # classroom that did not fit starts as soon as a run ends.
+                try:
+                    self.console.pump()
+                except Exception:  # noqa: BLE001 — a queue never breaks the list
+                    pass
                 return self._json(200, {"runs": self.console.runs(),
-                                        "recorded": self.console.recent_recordings()})
+                                        "recorded": self.console.recent_recordings(),
+                                        "queued": self.console.queued()})
             if path.startswith("/api/runs/"):
                 return self._json(200, self.console.run(path[len("/api/runs/"):]))
             return self._error(404, "no such endpoint")
