@@ -62,12 +62,11 @@ AI_CONSOLE_LABEL = "AI Classroom"
 HEADER_DESKTOP_SLOT = "org.openedx.frontend.layout.header_desktop_main_menu.v1"
 HEADER_MOBILE_SLOT = "org.openedx.frontend.layout.header_mobile_main_menu.v1"
 
-#: The wildcard is the whole list on purpose. tutor-mfe renders `all`
-#: *unguarded* in env.config.jsx — the file every legacy MFE builds with — and
-#: again in the site app's env.config.all.jsx. Naming the MFEs as well (as the
-#: footer does) would add the same widget a second time to every app that also
-#: matched the wildcard, which is exactly the duplicate link this list exists to
-#: avoid.
+#: `all`, because that is the only value this deployment's MFE build honours:
+#: tutor-mfe compiles one `env.config.jsx` and every app target copies it, so a
+#: named app would simply lose the widget rather than place it. The app that may
+#: show it is chosen in the component instead (see HEADER_COMPONENT): Studio
+#: only, which is served under `/authoring`.
 HEADER_MFES = ["all"]
 
 # The component, injected into the MFE runtime env config exactly as Indigo
@@ -134,9 +133,15 @@ RenderWidget: AthenIQFooter,
 # renders beside the nav rather than inside its <Nav>, and `nav-link` carries
 # the same styling in both places.
 HEADER_COMPONENT = f"""
-const AthenIQHeaderLink = () => (
-  <a className="nav-link" href={{{AI_CONSOLE_URL!r}}}>{AI_CONSOLE_LABEL}</a>
-);
+const AthenIQHeaderLink = () => {{
+  // Studio only. One env.config.jsx is compiled into every MFE here, so the
+  // widget has to decide for itself which app it is in: authoring is served
+  // under /authoring, and the learner apps (course page, dashboard, profile)
+  // are not. A learner has no use for the generator, an instructor writing a
+  // course does.
+  if (!window.location.pathname.startsWith('/authoring')) return null;
+  return <a className="nav-link" href={{{AI_CONSOLE_URL!r}}}>{AI_CONSOLE_LABEL}</a>;
+}};
 """
 
 HEADER_SLOT_CONFIG = """

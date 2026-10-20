@@ -143,7 +143,7 @@ footer slot and that footer still prints the Tutor + Open edX logos. The
 slot widget with the AthenIQ lockup; because the MFE footer is compiled, it needs
 `tutor images build mfe` (see [docs/Brand.md](Brand.md)).
 
-The same plugin also puts an **AI Classroom** link in the MFE header nav, opening
+The same plugin also puts an **AI Classroom** link in the Studio (authoring) header, opening
 `ai.lms.innotel.us` on the Authentik session the LMS already has — so it is a
 click, not a second sign-in. Build only the apps that need it: `tutor images
 build mfe` compiles all thirteen in parallel and has taken a production node
