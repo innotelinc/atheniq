@@ -1,23 +1,27 @@
 /* AthenIQ learner portal — Unity.
  *
- * Same palette and type as the console, the Studio chrome and the landing page:
- * one product, three surfaces. A catalogue is read, not operated, so this page
- * is quieter than the console: fewer borders, more space, one accent.
+ * The palette itself is web/student/unity-theme.css, a byte-identical copy of the
+ * family's canonical theme; this file only names it the way the portal does.
+ * A catalogue is read, not operated, so this page is quieter than the console:
+ * fewer borders, more space, one accent.
  */
+@import url("unity-theme.css");
 :root {
-  color-scheme: dark;
-  --bg: #0a1118;
-  --bg-elevated: #101a22;
-  --surface: #16222c;
-  --surface-hover: #1d2b36;
-  --border: #22323d;
-  --text: #eef4f8;
-  --text-secondary: #c2cfd9;
-  --text-muted: #93a4b1;
-  --accent: #10b981;
-  --accent-hover: #34d399;
-  --accent-tint: rgba(16, 185, 129, 0.12);
-  --gold: #fbbf24;
+  /* Unity drives the palette (see unity-theme.css beside this file). These names
+     are the portal's own; `--surface` is deliberately not redefined so the
+     theme's own card surface applies in whichever mode the reader chose. */
+  color-scheme: light dark;
+  --bg: var(--canvas);
+  --bg-elevated: var(--surface-muted);
+  --surface-hover: var(--surface-muted);
+  --border: var(--line);
+  --text: var(--ink);
+  --text-secondary: var(--ink-soft);
+  --text-muted: var(--ink-faint);
+  --accent: var(--brand);
+  --accent-hover: color-mix(in oklab, var(--brand) 82%, var(--ink));
+  --accent-tint: var(--brand-soft);
+  --gold: var(--attention);
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 16px;
@@ -39,7 +43,7 @@ code { font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Conso
 /* -- topbar ---------------------------------------------------------------- */
 .topbar {
   position: sticky; top: 0; z-index: 10;
-  background: rgba(10, 17, 24, 0.86); backdrop-filter: blur(24px);
+  background: color-mix(in oklab, var(--bg) 86%, transparent); backdrop-filter: blur(24px);
   border-bottom: 1px solid var(--border);
 }
 .topbar-inner { display: flex; align-items: center; gap: 18px; height: 60px; }
@@ -47,7 +51,7 @@ code { font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Conso
 .brand:hover { color: var(--text); }
 .brand .mark {
   width: 22px; height: 22px; border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, var(--accent-hover), var(--accent) 60%, #055c42);
+  background: radial-gradient(circle at 30% 30%, var(--accent-hover), var(--accent) 60%, color-mix(in oklab, var(--accent) 55%, #000));
 }
 .brand .sep { color: var(--border); font-weight: 400; }
 .nav { display: flex; gap: 16px; }
@@ -128,7 +132,7 @@ section { padding-top: 34px; }
   font-size: 11.5px; border: 1px solid var(--border); border-radius: 999px;
   padding: 2px 9px; color: var(--text-secondary);
 }
-.badge.ok { color: var(--accent); border-color: rgba(16, 185, 129, 0.4); }
+.badge.ok { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 40%, transparent); }
 .cta-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0 4px; }
 .btn {
   display: inline-flex; align-items: center; gap: 6px; border-radius: var(--radius-sm);
@@ -148,7 +152,7 @@ section { padding-top: 34px; }
 .semester[data-open="1"] .chev { transform: rotate(90deg); }
 .semester-body { display: none; border-top: 1px solid var(--border); }
 .semester[data-open="1"] .semester-body { display: block; }
-.course-row { padding: 11px 14px; border-top: 1px solid rgba(34, 50, 61, 0.55); }
+.course-row { padding: 11px 14px; border-top: 1px solid color-mix(in oklab, var(--border) 55%, transparent); }
 .course-row:first-child { border-top: 0; }
 .course-title { font-size: 13.5px; }
 .course-title code { color: var(--accent); font-size: 12px; margin-right: 3px; }

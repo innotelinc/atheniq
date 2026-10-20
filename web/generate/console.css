@@ -1,22 +1,27 @@
-/* AthenIQ generation console — same palette and type as the product landing
-   page (web/landing/index.html), laid out for a working screen rather than a
+/* AthenIQ generation console — the Unity palette (web/generate/unity-theme.css) — same palette and type as the product landing
+   page (one theme, every product), laid out for a working screen rather than a
    pitch: dense rows, one accent, no animation that runs while you read. */
+@import url("unity-theme.css");
 :root {
-  color-scheme: dark;
-  --p-bg: #0a1118;
-  --p-bg-elevated: #101a22;
-  --p-surface: #16222c;
-  --p-surface-hover: #1d2b36;
-  --p-border: #22323d;
-  --p-text: #eef4f8;
-  --p-text-secondary: #c2cfd9;
-  --p-text-muted: #93a4b1;
-  --p-accent: #10b981;
-  --p-accent-hover: #34d399;
-  --p-accent-tint: rgba(16, 185, 129, 0.12);
-  --p-gold: #fbbf24;
-  --p-danger: #f87171;
-  --p-success: #2dd4bf;
+  /* Unity drives the palette. The names below are this console's own
+     vocabulary — the markup speaks `--p-*` throughout — and every one resolves
+     to a Unity token, so light/dark (and the scheme a product declares) come
+     from the theme rather than from a second palette written here. */
+  color-scheme: light dark;
+  --p-bg: var(--canvas);
+  --p-bg-elevated: var(--surface-muted);
+  --p-surface: var(--surface);
+  --p-surface-hover: var(--surface-muted);
+  --p-border: var(--line);
+  --p-text: var(--ink);
+  --p-text-secondary: var(--ink-soft);
+  --p-text-muted: var(--ink-faint);
+  --p-accent: var(--brand);
+  --p-accent-hover: color-mix(in oklab, var(--brand) 82%, var(--ink));
+  --p-accent-tint: var(--brand-soft);
+  --p-gold: var(--attention);
+  --p-danger: var(--bad);
+  --p-success: var(--ok);
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 16px;
@@ -37,14 +42,14 @@ code, pre { font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, 
 /* -- topbar ---------------------------------------------------------------- */
 .topbar {
   position: sticky; top: 0; z-index: 10;
-  background: rgba(10, 17, 24, 0.82); backdrop-filter: blur(24px);
+  background: color-mix(in oklab, var(--p-bg) 82%, transparent); backdrop-filter: blur(24px);
   border-bottom: 1px solid var(--p-border);
 }
 .topbar-inner { display: flex; align-items: center; gap: 14px; height: 58px; }
 .brand { display: inline-flex; align-items: center; gap: 9px; font-weight: 650; letter-spacing: 0.03em; }
 .brand .mark {
   width: 22px; height: 22px; border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, var(--p-accent-hover), var(--p-accent) 60%, #055c42);
+  background: radial-gradient(circle at 30% 30%, var(--p-accent-hover), var(--p-accent) 60%, color-mix(in oklab, var(--p-accent) 55%, #000));
 }
 .brand .sep { color: var(--p-border); font-weight: 400; }
 .who { margin-left: auto; font-size: 13px; color: var(--p-text-secondary); }
@@ -53,7 +58,7 @@ code, pre { font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, 
   font-size: 12px; letter-spacing: 0.02em; border-radius: 999px; padding: 3px 11px;
   border: 1px solid var(--p-border); color: var(--p-text-secondary); white-space: nowrap;
 }
-.pill[data-state="ok"] { color: var(--p-success); border-color: rgba(45, 212, 191, 0.35); }
+.pill[data-state="ok"] { color: var(--p-success); border-color: color-mix(in oklab, var(--p-success) 35%, transparent); }
 .pill[data-state="bad"] { color: var(--p-danger); border-color: rgba(248, 113, 113, 0.4); }
 .pill[data-state="pending"] { color: var(--p-gold); border-color: rgba(251, 191, 36, 0.3); }
 
@@ -121,7 +126,7 @@ textarea { resize: vertical; line-height: 1.5; font-size: 13.5px; }
 
 .row {
   display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px;
-  align-items: center; padding: 11px 14px; border-top: 1px solid rgba(34, 50, 61, 0.6);
+  align-items: center; padding: 11px 14px; border-top: 1px solid color-mix(in oklab, var(--p-border) 60%, transparent);
 }
 .row:first-child { border-top: 0; }
 .row:hover { background: rgba(29, 43, 54, 0.5); }
@@ -192,10 +197,10 @@ textarea { resize: vertical; line-height: 1.5; font-size: 13.5px; }
   position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%);
   background: var(--p-surface); color: var(--p-text); border: 1px solid var(--p-border);
   border-radius: var(--radius-md); padding: 10px 16px; font-size: 13.5px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45); max-width: min(640px, calc(100vw - 40px));
+  box-shadow: var(--shadow-pop); max-width: min(640px, calc(100vw - 40px));
 }
 .toast[data-kind="bad"] { border-color: rgba(248, 113, 113, 0.5); }
-.toast[data-kind="ok"] { border-color: rgba(45, 212, 191, 0.5); }
+.toast[data-kind="ok"] { border-color: color-mix(in oklab, var(--p-success) 50%, transparent); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; }
@@ -220,7 +225,7 @@ textarea { resize: vertical; line-height: 1.5; font-size: 13.5px; }
   font: inherit; cursor: pointer; transition: border-color .15s var(--ease), background .15s var(--ease);
 }
 .program-card:hover { border-color: var(--p-accent); background: var(--p-surface-hover); }
-.program-card.live { border-color: rgba(16, 185, 129, 0.35); }
+.program-card.live { border-color: color-mix(in oklab, var(--p-success) 35%, transparent); }
 .program-kind {
   align-self: flex-start; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase;
   color: var(--p-text-muted); border: 1px solid var(--p-border); border-radius: 999px; padding: 1px 8px;
@@ -247,7 +252,7 @@ textarea { resize: vertical; line-height: 1.5; font-size: 13.5px; }
   font-size: 11.5px; border: 1px solid var(--p-border); border-radius: 999px;
   padding: 2px 9px; color: var(--p-text-secondary); white-space: nowrap;
 }
-.badge.ok { color: var(--p-success); border-color: rgba(45, 212, 191, 0.4); }
+.badge.ok { color: var(--p-success); border-color: color-mix(in oklab, var(--p-success) 40%, transparent); }
 .badge.ready { color: var(--p-gold); border-color: rgba(251, 191, 36, 0.35); }
 .badge.locked { color: var(--p-text-muted); }
 
@@ -274,8 +279,8 @@ textarea { resize: vertical; line-height: 1.5; font-size: 13.5px; }
   border-radius: var(--radius-md); padding: 10px 14px; margin-bottom: 12px;
 }
 .conferred {
-  font-size: 13px; color: var(--p-success); background: rgba(45, 212, 191, 0.08);
-  border: 1px solid rgba(45, 212, 191, 0.3); border-radius: var(--radius-md);
+  font-size: 13px; color: var(--p-success); background: color-mix(in oklab, var(--p-success) 8%, transparent);
+  border: 1px solid color-mix(in oklab, var(--p-success) 30%, transparent); border-radius: var(--radius-md);
   padding: 10px 14px; margin-bottom: 12px;
 }
 .eligible { font-size: 13px; color: var(--p-success); }
@@ -314,7 +319,7 @@ textarea { resize: vertical; line-height: 1.5; font-size: 13.5px; }
 
 .course-row {
   display: grid; grid-template-columns: minmax(0, 1fr) 170px; gap: 12px;
-  padding: 10px 14px; border-top: 1px solid rgba(34, 50, 61, 0.6);
+  padding: 10px 14px; border-top: 1px solid color-mix(in oklab, var(--p-border) 60%, transparent);
 }
 .course-row:first-child { border-top: 0; }
 .course-title { font-size: 13.5px; }

@@ -97,6 +97,56 @@ class Stylesheets(unittest.TestCase):
             self.assertIn(f"/theming/asset/atheniq/unity-{name}.css", footer)
 
 
+class PlatformPages(unittest.TestCase):
+    """The console and the learner portal wear Unity, not a lookalike.
+
+    The palette in the two pages is the family's `unity-theme.css` verbatim, and
+the pages' own stylesheets only *name* its tokens. That split is what makes this
+adoption rather than a second palette that happens to be green today: a change to
+Unity reaches these pages by replacing one file, and these tests fail the moment
+the copies stop being one file.
+    """
+
+    GENERATE = ROOT / "web" / "generate"
+    STUDENT = ROOT / "web" / "student"
+
+    def test_the_two_copies_are_one_file(self):
+        for name in ("unity-theme.css", "unity-theme.js"):
+            self.assertEqual((self.GENERATE / name).read_bytes(),
+                             (self.STUDENT / name).read_bytes(),
+                             f"{name} differs between the console and the portal")
+
+    def test_the_copy_is_the_unity_palette(self):
+        css = (self.GENERATE / "unity-theme.css").read_text(encoding="utf-8")
+        for value in (*UNITY_DESK.values(), *UNITY_DESK_DARK.values()):
+            self.assertIn(value, css)
+        # All three registers ship, which is what lets each product declare one.
+        for scheme in ('data-scheme="operations"', 'data-scheme="soc"'):
+            self.assertIn(scheme, css)
+
+    def test_every_page_declares_a_scheme_and_loads_the_switch(self):
+        pages = sorted(self.GENERATE.glob("*.html")) + [self.STUDENT / "index.html"]
+        self.assertGreaterEqual(len(pages), 8)
+        for page in pages:
+            html = page.read_text(encoding="utf-8")
+            self.assertIn('data-scheme="operations"', html, page.name)
+            self.assertIn("unity-theme.js", html, page.name)
+            self.assertLess(html.index("unity-theme.js"),
+                            html.index('rel="stylesheet"'),
+                            f"{page.name}: the switch must run before the first paint")
+
+    def test_the_pages_stylesheets_bridge_rather_than_repaint(self):
+        console = (self.GENERATE / "console.css").read_text(encoding="utf-8")
+        portal = (self.STUDENT / "student.css").read_text(encoding="utf-8")
+        for css in (console, portal):
+            self.assertIn('@import url("unity-theme.css")', css)
+        self.assertIn("--p-accent: var(--brand)", console)
+        self.assertIn("--accent: var(--brand)", portal)
+        # The retired green palette must not survive as literals.
+        self.assertNotIn("#10b981", console)
+        self.assertNotIn("#10b981", portal)
+
+
 class Plugin(unittest.TestCase):
     """The plugin's declared hooks, read without importing Tutor."""
 
