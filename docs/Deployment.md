@@ -143,13 +143,17 @@ footer slot and that footer still prints the Tutor + Open edX logos. The
 slot widget with the AthenIQ lockup; because the MFE footer is compiled, it needs
 `tutor images build mfe` (see [docs/Brand.md](Brand.md)).
 
-The same plugin also installs the platform nav in the MFE header — **Courses ·
-Programs · Classrooms · Studio · Platform** — opening `ai.lms.innotel.us` on the
-Authentik session the LMS already has, so it is a click, not a second sign-in.
-On the authoring app it adds the create row the platform actually needs
-(**+ New Program · + New Course · + New Classroom · + New Library**) in the page
-banner; the stock page still renders its own heading and single "+ New course"
-button, which only a fork of the authoring app can remove.
+The same plugin also installs the platform nav in the **Studio (authoring)
+header** — Courses · Programs · Classrooms · Studio · Platform — opening
+`ai.lms.innotel.us` on the Authentik session the LMS already has, so it is a
+click, not a second sign-in. The one `env.config.jsx` is compiled into every
+MFE, so the widget decides for itself where to appear (`/authoring` only); a
+learner has no use for the workspace. On the same page it adds the create row
+the platform actually needs (**+ New Program · + New Course · + New Classroom ·
++ New Library**), inserted into `org.openedx.frontend.authoring.page_banner.v1`.
+The stock page still renders its own heading and single "+ New course" button:
+those strings live in the compiled bundle, so only a fork of the authoring app
+can remove them.
 
 ### One session across Studio, the LMS and the MFEs
 
