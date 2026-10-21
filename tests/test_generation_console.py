@@ -343,6 +343,30 @@ class DirectConsole(unittest.TestCase):
         # And the page can say what happened rather than just showing an empty list.
         self.assertEqual(self.console.recent_recordings()[-1]["classroomId"], "stage-new")
 
+    def test_a_classroom_can_be_deleted_with_or_without_a_live_classroom(self):
+        """Delete is a spec edit, so it works on a brief that never got built.
+
+        The console used to offer the button only on a live classroom, which left
+        a queued-but-never-filled row with no way out.
+        """
+        # demo-ch01 has no classroom_id; demo-ch02 is live as stage-already.
+        self.assertIsNone(self.read_spec()["classrooms"][0].get("classroom_id"))
+        missing = self.console.classroom_retire("demo", "demo-ch01")
+        self.assertTrue(missing["ok"])
+        self.assertIsNone(missing["retired"])
+
+        live = self.console.classroom_retire("demo", "demo-ch02")
+        self.assertEqual("stage-already", live["retired"])
+        spec = self.read_spec()
+        self.assertIsNone(spec["classrooms"][1]["classroom_id"])
+        # The id is retired, not erased: a student's history may point at it.
+        self.assertEqual(["stage-already"], spec["classrooms"][1]["retired_classroom_ids"])
+
+    def test_deleting_a_classroom_that_is_not_there_is_a_404(self):
+        with self.assertRaises(console.Bad) as caught:
+            self.console.classroom_retire("demo", "nope")
+        self.assertEqual(caught.exception.status, 404)
+
     def test_a_run_still_generating_stays_listed_with_its_source(self):
         answer = self.console.submit(self.dana, {"course": "demo", "classroom": "demo-ch01"})
         runs = self.console.runs()

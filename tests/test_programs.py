@@ -112,6 +112,23 @@ class StoreTests(unittest.TestCase):
         self.assertEqual([s["number"] for s in reread["plan"]["semesters"]], [1, 2])
         self.assertEqual(self.store.list_programs()[0]["courses"], 2)
 
+    def test_delete_moves_the_program_out_of_the_catalogue(self):
+        """The console's Delete is an archive: the file survives, the listing does not.
+
+        Conferrals and enrolments may point at a program that has been retired;
+        erasing the file would take the only record of them.
+        """
+        doc = self.store.create(Identity(), {"template": "nursing"})
+        self.assertEqual([doc["id"]], [p["id"] for p in self.store.list_programs()])
+        answer = self.store.archive(doc["id"])
+        self.assertTrue(answer["ok"])
+        self.assertIn(".archive", answer["archived"])
+        self.assertTrue(os.path.isfile(answer["archived"]))
+        self.assertEqual([], self.store.list_programs())
+        with self.assertRaises(manager.ProgramError) as caught:
+            self.store.get(doc["id"])
+        self.assertEqual(caught.exception.status, 404)
+
     def test_store_write_failure_is_a_500_not_a_dropped_request(self):
         blocker = os.path.join(tempfile.mkdtemp(), "not-a-dir")
         open(blocker, "w").close()
