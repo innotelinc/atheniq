@@ -1,11 +1,12 @@
 """AthenIQ — the platform's own face, baked into the Tutor images.
 
 WHAT THIS PLUGIN IS. `contrib/atheniq-theme` holds the files; this makes them
-part of the deployment instead of a copy in a container's writable layer. The
-difference matters: `make theme` (`scripts/apply-atheniq-theme.sh`) applies the
-same files to a *running* LMS and is lost the next time the container is
-recreated — which is exactly what `tutor local launch` does. A brand that
-disappears on the next deploy is not a brand, it is a suggestion.
+part of a *rebuilt* image instead of a copy applied at runtime. `make theme`
+(`scripts/apply-atheniq-theme.sh`) covers the running deployment without a
+source rebuild: it bakes the same files into a one-layer derivative of the
+upstream image, so the brand survives a container recreate too. What it cannot
+survive is `tutor images build openedx`, which replaces that tag — this plugin
+is the form that a rebuild carries, and is why the two exist together.
 
 HOW IT LANDS. Two patches and one configuration default:
 

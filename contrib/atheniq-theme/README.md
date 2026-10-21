@@ -30,10 +30,18 @@ make images            # regenerate the rasters first, if stale
 make theme             # == ./scripts/apply-atheniq-theme.sh
 ```
 
-That is an operational convenience: the copies live in the container's writable
-layer and are lost when the container is recreated (`tutor local launch`). To make
-them permanent, fold them into a Tutor theme plugin and `tutor images build
-openedx`.
+The script does not stop at the copy. `docker cp` into the running container is
+lost when the container is recreated (`tutor local launch` stops and starts the
+platform), so it also **bakes the files into the image the compose project
+starts from** — one `COPY` layer over the upstream `overhangio/openedx` image,
+built in seconds, with the untouched image kept as
+`atheniq/openedx-theme-base:<tag>` for a rollback. `--no-bake` is the old
+behaviour: a look that the next recreate throws away.
+
+For a deployment that rebuilds `openedx` from source instead, enable
+[`../tutor-atheniq-theme`](../tutor-atheniq-theme): its Dockerfile patch copies
+this overlay into the image and re-collects the static assets, so
+`tutor images build openedx` produces the same result.
 
 ## The learner MFEs
 

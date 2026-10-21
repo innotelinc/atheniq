@@ -164,5 +164,5 @@ cert-check: ## Verify the public names' certificates (coverage, chain, expiry) -
 tutor-quickstart: ## First boot of the LMS (interactive Tutor bring-up)
 	tutor local quickstart
 
-theme: ## Apply the AthenIQ LMS branding (footer, header logo, favicon) to the running LMS
+theme: ## Brand the LMS (footer, logo, favicon, skin) and bake it into the image, so a recreate keeps it
 	bash scripts/apply-atheniq-theme.sh

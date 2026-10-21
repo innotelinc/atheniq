@@ -181,6 +181,44 @@ class Plugin(unittest.TestCase):
         self.assertIn('"tutor.plugin.v0"', pyproject)
 
 
+class ThemeScript(unittest.TestCase):
+    """`make theme` outlives the container it was applied to.
+
+    A copy in the writable layer is what `tutor local launch` throws away when
+    it recreates the LMS from the image, so the script has to bake the files in.
+    These assertions are about that second half, not the copy itself.
+    """
+
+    SCRIPT = ROOT / "scripts" / "apply-atheniq-theme.sh"
+
+    def setUp(self):
+        self.text = self.SCRIPT.read_text(encoding="utf-8")
+
+    def test_it_bakes_the_copies_into_the_compose_image(self):
+        self.assertIn("docker build", self.text)
+        self.assertIn('-t "${image}"', self.text)
+        # Built from the compose image's own reference, which is what a recreate
+        # starts, not from whatever container happens to be running.
+        self.assertIn("{{.Config.Image}}", self.text)
+        self.assertIn("COPY --chown=app:app lms/ ${THEME_ROOT}/", self.text)
+        self.assertIn("COPY --chown=app:app lms/static/atheniq/ ${STATIC_TARGET}/", self.text)
+
+    def test_the_base_image_is_kept_and_never_stacked_on(self):
+        self.assertIn('atheniq/openedx-theme-base:${tag}', self.text)
+        self.assertIn('atheniq.theme.base', self.text)
+        # Retagging the upstream image is the documented rollback.
+        self.assertIn("docker tag ${THEME_BASE} ${THEME_IMAGE}", self.text)
+
+    def test_the_baked_image_is_verified_before_it_is_reported(self):
+        self.assertIn('docker run --rm --entrypoint /bin/sh "${image}"', self.text)
+        self.assertIn("${THEME_TARGET}/footer.html", self.text)
+        self.assertIn("${STATIC_TARGET}/unity-light.css", self.text)
+
+    def test_no_bake_is_the_opt_out_and_says_what_it_costs(self):
+        self.assertIn("--no-bake", self.text)
+        self.assertIn("writable layer only", self.text)
+
+
 class HeaderLinks(unittest.TestCase):
     """The MFE plugin adds no header nav at all."""
 

@@ -133,8 +133,20 @@ Apply them to the running LMS with:
 make theme        # == ./scripts/apply-atheniq-theme.sh
 ```
 
-The copies live in the container's writable layer — re-run the script after a
-container recreate, or fold them into a Tutor theme plugin before a rebuild.
+The script copies the files into the running LMS **and bakes them into the image
+the compose project starts from** — a one-layer derivative of
+`overhangio/openedx` that is seconds to build, not the edx-platform source
+rebuild. That is what makes the brand survive `tutor local launch`: the platform
+is stopped and recreated from the image, so a copy in the container's writable
+layer would be gone. The untouched image is kept as
+`atheniq/openedx-theme-base:<tag>`; rolling back is a retag and a `tutor local
+start -d`. `--no-bake` gives the old footprint (a look, lost on the next
+recreate).
+
+`tutor images build openedx` replaces the tag from source, so enable the
+[`contrib/tutor-atheniq-theme`](../contrib/tutor-atheniq-theme) plugin before a
+rebuild: its Dockerfile patch copies the same overlay in and re-collects the
+static assets, which is the durable form of this step.
 
 > **The learner MFEs** (catalog, learning, profile) render their own footer from
 compiled JS bundles. Indigo installs its footer into the frontend-plugin-framework
