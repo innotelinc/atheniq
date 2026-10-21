@@ -87,24 +87,29 @@ header a[href$="/dashboard"]:hover::after {
 
 /* ---------------------------------------------------------- the MFE nav -- */
 
-/* WHAT THIS IS. The header nav `contrib/tutor-atheniq-mfe` injects into the
- * learner apps: the two places a learner can actually go — their courses and
- * the catalog.
+/* WHAT THIS IS. The header nav `contrib/tutor-atheniq-mfe` used to inject into
+ * the learner apps: the two places a learner can go — their courses and the
+ * catalog. It does not inject one any more; the rules below are what the pages
+ * that still carry a nav (a bundle built before the removal, a browser holding
+ * an old one) are held to.
  *
- * WHY THE LAYOUT LIVES HERE. The slot renders the widget's anchors beside the
+ * WHY THE LAYOUT LIVES HERE. The slot rendered the widget's anchors beside the
  * MFE's own nav, and Paragon's `.nav-link` is `display:block` — so an injected
  * <nav> whose wrapper has no geometry laid its links out as a **column pinned
- * to the left of the header** instead of a row. The component now styles
- * itself, but an app whose bundle predates that fix still carries the column;
- * the skin every app loads is the one thing that reaches all of them, so the
- * row is declared here too.
+ * to the left of the header** instead of a row. The skin every app loads is the
+ * one thing that reaches all of them, so the row is still declared here.
  *
- * THE WORKSPACE MENU IS NOT PART OF A LEARNER'S HEADER. Courses · Programs ·
- * Classrooms · Studio · Platform are the console's menu, for staff. Bundles
- * built before the plugin learned that still render the five, and a compiled
- * bundle is not editable from here — so they are removed by destination, which
- * survives a rebuild either way.
+ * THE HEADER CARRIES NO ATHENIQ NAV. The two learner links that were slotted
+ * into it (Courses and the catalog) are gone, as is the five-item workspace
+ * menu (Courses · Programs · Classrooms · Studio · Platform) that was the
+ * console's, not a learner's. The list the component renders is empty, and an
+ * empty <nav> is still a landmark a screen reader announces, so it is hidden
+ * when it has nothing in it. A link left in a bundle that predates the removal
+ * is hidden by destination, which survives a rebuild either way.
  */
+nav.atheniq-nav:empty {
+  display: none !important;
+}
 nav.atheniq-nav {
   display: flex !important;
   flex-wrap: wrap;

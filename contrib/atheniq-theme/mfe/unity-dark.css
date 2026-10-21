@@ -93,6 +93,9 @@ header a[href$="/dashboard"]:hover::after {
  * to the console, not to a learner's header, so it goes by destination. The
  * reasoning is in `unity-light.css`; this file only carries the same rules for
  * the dark scheme. */
+nav.atheniq-nav:empty {
+  display: none !important;
+}
 nav.atheniq-nav {
   display: flex !important;
   flex-wrap: wrap;

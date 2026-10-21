@@ -8,7 +8,7 @@ locale, and `defaultMessage:"…"` descriptors in the source language), which ar
 *data* — rewriting values there changes what a page says without touching the
 code that says it.
 
-Two kinds of edit happen here.
+Three kinds of edit happen here.
 
 1. **Copy.** Every i18n value is rewritten token by token: `Open edX` and `edX`
    become `AthenIQ`, `Studio Home` becomes `AthenIQ Studio`, and the trademark
@@ -16,7 +16,14 @@ Two kinds of edit happen here.
    deployment — are emptied. A handful of keys are set outright because a token
    swap would read badly (`footer.logo.altText`, the Studio heading).
 
-2. **One structural edit, in the authoring app only.** The Studio home's
+2. **The header nav is emptied, in every app.** The learner dashboard once got
+two links (Courses, and the catalog — spelled `Catalogue` in the bundles that
+were built before the spelling was fixed) and every app once got the five-item
+workspace menu. Both lists are replaced with `[]`, so no page renders them and
+no rebuild is needed to take them out. Nothing is added back: the pages those
+links opened are reachable from the console and the dashboard itself.
+
+3. **One structural edit, in the authoring app only.** The Studio home's
    `PageHeader` builds its actions array in the bundle, and it builds exactly
    two buttons: `+ New course` and `+ New library`. Programs and classrooms are
    created in the AthenIQ workspace, and the page offers no way to reach them.
@@ -24,7 +31,7 @@ Two kinds of edit happen here.
    actions, in the same place, on the page where somebody is about to create
    something.
 
-Both are pinned to the bundle they were written against, so every anchor is
+Every anchor is pinned to the bundle it was written against, so each one is
 **required**: if a rule matches nothing, the build fails and says which one. A
 silent no-op is how a deployment ends up claiming a brand it does not show.
 
@@ -133,21 +140,16 @@ TOKEN_RULES = (
 #: the v1 and v2 library flows. Those gates are dropped on purpose: the four
 #: actions are links to the workspace, which enforces its own permissions, and a
 #: missing program link on a page that is about creating things is the bug.
-#: The learner dashboard gets two links, not the operator's five: a learner wants
-#: their courses and the catalog, and the workspace is an author's tool. The
-#: catalog is the AthenIQ portal rather than the LMS catalog MFE: the portal
-#: reads the program store, so a program or course created in the console is
-#: listed there immediately, while the LMS catalog only ever lists Open edX
-#: courses and therefore cannot show either.
-LEARNER_SECTIONS = (
-    ("Courses", "https://apps.learn.innotel.us/"),
-    ("Catalog", "https://lms.innotel.us/"),
-)
+#:
+#: The header is the platform's. No nav is added to it — not the operator's five
+#: workspace links and not the two learner links (Courses and the catalog) a
+#: previous version of the env-config component slotted into the dashboard. Every
+#: bundle is patched to the empty list: a learner's header carries no AthenIQ
+#: menu, and the pages those links opened are reachable from the page itself.
 
 #: The five the env-config component carried, in its order. Pinned as a literal:
 #: the bundles already built hold this array, and no rebuild is needed to take it
-#: out — every app is patched to the empty list, and the dashboard to the two
-#: learner links above.
+#: out — every app is patched to the empty list, the dashboard included.
 PLATFORM_SECTIONS = (
     ("Courses", "https://ai.lms.innotel.us/courses.html"),
     ("Programs", "https://ai.lms.innotel.us/programs.html"),
@@ -164,15 +166,40 @@ def sections_literal(pairs) -> str:
 
 PLATFORM_NAV_ANCHOR = sections_literal(PLATFORM_SECTIONS)
 
-#: The learner array as the dashboard shipped it: "Discover New" opened the LMS
-#: catalog MFE, which lists Open edX courses — so a program or course created in
-#: the console was not there, and could not be enrolled in. The catalog link
-#: now opens the portal, which reads the program store. Pinned as a literal, so
-#: the bundles already built are repointed without a rebuild.
-LEGACY_LEARNER_ANCHOR = sections_literal((
-    ("Courses", "https://apps.learn.innotel.us/"),
-    ("Discover New", "https://apps.learn.innotel.us/catalog/courses"),
-))
+#: The learner arrays the dashboard shipped, in each spelling it has been built
+#: with. Pinned as literals so the bundles already deployed lose the links
+#: without a rebuild: the catalog link first pointed at the LMS catalog MFE
+#: (`Discover New`), then at the portal, and its label was written both
+#: "Catalogue" and "Catalog".
+LEGACY_LEARNER_ANCHORS = (
+    sections_literal((
+        ("Courses", "https://apps.learn.innotel.us/"),
+        ("Discover New", "https://apps.learn.innotel.us/catalog/courses"),
+    )),
+    sections_literal((
+        ("Courses", "https://apps.learn.innotel.us/"),
+        ("Catalogue", "https://lms.innotel.us/"),
+    )),
+    sections_literal((
+        ("Courses", "https://apps.learn.innotel.us/"),
+        ("Catalog", "https://lms.innotel.us/"),
+    )),
+)
+
+#: Every nav array the bundles carry, and the empty list each becomes.
+NAV_ANCHORS = (PLATFORM_NAV_ANCHOR,) + LEGACY_LEARNER_ANCHORS
+
+#: The dashboard's learner links, as they appear inside the array. A bundle that
+#: still holds one of these still shows a menu, whatever array it was built in.
+LEARNER_LINK_MARKERS = tuple(
+    f'["{label}","{href}"]'
+    for label, href in (
+        ("Courses", "https://apps.learn.innotel.us/"),
+        ("Catalogue", "https://lms.innotel.us/"),
+        ("Catalog", "https://lms.innotel.us/"),
+        ("Discover New", "https://apps.learn.innotel.us/catalog/courses"),
+    )
+)
 
 #: The two pushes are replaced one at a time, and neither replacement touches the
 #: braces around them: the stock code is
@@ -286,18 +313,14 @@ def patch_text(text: str, app: str, counts: Counter) -> str:
             counts["edx-links"] += text.count(old)
             text = text.replace(old, new)
 
-    if LEGACY_LEARNER_ANCHOR in text:
-        counts["learner-nav-legacy"] += text.count(LEGACY_LEARNER_ANCHOR)
-        text = text.replace(LEGACY_LEARNER_ANCHOR, sections_literal(LEARNER_SECTIONS))
-
-    if PLATFORM_NAV_ANCHOR in text:
-        # The workspace menu is the console's, not a learner's: the dashboard is
-        # given the two learner links, every other app an empty list. Empty
-        # rather than left alone because a bundle built before the plugin learned
-        # this still renders the five, and the list is the thing that renders.
-        sections = LEARNER_SECTIONS if app == "learner-dashboard" else ()
-        counts["learner-nav" if sections else "workspace-nav"] += text.count(PLATFORM_NAV_ANCHOR)
-        text = text.replace(PLATFORM_NAV_ANCHOR, sections_literal(sections))
+    # The header carries no AthenIQ nav: every list the bundles know about is
+    # emptied. Empty rather than removed because the list is what the component
+    # renders — `p.map(...)` over `[]` draws nothing — and the surrounding
+    # expression has to keep the shape the rest of the bundle expects.
+    for anchor in NAV_ANCHORS:
+        if anchor in text:
+            counts["header-nav"] += text.count(anchor)
+            text = text.replace(anchor, "[]")
 
     if app == "authoring" and HOME_ACTIONS_ANCHOR in text:
         counts["home-actions"] += text.count(HOME_ACTIONS_ANCHOR)
@@ -463,15 +486,23 @@ def main(argv: list[str]) -> int:
         print(f"  {label:28} {number}")
     print(f"patch-mfe-brand: {app}: {edited} file(s) {'would change' if args.report else 'changed'}")
 
-    # The Studio home's four actions are the reason this script exists for the
-    # authoring app; a build that did not place them has silently kept the page
-    # it was meant to fix.
-    if app == "learner-dashboard" and not counts.get("learner-nav") \
-            and not any("Discover New" in a.read_text(encoding="utf-8", errors="ignore")
-                        for a in iter_assets(args.dist)):
-        print("patch-mfe-brand: the dashboard's platform nav was not found — it still "
-              "carries the five workspace links", file=sys.stderr)
-        return 1
+    # The dashboard's header nav is the reason this script runs on the learner
+    # apps: a bundle that still holds a learner link still shows a menu that was
+    # meant to go. `--report` writes nothing, so it is held to a different bar:
+    # every bundle either has nothing left to strip or a rule that matched it.
+    if app == "learner-dashboard":
+        leftovers = [a for a in iter_assets(args.dist)
+                     if any(marker in a.read_text(encoding="utf-8", errors="ignore")
+                            for marker in LEARNER_LINK_MARKERS)]
+        if leftovers and (args.report and not counts.get("header-nav")):
+            print(f"patch-mfe-brand: {leftovers[0]} still carries a learner header "
+                  "link and no rule matched it — the bundle changed and the nav "
+                  "was NOT removed", file=sys.stderr)
+            return 1
+        if leftovers and not args.report:
+            print(f"patch-mfe-brand: {leftovers[0]} still carries a learner header "
+                  "link after patching — the nav was NOT removed", file=sys.stderr)
+            return 1
 
     if app == "authoring" and not counts.get("home-actions") \
             and not any(HOME_MARKER in a.read_text(encoding="utf-8", errors="ignore")

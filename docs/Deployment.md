@@ -143,14 +143,15 @@ footer slot and that footer still prints the Tutor + Open edX logos. The
 slot widget with the AthenIQ lockup; because the MFE footer is compiled, it needs
 `tutor images build mfe` (see [docs/Brand.md](Brand.md)).
 
-The same plugin also installs the platform nav in the **Studio (authoring)
-header** — Courses · Programs · Classrooms · Studio · Platform — opening
-`ai.lms.innotel.us` on the Authentik session the LMS already has, so it is a
-click, not a second sign-in. The one `env.config.jsx` is compiled into every
-MFE, so the widget decides for itself where to appear (`/authoring` only); a
-learner has no use for the workspace. On the same page it adds the create row
-the platform actually needs (**+ New Program · + New Course · + New Classroom ·
-+ New Library**), inserted into `org.openedx.frontend.authoring.page_banner.v1`.
+The plugin adds no header nav. The workspace menu (Courses · Programs ·
+Classrooms · Studio · Platform) and the two learner links (Courses, Catalog)
+that were slotted into the MFEs are gone: they are the console's pages, and the
+dashboard lists a learner's own courses already. The one `env.config.jsx` is
+compiled into every MFE, so a nav there renders on every page of every app —
+the pages are reachable from the console's own menu instead. The plugin keeps
+the **Studio (authoring)** page's create row, the one the platform actually
+needs (**+ New Program · + New Course · + New Classroom · + New Library**),
+inserted into `org.openedx.frontend.authoring.page_banner.v1`.
 The stock page also renders its own heading and its own two buttons, and those
 live in the compiled bundle — no template and no slot can reach them. They are
 rewritten in the bundle instead, by `scripts/patch-mfe-brand.py`: the heading

@@ -182,23 +182,19 @@ class Plugin(unittest.TestCase):
 
 
 class HeaderLinks(unittest.TestCase):
-    """The MFE plugin's nav: two learner links on the dashboard, nothing elsewhere."""
+    """The MFE plugin adds no header nav at all."""
 
     MFE_PLUGIN = ROOT / "contrib" / "tutor-atheniq-mfe" / "atheniqmfe" / "plugin.py"
 
     def setUp(self):
         self.text = self.MFE_PLUGIN.read_text(encoding="utf-8")
 
-    def test_the_dashboard_gets_two_links_and_no_workspace_menu(self):
-        self.assertIn("LEARNER_SECTIONS = (", self.text)
-        self.assertIn('("Courses", "https://apps.learn.innotel.us/")', self.text)
-        # The catalog is the portal: it reads the program store, so a program
-        # created in the console is listed there, which the LMS catalog is not.
-        self.assertIn('("Catalog", "https://lms.innotel.us/")', self.text)
+    def test_no_learner_links_are_slotted_into_the_header(self):
+        self.assertNotIn("LEARNER_SECTIONS", self.text)
+        self.assertNotIn('("Courses", "https://apps.learn.innotel.us/")', self.text)
+        self.assertNotIn('"https://lms.innotel.us/"', self.text)
         self.assertNotIn('("Discover New"', self.text)
-        # Only the dashboard renders it; every other app gets nothing at all.
-        self.assertIn("path.startsWith('/learner-dashboard')", self.text)
-        self.assertNotIn("ATHENIQ_SECTIONS", self.text)
+        self.assertNotIn("atheniq-nav", self.text)
 
     def test_the_workspace_menu_is_gone_from_the_header(self):
         for label in ("Programs", "Classrooms", "Studio", "Platform"):
@@ -206,10 +202,10 @@ class HeaderLinks(unittest.TestCase):
         self.assertNotIn("PLATFORM_SECTIONS", self.text)
         self.assertNotIn("path.startsWith('/authoring')", self.text)
 
-    def test_the_nav_lays_itself_out_as_a_row(self):
-        """Paragon's `.nav-link` is display:block; without this the nav is a column."""
-        self.assertIn("nav.atheniq-nav {{ display: flex !important;", self.text)
-        self.assertIn("nav.atheniq-nav a.nav-link {{ display: inline-flex;", self.text)
+    def test_the_header_slot_is_not_registered(self):
+        self.assertNotIn("HEADER_SLOT", self.text)
+        self.assertNotIn("HEADER_COMPONENT", self.text)
+        self.assertNotIn("header_desktop_main_menu", self.text)
 
 
 class HeaderNavSkin(unittest.TestCase):
@@ -218,6 +214,8 @@ class HeaderNavSkin(unittest.TestCase):
     def test_both_skins_row_the_nav_and_drop_the_workspace_links(self):
         for name in ("unity-light.css", "unity-dark.css"):
             css = (ROOT / "contrib" / "atheniq-theme" / "mfe" / name).read_text(encoding="utf-8")
+            # An emptied nav renders no links but is still a landmark; hidden.
+            self.assertIn("nav.atheniq-nav:empty {", css, name)
             self.assertIn("nav.atheniq-nav {", css, name)
             self.assertIn("display: flex !important;", css, name)
             self.assertIn("display: inline-flex;", css, name)

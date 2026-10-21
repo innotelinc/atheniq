@@ -168,44 +168,45 @@ class OnDisk(unittest.TestCase):
         self.assertEqual(before, after)
 
 
-class LearnerDashboard(unittest.TestCase):
-    """The dashboard gets two links, not the operator's five."""
+class HeaderNav(unittest.TestCase):
+    """No AthenIQ nav in a header: every list the bundles carry is emptied.
 
-    def test_the_five_workspace_links_become_courses_and_catalog(self):
+    The workspace menu, the dashboard's two learner links, and the older
+    `Discover New` spelling all go to `[]`, because the list is what the header
+    renders and a nav nobody asked for is not left behind on the page.
+    """
+
+    def test_the_five_workspace_links_become_an_empty_list(self):
         source = 'p=' + brand.sections_literal(brand.PLATFORM_SECTIONS) + ',b=()=>1'
         result, counts = patch(source, app="learner-dashboard")
-        self.assertEqual(counts["learner-nav"], 1)
-        self.assertEqual(result,
-                         "p=" + brand.sections_literal(brand.LEARNER_SECTIONS) + ",b=()=>1")
+        self.assertEqual(counts["header-nav"], 1)
+        self.assertEqual(result, "p=[],b=()=>1")
         for gone in ("programs.html", "index.html", "studio.innotel.us", "platform.html"):
             self.assertNotIn(gone, result)
-        # The two that remain lead somewhere a learner can go: their courses and
-        # the portal, which is the page that lists console-created programs.
-        self.assertIn("https://apps.learn.innotel.us/", result)
-        self.assertIn("https://lms.innotel.us/", result)
 
-    def test_every_other_app_loses_the_workspace_nav(self):
+    def test_every_app_loses_the_workspace_nav(self):
         source = 'p=' + brand.sections_literal(brand.PLATFORM_SECTIONS)
-        result, counts = patch(source, app="learning")
-        self.assertEqual(result, "p=[]")
-        self.assertEqual(counts.get("workspace-nav", 0), 1)
-        self.assertEqual(counts.get("learner-nav", 0), 0)
+        for app in ("learning", "learner-dashboard", "authoring"):
+            result, counts = patch(source, app=app)
+            self.assertEqual(result, "p=[]")
+            self.assertEqual(counts.get("header-nav", 0), 1)
 
-    def test_the_shipped_learner_link_to_the_lms_catalog_is_repointed(self):
-        """`Discover New` → the LMS catalog, which cannot list a console program."""
-        source = "p=" + brand.LEGACY_LEARNER_ANCHOR
-        result, counts = patch(source, app="learner-dashboard")
-        self.assertEqual(counts["learner-nav-legacy"], 1)
-        self.assertEqual(result, "p=" + brand.sections_literal(brand.LEARNER_SECTIONS))
-        self.assertIn("https://lms.innotel.us/", result)
-        self.assertNotIn("catalog/courses", result)
+    def test_each_learner_array_the_dashboard_shipped_is_removed(self):
+        """`Discover New`, `Catalogue` and `Catalog` are all the same nav."""
+        self.assertEqual(len(brand.LEGACY_LEARNER_ANCHORS), 3)
+        for shipped in brand.LEGACY_LEARNER_ANCHORS:
+            source = "p=" + shipped
+            result, counts = patch(source, app="learner-dashboard")
+            self.assertEqual(result, "p=[]")
+            self.assertEqual(counts["header-nav"], 1)
+            self.assertNotIn("innotel.us/", result)
 
-    def test_the_two_learner_links_are_already_what_the_dashboard_carries(self):
-        """Idempotent: a second pass over the shipped array is a no-op."""
-        source = 'p=' + brand.sections_literal(brand.LEARNER_SECTIONS)
+    def test_an_empty_list_is_already_what_the_header_carries(self):
+        """Idempotent: a second pass over an emptied array is a no-op."""
+        source = "p=[]"
         result, counts = patch(source, app="learner-dashboard")
         self.assertEqual(result, source)
-        self.assertEqual(counts.get("learner-nav", 0), 0)
+        self.assertEqual(counts.get("header-nav", 0), 0)
 
 
 class Rewrite(unittest.TestCase):
