@@ -204,7 +204,7 @@ def mark_bounds():
 
 
 def favicon_transform(tile=64.0):
-    """(tx, ty, scale) that centres the mark in a `tile`-square SVG favicon.
+    """(tx, ty, scale) that centers the mark in a `tile`-square SVG favicon.
 
     Derived from the geometry so a shape tweak can never leave the favicon
     behind; `scripts/check-brand-mark.py` fails if the SVG drifts from it.
@@ -376,7 +376,7 @@ def render_og_card():
     _draw_mark(img, ox=110, oy=190, scale=4.4)
 
     draw = ImageDraw.Draw(img)
-    # Emphasise the wordmark's terminal period in the accent colour.
+    # Emphasize the wordmark's terminal period in the accent color.
     end = _tracked(draw, (440, 236), "AthenIQ", _font("bold", 88), TEXT, 1.5)
     draw.text((end + 6, 236), ".", font=_font("bold", 88), fill=ACCENT_HOVER)
     draw.text((444, 352), "Learn what's real.", font=_font("semibold", 34), fill=ACCENT_HOVER)

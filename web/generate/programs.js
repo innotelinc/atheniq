@@ -1,6 +1,6 @@
 // AthenIQ programs.
 //
-// One page, two audiences. A learner sees the catalogue, enrols, and watches
+// One page, two audiences. A learner sees the catalog, enrols, and watches
 // credits, GPA, finals, and the next course they can take. An instructor or
 // administrator sees the same page with the controls that build and run a
 // program: create it from a template, generate its classrooms semester by
@@ -17,6 +17,8 @@ const state = {
   progress: null,     // the selected learner's progress
   student: "",
   open: new Set(),    // semester numbers expanded in the plan
+  editing: null,      // the template slug open in the editor, null when new
+  originals: new Map(), // course code -> description/classrooms, kept out of the row
 };
 
 const el = (tag, props = {}, ...children) => {
@@ -69,7 +71,7 @@ const isStaff = () => Boolean(state.me && state.me.mayGenerate);
 const badge = (text, kind = "") => el("span", { class: `badge ${kind}`.trim() }, text);
 const num = (value) => (value === null || value === undefined ? "—" : String(value));
 
-// -- catalogue ---------------------------------------------------------------
+// -- catalog ---------------------------------------------------------------
 
 const templateCard = (template) => el("button", {
   class: "program-card", type: "button",
@@ -102,8 +104,8 @@ const programCard = (program) => el("button", {
   el("span", { class: "program-cta" }, "Open program →"),
 );
 
-const renderCatalogue = () => {
-  const host = document.getElementById("catalogue");
+const renderCatalog = () => {
+  const host = document.getElementById("catalog");
   host.replaceChildren();
   document.getElementById("counts").textContent =
     `${state.programs.length} running · ${state.templates.length} templates`;
@@ -114,7 +116,7 @@ const renderCatalogue = () => {
     for (const program of state.programs) grid.append(programCard(program));
     host.append(grid);
   }
-  host.append(el("h2", { class: "group-h" }, "Catalogue"));
+  host.append(el("h2", { class: "group-h" }, "Catalog"));
   const grid = el("div", { class: "program-grid" });
   for (const template of state.templates) grid.append(templateCard(template));
   host.append(grid);
@@ -136,6 +138,239 @@ const renderCatalogue = () => {
     templateSelect.append(el("option", { value: template.slug }, `${template.name} — ${template.credential}`));
   }
   if (templatesChosen) templateSelect.value = templatesChosen;
+};
+
+// -- catalog templates -------------------------------------------------------
+
+const FINALS = ["comprehensive", "practical", "project", "portfolio", "none"];
+const KINDS = ["core", "general-education", "elective", "clinical", "capstone"];
+
+const templateRow = (template) => el("div", { class: "template-item" },
+  el("div", { class: "template-item-main" },
+    el("div", { class: "template-item-name" }, template.name),
+    el("div", { class: "template-item-sub" }, template.credential),
+    el("div", { class: "template-item-sub" },
+      `${template.semesters} semesters · ${template.courses} courses · ${template.totalCredits} credits`),
+  ),
+  el("div", { class: "template-item-actions" },
+    template.edited ? badge("edited here", "ready") : badge("shipped"),
+    el("button", {
+      class: "btn btn-secondary btn-small", type: "button",
+      onclick: () => openTemplateEditor(template.slug),
+    }, "Edit"),
+    el("button", {
+      class: "btn btn-secondary btn-small", type: "button",
+      onclick: () => deleteTemplate(template.slug),
+    }, "Remove"),
+  ),
+);
+
+const renderTemplates = () => {
+  const host = document.getElementById("template-list");
+  if (!host) return;
+  host.replaceChildren();
+  if (!state.templates.length) {
+    host.append(el("p", { class: "empty" }, "The catalog has no templates yet."));
+    return;
+  }
+  for (const template of state.templates) host.append(templateRow(template));
+};
+
+const selectField = (field, values, current) => el("select", { "data-field": field },
+  ...values.map((value) => {
+    const option = el("option", { value }, value);
+    if (value === current) option.selected = true;
+    return option;
+  }));
+
+const inputField = (field, props, value) => el("input", {
+  "data-field": field, type: "text", ...props, value: value || "",
+});
+
+const courseEditorRow = (course) => el("div", { class: "template-course" },
+  inputField("code", { placeholder: "CJ101", "aria-label": "Course code", maxlength: "12" }, course.code),
+  inputField("title", { placeholder: "Introduction to Criminal Justice",
+                        "aria-label": "Course title", maxlength: "160" }, course.title),
+  el("input", { "data-field": "credits", type: "number", min: "1", max: "12", step: "1",
+                "aria-label": "Credits", value: course.credits === undefined ? 3 : course.credits }),
+  inputField("prerequisites", { placeholder: "prerequisites, comma separated",
+                               "aria-label": "Prerequisites", maxlength: "200" },
+             (course.prerequisites || []).join(", ")),
+  selectField("finalExam", FINALS, course.finalExam || course.final_exam || "comprehensive"),
+  selectField("kind", KINDS, course.kind || "core"),
+  el("button", {
+    class: "link", type: "button",
+    onclick: (event) => {
+      event.currentTarget.closest(".template-course").remove();
+      tallyTemplate();
+    },
+  }, "Remove"),
+);
+
+const semesterEditor = (semester, number) => {
+  const courses = el("div", { class: "template-courses" },
+    ...((semester && semester.courses) || []).map(courseEditorRow));
+  const block = el("div", { class: "template-semester" },
+    el("div", { class: "template-semester-head" },
+      el("span", { class: "template-semester-name" }, `Semester ${number}`),
+      el("button", {
+        class: "link", type: "button",
+        onclick: (event) => {
+          event.currentTarget.closest(".template-semester").remove();
+          renumberSemesters();
+        },
+      }, "Remove semester"),
+    ),
+    el("label", {}, "Term name"),
+    inputField("name", { placeholder: `Semester ${number}`, maxlength: "80" },
+               (semester && semester.name) || ""),
+    courses,
+    el("button", {
+      class: "btn btn-secondary btn-small", type: "button",
+      onclick: (event) => {
+        event.currentTarget.previousElementSibling
+          .append(courseEditorRow({ credits: 3 }));
+        tallyTemplate();
+      },
+    }, "Add course"),
+  );
+  return block;
+};
+
+const renumberSemesters = () => {
+  const blocks = document.querySelectorAll("#tpl-semesters .template-semester");
+  blocks.forEach((block, index) => {
+    block.querySelector(".template-semester-name").textContent = `Semester ${index + 1}`;
+  });
+  tallyTemplate();
+};
+
+// The running total is the point of the form: credits are what the credential
+// says it awards, and a typo here is a program that cannot confer.
+const tallyTemplate = () => {
+  let credits = 0;
+  let courses = 0;
+  for (const row of document.querySelectorAll("#tpl-semesters .template-course")) {
+    const code = row.querySelector('[data-field="code"]').value.trim();
+    if (!code) continue;
+    courses += 1;
+    credits += Number(row.querySelector('[data-field="credits"]').value || 0);
+  }
+  const tally = document.getElementById("tpl-tally");
+  if (tally) tally.textContent = `${courses} courses · ${credits} credits`;
+};
+
+const openTemplateEditor = async (slug) => {
+  const form = document.getElementById("template-form");
+  const hint = document.getElementById("tpl-hint");
+  state.editing = slug || null;
+  state.originals = new Map();
+  let template = { name: "", credential: "", level: "custom", credentialKind: "degree",
+                   minGpa: 2.0, capstone: "", description: "", semesters: [{ name: "", courses: [] }] };
+  if (slug) {
+    try {
+      template = await api(`/api/templates/${encodeURIComponent(slug)}`);
+    } catch (error) {
+      toast(error.message, "bad");
+      return;
+    }
+    for (const semester of template.semesters || []) {
+      for (const course of semester.courses || []) {
+        state.originals.set(course.code, {
+          description: course.description || "", classrooms: course.classrooms || 4,
+        });
+      }
+    }
+  }
+  document.getElementById("tpl-name").value = template.name || "";
+  document.getElementById("tpl-credential").value = template.credential || "";
+  document.getElementById("tpl-level").value = template.level || "custom";
+  document.getElementById("tpl-kind").value = template.credentialKind || "degree";
+  document.getElementById("tpl-min-gpa").value = template.minGpa === undefined ? 2.0 : template.minGpa;
+  document.getElementById("tpl-capstone").value = template.capstone || "";
+  document.getElementById("tpl-description").value = template.description || "";
+  const semesters = document.getElementById("tpl-semesters");
+  semesters.replaceChildren();
+  const list = (template.semesters || []).length ? template.semesters : [{ name: "", courses: [] }];
+  list.forEach((semester, index) => semesters.append(semesterEditor(semester, index + 1)));
+  hint.textContent = slug ? `editing ${slug}` : "a new template";
+  form.hidden = false;
+  form.scrollIntoView({ behavior: "smooth", block: "start" });
+  tallyTemplate();
+};
+
+const closeTemplateEditor = () => {
+  state.editing = null;
+  document.getElementById("template-form").hidden = true;
+};
+
+const collectTemplate = () => {
+  const semesters = [...document.querySelectorAll("#tpl-semesters .template-semester")]
+    .map((block, index) => ({
+      name: block.querySelector('[data-field="name"]').value.trim() || `Semester ${index + 1}`,
+      courses: [...block.querySelectorAll(".template-course")].map((row) => {
+        const field = (name) => row.querySelector(`[data-field="${name}"]`).value.trim();
+        const code = field("code").toUpperCase();
+        const original = state.originals.get(code) || {};
+        return {
+          code,
+          title: field("title") || code,
+          credits: Number(field("credits") || 3),
+          prerequisites: field("prerequisites").split(",")
+            .map((value) => value.trim().toUpperCase()).filter(Boolean),
+          finalExam: field("finalExam"),
+          kind: field("kind"),
+          description: original.description || "",
+          classrooms: original.classrooms || 4,
+        };
+      }).filter((course) => course.code),
+    }))
+    .filter((semester) => semester.courses.length);
+  return {
+    name: document.getElementById("tpl-name").value.trim(),
+    credential: document.getElementById("tpl-credential").value.trim(),
+    level: document.getElementById("tpl-level").value,
+    credentialKind: document.getElementById("tpl-kind").value,
+    minGpa: Number(document.getElementById("tpl-min-gpa").value || 2.0),
+    capstone: document.getElementById("tpl-capstone").value.trim(),
+    description: document.getElementById("tpl-description").value.trim(),
+    semesters,
+  };
+};
+
+const saveTemplate = async (event) => {
+  event.preventDefault();
+  const body = collectTemplate();
+  if (!body.name) { toast("A template needs a name", "bad"); return; }
+  if (!body.semesters.length) { toast("A template needs at least one course", "bad"); return; }
+  const button = document.getElementById("tpl-save");
+  button.disabled = true;
+  try {
+    const answer = state.editing
+      ? await api(`/api/templates/${encodeURIComponent(state.editing)}`,
+                  { method: "PUT", body: JSON.stringify(body) })
+      : await api("/api/templates", { method: "POST", body: JSON.stringify(body) });
+    toast(`${answer.name} saved — ${answer.semesters.length} semesters, ${answer.totalCredits} credits`);
+    closeTemplateEditor();
+    await loadPrograms();
+    renderTemplates();
+  } catch (error) {
+    toast(error.message, "bad");
+  } finally {
+    button.disabled = false;
+  }
+};
+
+const deleteTemplate = async (slug) => {
+  if (!window.confirm(`Remove the ${slug} template from the catalog?\n\nPrograms already created from it are unaffected.`)) return;
+  try {
+    await api(`/api/templates/${encodeURIComponent(slug)}`, { method: "DELETE" });
+    toast(`${slug} removed from the catalog`);
+    await loadPrograms();
+    renderTemplates();
+  } catch (error) {
+    toast(error.message, "bad");
+  }
 };
 
 // -- detail ------------------------------------------------------------------
@@ -184,10 +419,48 @@ const courseRow = (course, semester) => {
       standing
         ? el("span", { class: "course-sub" },
             `${standing.score === null || standing.score === undefined ? "—" : standing.score + "%"}`
-            + ` · ${standing.source === "lms" ? "LMS grade" : "office grade"}`)
+            +      ` · ${standing.source === "lms" ? "LMS grade" : "office grade"}`)
         : null,
+      isStaff() ? el("button", {
+        class: "link", type: "button",
+        title: "Remove this course, its classrooms and its course in the LMS",
+        onclick: (event) => removeCourse(course, event.currentTarget),
+      }, "Remove course") : null,
     ),
   );
+};
+
+// Removing a course is a curriculum change, so the classes and the LMS course
+// that existed for it go too — a course nobody teaches should not stay
+// enrollable. A course another course requires asks first, and says which one.
+const removeCourse = async (course, button) => {
+  if (!state.current) return;
+  const confirmText = `Remove ${course.code} ${course.title} from ${state.current.name}?\n\n`
+    + "Its generated classrooms and its course in the LMS are deleted with it.";
+  if (!window.confirm(confirmText)) return;
+  const path = `/api/programs/${state.current.id}/courses/${encodeURIComponent(course.code)}`;
+  button.disabled = true;
+  try {
+    let answer;
+    try {
+      answer = await api(path, { method: "DELETE" });
+    } catch (error) {
+      if (error.status !== 409) throw error;
+      if (!window.confirm(`${error.message}\n\nRemove ${course.code} anyway and drop that requirement?`)) {
+        button.disabled = false;
+        return;
+      }
+      answer = await api(`${path}?force=1`, { method: "DELETE" });
+    }
+    const classes = (answer.classrooms && answer.classrooms.deleted || []).length;
+    const lms = (answer.lms && answer.lms.deleted || []).length;
+    toast(`${course.code} removed · ${classes} classroom(s), ${lms} LMS course(s) deleted`);
+    await loadPrograms();
+    await refreshDetail();
+  } catch (error) {
+    toast(error.message, "bad");
+    button.disabled = false;
+  }
 };
 
 // The learner's standing in one course, with where the mark came from.
@@ -587,7 +860,7 @@ const renderDetail = () => {
       el("button", {
         class: "btn btn-secondary", type: "button",
         onclick: async (event) => {
-          if (!window.confirm(`Regenerate every generated classroom in ${doc.name}?\n\nGrades, enrolments and conferrals are kept; the classroom ids are cleared and queued again.`)) return;
+          if (!window.confirm(`Regenerate every generated classroom in ${doc.name}?\n\nGrades, enrollments and conferrals are kept; the classroom ids are cleared and queued again.`)) return;
           const node = event.currentTarget;
           node.disabled = true;
           node.textContent = "queueing…";
@@ -637,12 +910,18 @@ const renderDetail = () => {
       el("button", {
         class: "btn btn-secondary", type: "button",
         onclick: async (event) => {
-          if (!window.confirm(`Delete ${doc.name}? It leaves the catalogue and moves to programs/.archive/, so it can be restored; conferrals it already issued are kept.`)) return;
+          const courses = (doc.plan && doc.plan.semesters || [])
+            .reduce((total, semester) => total + semester.courses.length, 0);
+          if (!window.confirm(`Delete ${doc.name}?\n\nIts ${courses} courses, the classrooms generated for them and their courses in the LMS are deleted too. This cannot be undone.`)) return;
           const node = event.currentTarget;
           node.disabled = true;
           try {
-            await api(`/api/programs/${doc.id}`, { method: "DELETE" });
-            toast(`${doc.name} deleted`);
+            const answer = await api(`/api/programs/${doc.id}`, { method: "DELETE" });
+            const classes = (answer.classrooms && answer.classrooms.deleted || []).length;
+            const lms = (answer.lms && answer.lms.deleted || []).length;
+            const kept = (answer.kept || []).length;
+            toast(`${doc.name} deleted · ${(answer.courses || []).length} courses, ${classes} classroom(s), ${lms} LMS course(s)`
+              + (kept ? ` · ${kept} kept, another program teaches them` : ""));
             state.current = null;
             state.progress = null;
             document.getElementById("detail-wrap").hidden = true;
@@ -733,7 +1012,8 @@ const loadPrograms = async () => {
     const answer = await api("/api/programs");
     state.templates = answer.templates || [];
     state.programs = answer.programs || [];
-    renderCatalogue();
+    renderCatalog();
+    renderTemplates();
   } catch (error) {
     toast(error.message, "bad");
   }
@@ -749,6 +1029,7 @@ const loadMe = async () => {
       mode.textContent = "instructor / admin";
       mode.dataset.state = "ok";
       document.getElementById("create-panel").hidden = false;
+      document.getElementById("templates-wrap").hidden = false;
     } else {
       mode.textContent = "student view";
       mode.dataset.state = "ok";
@@ -769,6 +1050,15 @@ const boot = async () => {
     const slug = document.getElementById("create-template").value;
     if (slug) startFromTemplate(slug);
   });
+  document.getElementById("template-form").addEventListener("submit", saveTemplate);
+  document.getElementById("template-new").addEventListener("click", () => openTemplateEditor(null));
+  document.getElementById("tpl-cancel").addEventListener("click", closeTemplateEditor);
+  document.getElementById("tpl-add-semester").addEventListener("click", () => {
+    const host = document.getElementById("tpl-semesters");
+    host.append(semesterEditor({ name: "", courses: [] }, host.children.length + 1));
+    tallyTemplate();
+  });
+  document.getElementById("tpl-semesters").addEventListener("input", tallyTemplate);
   document.getElementById("enroll-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     const programId = document.getElementById("enroll-program").value;

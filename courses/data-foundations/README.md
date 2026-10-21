@@ -17,8 +17,8 @@ reporting it honestly — before SQL101 adds the query language.
 | --- | --- | --- | --- |
 | 1 | Data Literacy & Spreadsheets | Rows, columns, tidy data, spreadsheets | Homework: Data Literacy |
 | 2 | Cleaning & Shaping Data | Quality dimensions, a cleaning pass, outliers | Lab: Clean a Dataset |
-| 3 | Reporting & Visualisation | Chart choice, honest charts, metrics | Homework: Reporting |
-| 4 | Data in the Organisation | Sources of truth, governance, privacy | Final Exam |
+| 3 | Reporting & Visualization | Chart choice, honest charts, metrics | Homework: Reporting |
+| 4 | Data in the Organization | Sources of truth, governance, privacy | Final Exam |
 
 Validate with `make check-courses`; import as described in
 [`../../README.md`](../../README.md).

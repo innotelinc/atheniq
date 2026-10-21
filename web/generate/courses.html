@@ -33,7 +33,7 @@
         <h1 id="courses-h">Courses</h1>
         <div class="head-tools"><span class="counts" id="counts"></span></div>
       </div>
-      <p class="sub">A course is its spec plus the classrooms that teach it. Regeneration queues a run for every classroom that has none; archiving retires the whole spec to <code>courses/.archive/</code>, where it can be restored.</p>
+      <p class="sub">A course is its spec plus the classrooms that teach it. Regeneration queues a run for every classroom that has none; deleting a course removes the whole spec, the classrooms generated for it and its course in the LMS.</p>
       <div class="bulk">
         <a class="btn btn-primary" href="course-create.html">New course</a>
         <span class="hint" id="hint"></span>
@@ -44,7 +44,7 @@
     <aside class="side">
       <section class="panel" aria-labelledby="how-h">
         <div class="panel-head"><h2 id="how-h">How creation works</h2></div>
-        <p class="sub">A course is generated from subject matter: the brief goes to OpenMAIC, the classroom comes back, and the syllabus, quizzes and final examination come from the same text. Certificates and paid enrolment are configured at creation, with the same rules everywhere.</p>
+        <p class="sub">A course is generated from subject matter: the brief goes to OpenMAIC, the classroom comes back, and the syllabus, quizzes and final examination come from the same text. Certificates and paid enrollment are configured at creation, with the same rules everywhere.</p>
         <p class="sub">Programs compose courses into semesters; classrooms are the individual scenes inside a course. Nothing here duplicates another page: each action lives where the thing it changes is listed.</p>
       </section>
     </aside>

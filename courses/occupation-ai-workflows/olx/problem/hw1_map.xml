@@ -3,7 +3,7 @@
 <p>Which step should be the first candidate for AI assistance?</p>
 <choicegroup type="MultipleChoice">
 <choice correct="true"><div>A frequent, bounded, text-heavy step with an existing human check.</div></choice>
-<choice correct="false"><div>The decision point where judgement sets the outcome.</div></choice>
+<choice correct="false"><div>The decision point where judgment sets the outcome.</div></choice>
 <choice correct="false"><div>The exception path that only one person understands.</div></choice>
 </choicegroup>
 <solution>

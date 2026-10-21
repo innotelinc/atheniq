@@ -19,7 +19,7 @@ WHAT IT SERVES. One page (`web/generate/`) and the JSON behind it:
     POST   /api/runs/<id>/record   write a finished classroom's id back into its spec
     DELETE /api/runs/<id>          discard a paused run that has no classroom
 
-    GET    /api/programs           running programs and the catalogue templates
+    GET    /api/programs           running programs and the catalog templates
     POST   /api/programs           create a program from a template or a course list
     GET    /api/programs/<id>      one program, with its semester plan and finals
     GET    /api/programs/<id>/progress?student=…  one learner's standing
@@ -31,6 +31,13 @@ WHAT IT SERVES. One page (`web/generate/`) and the JSON behind it:
     POST   /api/programs/<id>/publish   create the program's courses in the LMS
     POST   /api/programs/<id>/complete  record a grade and final result
     POST   /api/programs/<id>/confer    confer the degree/certificate and sign it
+    DELETE /api/programs/<id>           delete it with the courses and classes it owned
+    DELETE /api/programs/<id>/courses/<code>  remove one course and its classes
+    GET    /api/templates               the catalog templates
+    POST   /api/templates               create one
+    GET    /api/templates/<slug>        one template, with its curriculum
+    PUT    /api/templates/<slug>        replace one (a shipped one is overridden)
+    DELETE /api/templates/<slug>        remove one from the catalog
 
 RECORDING IS NOT A STEP. A run that came from a spec writes its classroom back
 into that spec as soon as it completes — during the page's poll, and on a timer
@@ -80,6 +87,7 @@ import json
 import mimetypes
 import os
 import posixpath
+import shutil
 import sys
 import threading
 import time
@@ -343,7 +351,7 @@ class Unavailable(RuntimeError):
 
 
 class Console:
-    """The console's behaviour, separated from HTTP so tests can drive it.
+    """The console's behavior, separated from HTTP so tests can drive it.
 
     Every method returns plain data and raises `Bad` for a request the operator
     should fix (400/403/409) or `Unavailable` for anything OpenMAIC's side did
@@ -435,7 +443,7 @@ class Console:
     def _save_state(self) -> None:
         """Write the run -> spec map, atomically, and never fail a request for it.
 
-        The state file is an optimisation for the restart case; a read-only
+        The state file is an optimization for the restart case; a read-only
         GENERATION_STATE must not turn a generation into an error.
         """
         path = self.config.state_path
@@ -1162,7 +1170,7 @@ class Console:
         Called on a timer by the service (see `GENERATION_AUTORECORD_SECONDS`), so
         a classroom generated overnight is in its spec before anybody looks. Each
         run is read from OpenMAIC and then decided by the same `_record_and_drop`
-        the page's poll uses, so there is one behaviour rather than two.
+        the page's poll uses, so there is one behavior rather than two.
         """
         with self._lock:
             pending = [run_id for run_id, started in self._started.items()
@@ -1358,7 +1366,7 @@ class Console:
             raise Bad(err.status, str(err)) from err
 
     def programs_list(self) -> dict:
-        """Every stored program plus the catalogue templates to create from."""
+        """Every stored program plus the catalog templates to create from."""
         return self._program(lambda: {
             "programs": self.programs.list_programs(),
             "templates": self.programs.template_summaries(),
@@ -1591,7 +1599,7 @@ class Console:
         """Enroll a learner in the program, and in its courses in the LMS.
 
         The program record is what the registrar's report is built from; the LMS
-        enrolment is what puts the course in the learner's *My courses*. Both, in
+        enrollment is what puts the course in the learner's *My courses*. Both, in
         that order: a learner who is on the program must not lose that because
         the LMS was briefly unreachable.
         """
@@ -1600,7 +1608,7 @@ class Console:
         if self.publisher is not None:
             try:
                 answer["lms"] = self.publisher.enroll(program_id, student)
-            except Exception as err:  # noqa: BLE001 — the local enrolment stands
+            except Exception as err:  # noqa: BLE001 — the local enrollment stands
                 answer["lms"] = {"available": False, "error": str(err)}
         return answer
 
@@ -1713,8 +1721,105 @@ class Console:
     def program_update(self, program_id: str, body: dict) -> dict:
         return self._program(self.programs.update, program_id, body)
 
-    def program_archive(self, program_id: str) -> dict:
-        return self._program(self.programs.archive, program_id)
+    def _delete_classrooms(self, stages) -> dict:
+        """Delete generated classrooms, and say which could not go.
+
+        The publisher owns the classroom store as well as the LMS — it is the one
+        component on this host that can reach OpenMAIC's database — so a console
+        with publishing off cannot delete a classroom, and says so rather than
+        answering that it did. OpenMAIC's own HTTP delete is owner-scoped and
+        removes nothing for a classroom submitted without an owner, which is
+        every classroom this console generates; that is why the delete is not
+        routed through it.
+        """
+        wanted = [str(stage).strip() for stage in stages if str(stage).strip()]
+        if not wanted:
+            return {"deleted": [], "failed": []}
+        if self.publisher is None or not hasattr(self.publisher, "delete_classrooms"):
+            return {"deleted": [], "failed": [
+                {"classroomId": stage,
+                 "error": "classroom deletion needs the publisher (GENERATION_PUBLISH=1 "
+                          "on a host with docker)"} for stage in dict.fromkeys(wanted)]}
+        try:
+            return self.publisher.delete_classrooms(list(dict.fromkeys(wanted)))
+        except Exception as err:  # noqa: BLE001 — a delete must still answer
+            return {"deleted": [], "failed": [
+                {"classroomId": stage, "error": str(err)[:300]}
+                for stage in dict.fromkeys(wanted)]}
+
+    def _delete_lms_courses(self, codes=None, keys=None) -> dict:
+        """Remove courses from the LMS when a publisher is configured."""
+        if self.publisher is None:
+            return {"available": False, "reason": "publishing is off",
+                    "deleted": [], "failed": []}
+        try:
+            return self.publisher.delete_courses(codes=codes, keys=keys)
+        except Exception as err:  # noqa: BLE001 — a delete must still answer
+            return {"available": False, "error": str(err),
+                    "deleted": [], "failed": []}
+
+    def program_delete(self, program_id: str) -> dict:
+        """Delete a program, the courses it taught, and their classrooms.
+
+        The program record goes first, and everything below it goes only if
+        nothing else still points at it: two programs can teach the same course
+        code, and the LMS key is the course, so deleting the shared course would
+        break the program that remains. A course unique to this program takes its
+        classes out of OpenMAIC and its course out of the LMS with it.
+        """
+        self._program(self.programs.get, program_id)  # 404 before anything is removed
+        rolled = self._program(self.programs.delete, program_id)
+        still_taught = self._program(self.programs.codes_by_program)
+        orphans = [course for course in rolled["courses"] if course["code"] not in still_taught]
+        kept = sorted({course["code"] for course in rolled["courses"]} & set(still_taught))
+        stages = [stage for course in orphans for stage in course["classroomIds"]]
+        answer = {
+            "ok": True,
+            "program": rolled["program"],
+            "name": rolled.get("name"),
+            "courses": [{"code": course["code"], "title": course["title"],
+                         "classroomIds": course["classroomIds"],
+                         "lessons": course["lessons"]} for course in orphans],
+            "kept": kept,
+            "classrooms": self._delete_classrooms(stages),
+            "lms": self._delete_lms_courses(codes=[course["code"] for course in orphans]),
+            "conferrals": rolled.get("conferrals") or [],
+        }
+        print(f"delete program {program_id}: {len(orphans)} course(s), "
+              f"{len(answer['classrooms']['deleted'])} classroom(s), "
+              f"{len(answer['lms'].get('deleted') or [])} LMS course(s)", file=sys.stderr)
+        return answer
+
+    def program_remove_course(self, program_id: str, code: str, force: bool = False) -> dict:
+        """Take one course out of a program, with the classes it owned.
+
+        The course leaves the curriculum first; the LMS course and its
+        classrooms go only if no other program teaches that code.
+        """
+        answer = self._program(self.programs.remove_course, program_id, code, force)
+        code = answer["removed"]["code"]
+        still_taught = self._program(self.programs.codes_by_program)
+        if code in still_taught:
+            return {**answer, "kept": [code],
+                    "classrooms": {"deleted": [], "failed": []},
+                    "lms": {"available": self.publisher is not None,
+                            "reason": "another program still teaches this course",
+                            "deleted": [], "failed": []}}
+        return {**answer, "kept": [],
+                "classrooms": self._delete_classrooms(answer["removed"]["classroomIds"]),
+                "lms": self._delete_lms_courses(codes=[code])}
+
+    def templates_list(self) -> dict:
+        return {"templates": self._program(self.programs.template_summaries)}
+
+    def template_get(self, slug: str) -> dict:
+        return self._program(self.programs.templates.get, slug)
+
+    def template_save(self, body: dict, slug: str | None = None) -> dict:
+        return self._program(self.programs.templates.save, body, slug)
+
+    def template_delete(self, slug: str) -> dict:
+        return self._program(self.programs.templates.delete, slug)
 
     def program_regenerate(self, identity: Identity, program_id: str, body: dict) -> dict:
         """Forget the selected classrooms, then queue them again.
@@ -1797,23 +1902,38 @@ class Console:
             raise Bad(500, f"cannot create {slug!r}: {err}") from err
         return self.library() | {"created": doc}
 
-    def course_archive(self, slug: str) -> dict:
-        """Retire a course spec, reversibly: move its directory to `.archive/`.
+    def course_delete(self, slug: str) -> dict:
+        """Delete a course and the classes generated for it.
 
-        The courseware embeds classroom ids and the LMS may still point at this
-        course; deleting the files outright would break both with no way back.
+        A course is its spec directory plus the classrooms that spec recorded,
+        so removing it removes both: a classroom left behind is paid-for
+        generation nothing points at, and its LMS course is a shell a learner
+        could still enroll in.
         """
-        path, root = self._spec_path(slug)
-        course_dir = os.path.dirname(path)
-        target_root = os.path.join(root, ".archive")
+        path, _ = self._spec_path(slug)
+        doc = self.builder.read_spec(path)
+        stages = []
+        for classroom in doc.get("classrooms") or []:
+            if classroom.get("classroom_id"):
+                stages.append(classroom["classroom_id"])
+            stages.extend(classroom.get("retired_classroom_ids") or [])
+        key = str(doc.get("source_course") or "").strip()
+        classrooms = self._delete_classrooms(stages)
+        lms = self._delete_lms_courses(keys=[key]) if key else \
+            {"available": self.publisher is not None, "deleted": [], "failed": [],
+             "reason": "the spec names no LMS course"}
+        # The spec sits at `<course>/openmaic/classrooms.json`, so the course is
+        # two levels up: removing the spec's directory left an empty course
+        # folder behind, which the catalog then listed as a course with no spec.
+        course_dir = os.path.dirname(os.path.dirname(path))
         try:
-            os.makedirs(target_root, exist_ok=True)
-            stamp = time.strftime("%Y%m%dT%H%M%S", time.gmtime(self.clock()))
-            target = os.path.join(target_root, f"{slug}-{stamp}")
-            os.replace(course_dir, target)
+            shutil.rmtree(course_dir)
         except OSError as err:
-            raise Bad(500, f"cannot archive course {slug!r}: {err}") from err
-        return {"ok": True, "course": slug, "archived": target}
+            raise Bad(500, f"cannot delete course {slug!r}: {err}") from err
+        print(f"delete course {slug}: {len(stages)} classroom(s), {key or 'no LMS course'}",
+              file=sys.stderr)
+        return {"ok": True, "course": slug, "lmsCourse": key or None,
+                "classrooms": classrooms, "lms": lms}
 
     def course_regenerate(self, identity: Identity, slug: str) -> dict:
         """Submit every classroom in one course that has none yet."""
@@ -2003,6 +2123,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(200, self.console.retry(path[len("/api/runs/"):-len("/retry")]))
             if path.startswith("/api/runs/") and path.endswith("/record"):
                 return self._json(200, self.console.record(path[len("/api/runs/"):-len("/record")]))
+            if path == "/api/templates":
+                return self._json(201, self.console.template_save(body))
             if path == "/api/library":
                 return self._json(201, self.console.library_create(body))
             if path == "/api/create-course":
@@ -2057,8 +2179,18 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if path.startswith("/api/runs/"):
                 return self._json(200, self.console.discard(path[len("/api/runs/"):]))
+            if path.startswith("/api/templates/"):
+                return self._json(200, self.console.template_delete(
+                    path[len("/api/templates/"):].strip("/")))
+            if path.startswith("/api/programs/") and "/courses/" in path:
+                rest = path[len("/api/programs/"):]
+                program_id, _, code = rest.partition("/courses/")
+                query = urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query)
+                force = (query.get("force") or [""])[0].lower() in ("1", "true", "yes")
+                return self._json(200, self.console.program_remove_course(
+                    program_id, code.strip("/"), force))
             if path.startswith("/api/programs/"):
-                return self._json(200, self.console.program_archive(
+                return self._json(200, self.console.program_delete(
                     path[len("/api/programs/"):].strip("/")))
             if path.startswith("/api/courses/") and "/classrooms/" in path:
                 rest = path[len("/api/courses/"):]
@@ -2066,7 +2198,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(200, self.console.classroom_retire(
                     slug, classroom_id.strip("/")))
             if path.startswith("/api/courses/"):
-                return self._json(200, self.console.course_archive(
+                return self._json(200, self.console.course_delete(
                     path[len("/api/courses/"):].strip("/")))
             return self._error(404, "no such endpoint")
         except Bad as err:
@@ -2077,6 +2209,27 @@ class Handler(BaseHTTPRequestHandler):
             # This is how a delete answered with a proxy's 502 instead of a
             # message: an AttributeError escaped here and the connection closed
             # with nothing to read. A 500 says what happened.
+            traceback.print_exc()
+            return self._error(500, f"the console failed while handling this request: {err}")
+
+    def do_PUT(self):
+        """Replace one catalog template."""
+        path = urllib.parse.urlsplit(self.path).path
+        if not same_origin(self.headers):
+            return self._error(403, "cross-site request refused")
+        if self._identity() is None:
+            return
+        try:
+            body = self._body()
+            if path.startswith("/api/templates/"):
+                return self._json(200, self.console.template_save(
+                    body, path[len("/api/templates/"):].strip("/")))
+            return self._error(404, "no such endpoint")
+        except Bad as err:
+            return self._error(err.status, str(err))
+        except Unavailable as err:
+            return self._error(502, str(err))
+        except Exception as err:  # a handler answers; an uncaught bug drops the socket
             traceback.print_exc()
             return self._error(500, f"the console failed while handling this request: {err}")
 
@@ -2121,6 +2274,11 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(200, self.console.library())
             if path == "/api/programs":
                 return self._json(200, self.console.programs_list())
+            if path == "/api/templates":
+                return self._json(200, self.console.templates_list())
+            if path.startswith("/api/templates/"):
+                return self._json(200, self.console.template_get(
+                    path[len("/api/templates/"):].strip("/")))
             if path.startswith("/api/programs/"):
                 program_id, _, action = path[len("/api/programs/"):].partition("/")
                 if not action:
@@ -2161,7 +2319,7 @@ class Handler(BaseHTTPRequestHandler):
         rel = urllib.parse.unquote(path).lstrip("/") or "index.html"
         if rel.endswith("/"):
             rel += "index.html"
-        # Joined, normalised, then re-checked: `..` in a URL never reaches disk.
+        # Joined, normalized, then re-checked: `..` in a URL never reaches disk.
         target = os.path.normpath(os.path.join(web_root, rel))
         if os.path.commonpath([os.path.abspath(target), os.path.abspath(web_root)]) != os.path.abspath(web_root):
             return self._error(404, "not found")

@@ -2,7 +2,7 @@
 # secret-scan.sh — pre-commit secret gate.
 #
 # Scans the ADDED lines of every staged file through the repo's
-# scripts/secret-scan.py, labelled with the file name so test fixtures keep
+# scripts/secret-scan.py, labeled with the file name so test fixtures keep
 # their relaxation (and a finding reports the real path). Only added lines are
 # scanned — the same scope as the sibling attribution guard — while CI's
 # `secret-scan.py` job keeps covering the whole tracked tree.

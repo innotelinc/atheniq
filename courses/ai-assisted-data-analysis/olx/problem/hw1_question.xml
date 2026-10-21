@@ -2,7 +2,7 @@
 <multiplechoiceresponse>
 <p>Which is a measurable analysis question?</p>
 <choicegroup type="MultipleChoice">
-<choice correct="true"><div>"What share of accounts active on 1 January cancelled before 31 March, and does that exceed the 12% threshold for changing the retention offer?"</div></choice>
+<choice correct="true"><div>"What share of accounts active on 1 January canceled before 31 March, and does that exceed the 12% threshold for changing the retention offer?"</div></choice>
 <choice correct="false"><div>"Are we losing customers?"</div></choice>
 <choice correct="false"><div>"How is the business doing?"</div></choice>
 </choicegroup>

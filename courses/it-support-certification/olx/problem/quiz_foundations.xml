@@ -3,8 +3,8 @@
 <p>What is the primary purpose of the Tier 1 service desk?</p>
 <choicegroup type="MultipleChoice">
 <choice correct="true"><div>Resolve first-contact requests and triage what cannot be closed.</div></choice>
-<choice correct="false"><div>Rebuild servers and manage the data centre.</div></choice>
-<choice correct="false"><div>Write the organisation's security policy.</div></choice>
+<choice correct="false"><div>Rebuild servers and manage the data center.</div></choice>
+<choice correct="false"><div>Write the organization's security policy.</div></choice>
 </choicegroup>
 <solution>
 <div class="detailed-solution">

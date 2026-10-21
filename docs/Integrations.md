@@ -37,7 +37,7 @@ assessments, grading, and learner records.
     learner-MFE footer (see [docs/Deployment.md](Deployment.md#branding--the-platform-is-atheniq)).
 - **Programs become courses** — `scripts/publish-courses.py` writes an OLX
   shell for every course in a console program and imports it into the CMS, so
-  the catalogue that *Explore courses* reads knows the course and a learner can
+  the catalog that *Explore courses* reads knows the course and a learner can
   be enrolled (which is what fills *My courses*). Keys are
   `course-v1:InnotelLabs+<CODE>+<TERM>`; publishing is idempotent and runs from
   the console. When the course's classroom is generated, its lessons, quizzes

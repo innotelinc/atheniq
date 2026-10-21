@@ -3,7 +3,7 @@
 <p>Which element most improves reproducibility across two people using the same prompt?</p>
 <choicegroup type="MultipleChoice">
 <choice correct="true"><div>An example of good output plus explicit constraints.</div></choice>
-<choice correct="false"><div>A request to "use your best judgement".</div></choice>
+<choice correct="false"><div>A request to "use your best judgment".</div></choice>
 <choice correct="false"><div>A longer prompt with more adjectives.</div></choice>
 </choicegroup>
 <solution>
@@ -37,8 +37,8 @@
 </choicegroup>
 <solution>
 <div class="detailed-solution">
-<p>Style is cheap to fix. An unapproved commitment is a promise the organisation must
-honour.</p>
+<p>Style is cheap to fix. An unapproved commitment is a promise the organization must
+honor.</p>
 </div>
 </solution>
 </multiplechoiceresponse>

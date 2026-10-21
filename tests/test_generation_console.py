@@ -34,7 +34,7 @@ SPEC = {
     "locale": "en",
     "defaults": {
         "teacher_persona": "A patient lead.",
-        "classmates": ["A sceptic"],
+        "classmates": ["A skeptic"],
         "interaction": "Hands-on.",
         "assessment": "Three checks.",
     },
@@ -45,7 +45,7 @@ SPEC = {
             "linked_units": ["u1"],
             "title": "Read a Queue",
             "prompt": "Work a small ticket queue out loud.",
-            "objectives": ["Prioritise by impact"],
+            "objectives": ["Prioritize by impact"],
             "activities": [{"type": "slides", "title": "The queue"}],
         },
         {
@@ -261,8 +261,8 @@ class DirectConsole(unittest.TestCase):
         source = self.console.submit(self.dana, {"course": "demo", "classroom": "demo-ch01"})["source"]
         self.assertEqual(source["kind"], "spec")
         sent = FakeOpenMAIC.submissions[-1]
-        for piece in ("Work a small ticket queue", "A patient lead", "A sceptic",
-                      "Hands-on", "Three checks", "Prioritise by impact", "slides"):
+        for piece in ("Work a small ticket queue", "A patient lead", "A skeptic",
+                      "Hands-on", "Three checks", "Prioritize by impact", "slides"):
             self.assertIn(piece, sent)
 
     def test_a_classroom_that_already_exists_is_not_regenerated(self):
@@ -651,12 +651,78 @@ class HttpSurface(GatewayCase):
         with the message is the same bug reported usefully.
         """
         def explode(_program_id):
-            raise AttributeError("'ProgramStore' object has no attribute 'archive'")
+            raise AttributeError("'ProgramStore' object has no attribute 'delete'")
 
-        self.console.program_archive = explode
+        self.console.program_delete = explode
         status, body, _ = self.mutate("/api/programs/whatever", method="DELETE")
         self.assertEqual(status, 500)
-        self.assertIn("archive", body["error"])
+        self.assertIn("delete", body["error"])
+
+    def test_a_program_is_created_and_one_of_its_courses_removed(self):
+        status, doc, _ = self.mutate("/api/programs", body={"template": "nursing"})
+        self.assertEqual(status, 201)
+        status, body, _ = self.mutate(f"/api/programs/{doc['id']}/courses/NUR430",
+                                      method="DELETE")
+        self.assertEqual(status, 200)
+        self.assertEqual(body["removed"]["code"], "NUR430")
+        status, body, _ = self.mutate(f"/api/programs/{doc['id']}/courses/NUR101",
+                                      method="DELETE")
+        self.assertEqual(status, 409)
+        status, body, _ = self.mutate(
+            f"/api/programs/{doc['id']}/courses/NUR101?force=1", method="DELETE")
+        self.assertEqual(status, 200)
+        self.assertIn("NUR110", body["prerequisitesCleared"])
+
+    def test_deleting_a_program_answers_with_what_went_with_it(self):
+        status, doc, _ = self.mutate("/api/programs", body={"template": "nursing"})
+        self.assertEqual(status, 201)
+        status, body, _ = self.mutate(f"/api/programs/{doc['id']}", method="DELETE")
+        self.assertEqual(status, 200)
+        self.assertEqual(len(body["courses"]), 23)
+        self.assertEqual(body["kept"], [])
+        status, _, _ = self.call(f"/api/programs/{doc['id']}", headers=self.signed())
+        self.assertEqual(status, 404)
+
+    def test_templates_are_served_created_edited_and_removed(self):
+        status, body, _ = self.call("/api/templates", headers=self.signed())
+        self.assertEqual(status, 200)
+        self.assertEqual(len(body["templates"]), 3)
+
+        status, created, _ = self.mutate("/api/templates", body={
+            "name": "Test Certificate", "credential": "Certificate in Testing",
+            "credentialKind": "certificate", "level": "certificate",
+            "semesters": [{"name": "One", "courses": [
+                {"code": "T101", "title": "Testing", "credits": 3}]}],
+        })
+        self.assertEqual(status, 201)
+        self.assertEqual(created["slug"], "test-certificate")
+
+        status, fetched, _ = self.call(f"/api/templates/{created['slug']}",
+                                       headers=self.signed())
+        self.assertEqual(status, 200)
+        self.assertEqual(fetched["semesters"][0]["courses"][0]["code"], "T101")
+
+        status, edited, _ = self.mutate(f"/api/templates/{created['slug']}",
+                                        method="PUT", body={"name": "Renamed"})
+        self.assertEqual(status, 200)
+        self.assertEqual(edited["name"], "Renamed")
+
+        status, removed, _ = self.mutate(f"/api/templates/{created['slug']}", method="DELETE")
+        self.assertEqual(status, 200)
+        self.assertTrue(removed["ok"])
+        self.assertEqual(3, len(self.call("/api/templates", headers=self.signed())[1]["templates"]))
+
+    def test_deleting_a_course_removes_its_spec(self):
+        """The whole course directory goes, not just its `openmaic/` folder.
+
+        Removing only the spec's directory left an empty `courses/<slug>/`
+        behind, which the catalog then listed as a course with no spec.
+        """
+        course_dir = os.path.dirname(os.path.dirname(self.spec_path))
+        status, body, _ = self.mutate("/api/courses/demo", method="DELETE")
+        self.assertEqual(status, 200)
+        self.assertEqual(body["course"], "demo")
+        self.assertFalse(os.path.exists(course_dir))
 
     def test_healthz_answers_without_an_identity(self):
         status, body, _ = self.call("/healthz")

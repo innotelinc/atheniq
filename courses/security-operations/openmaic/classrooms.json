@@ -22,7 +22,7 @@
         "u2_check"
       ],
       "title": "What the SOC Sees, and What You Feed It",
-      "prompt": "Explain what a security operations centre collects and decides, and where a support technician sits in that loop. Give the classmates a set of alerts and tickets and have them triage: which are noise, which need enrichment, and which should wake someone up.",
+      "prompt": "Explain what a security operations center collects and decides, and where a support technician sits in that loop. Give the classmates a set of alerts and tickets and have them triage: which are noise, which need enrichment, and which should wake someone up.",
       "objectives": [
         "Describe the SOC's collect, detect, and respond loop",
         "Triage an alert by impact and confidence rather than by novelty",

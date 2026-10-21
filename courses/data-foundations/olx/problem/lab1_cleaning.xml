@@ -24,7 +24,7 @@ problem of:</p>
 </choicegroup>
 <solution>
 <div class="detailed-solution">
-<p>Standardise to one code. Note that the same value text can mean different things
+<p>Standardize to one code. Note that the same value text can mean different things
 in different contexts, so confirm the mapping before merging.</p>
 </div>
 </solution>
@@ -40,7 +40,7 @@ in different contexts, so confirm the mapping before merging.</p>
 </checkboxgroup>
 <solution>
 <div class="detailed-solution">
-<p>Missingness carries meaning. Deciding how to treat it is an analytical judgement,
+<p>Missingness carries meaning. Deciding how to treat it is an analytical judgment,
 so it must be recorded — and the reason it is missing often matters more than the
 gap itself.</p>
 </div>

@@ -15,7 +15,7 @@ aggregation and joins, and changing data without breaking it.
 
 | # | Chapter | Lesson | Graded |
 | --- | --- | --- | --- |
-| 1 | Relational Thinking | Tables, keys, normalisation, relationships | Homework: Relational Basics |
+| 1 | Relational Thinking | Tables, keys, normalization, relationships | Homework: Relational Basics |
 | 2 | Querying with SELECT | Clauses, filtering, expressions, aliases | Lab: Query Practice |
 | 3 | Aggregating & Joining | Aggregates, GROUP BY, join types and traps | Homework: Joins & Aggregates |
 | 4 | Designing & Changing Data | DDL, DML, transactions, constraints | Final Exam |

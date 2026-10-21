@@ -50,12 +50,12 @@ a routing decision, not a failure.</p>
 <p>A support technician wants to install a new tool. The best practice is to:</p>
 <choicegroup type="MultipleChoice">
 <choice correct="false"><div>Download it from any site that offers a free version.</div></choice>
-<choice correct="true"><div>Install from the organisation's approved source and check the licence.</div></choice>
+<choice correct="true"><div>Install from the organization's approved source and check the license.</div></choice>
 <choice correct="false"><div>Ask the user to install it themselves with admin rights.</div></choice>
 </choicegroup>
 <solution>
 <div class="detailed-solution">
-<p>Untrusted installers are a leading malware vector, and licence type matters. Use
+<p>Untrusted installers are a leading malware vector, and license type matters. Use
 the approved, centrally managed deployment path.</p>
 </div>
 </solution>

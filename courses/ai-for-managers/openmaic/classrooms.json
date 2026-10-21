@@ -22,7 +22,7 @@
         "u2_graded"
       ],
       "title": "The Manager's AI Map",
-      "prompt": "Have the class map where AI already touches a team's work, whether or not it was approved: drafting, summarising, scheduling, screening, reporting, and the shadow use on personal accounts. The teacher separates activity from value and risk, then the peers plot their own team's uses on a value-versus-risk grid and identify the one that most needs a decision. Include slides on the four portfolio questions (value, risk, capability, accountability), a roleplay where a team member admits to pasting client data into a personal account, and a quiz on which use needs a stop order first.",
+      "prompt": "Have the class map where AI already touches a team's work, whether or not it was approved: drafting, summarizing, scheduling, screening, reporting, and the shadow use on personal accounts. The teacher separates activity from value and risk, then the peers plot their own team's uses on a value-versus-risk grid and identify the one that most needs a decision. Include slides on the four portfolio questions (value, risk, capability, accountability), a roleplay where a team member admits to pasting client data into a personal account, and a quiz on which use needs a stop order first.",
       "objectives": [
         "Map approved and shadow AI use in a team",
         "Place uses on a value-versus-risk grid",
@@ -84,7 +84,7 @@
         "u6_graded"
       ],
       "title": "People: Roles, Skills, and Resistance",
-      "prompt": "Work the human side of an AI change: which tasks shift, which roles grow, what training is required, how performance is measured during the transition, and how to answer the fear of being replaced. The teacher models a team conversation, then the peers role-play a resistant senior employee and a junior employee who is over-relying on the tool. Include slides on task-level change and honest communication, a roleplay on redundancy rumours, and a quiz on which response builds trust. Emphasise: no productivity target without a training plan and a review gate.",
+      "prompt": "Work the human side of an AI change: which tasks shift, which roles grow, what training is required, how performance is measured during the transition, and how to answer the fear of being replaced. The teacher models a team conversation, then the peers role-play a resistant senior employee and a junior employee who is over-relying on the tool. Include slides on task-level change and honest communication, a roleplay on redundancy rumours, and a quiz on which response builds trust. Emphasize: no productivity target without a training plan and a review gate.",
       "objectives": [
         "Explain task-level change without false reassurance",
         "Pair every target with training and review",
@@ -115,7 +115,7 @@
         "u8_graded"
       ],
       "title": "The Business Case, the Vendor, and the Rules",
-      "prompt": "Build a one-page business case for the team's chosen change: cost, expected benefit, evidence quality, risk, owner, and the decision being asked for. Then run a vendor review: what data leaves, where it is processed, retention, subprocessors, accuracy claims, exit, and who is accountable for an error. The teacher shows a case that ignored review labour and a vendor answer that dodged retention. The peers red-team each other's cases. Include a roleplay where procurement wants a signature this week and a short assessment on which case is decision-ready.",
+      "prompt": "Build a one-page business case for the team's chosen change: cost, expected benefit, evidence quality, risk, owner, and the decision being asked for. Then run a vendor review: what data leaves, where it is processed, retention, subprocessors, accuracy claims, exit, and who is accountable for an error. The teacher shows a case that ignored review labor and a vendor answer that dodged retention. The peers red-team each other's cases. Include a roleplay where procurement wants a signature this week and a short assessment on which case is decision-ready.",
       "objectives": [
         "Write a business case with evidence quality stated",
         "Ask the vendor the questions that decide risk",

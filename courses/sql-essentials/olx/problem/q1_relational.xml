@@ -16,7 +16,7 @@ it with a foreign key.</p>
 
 <multiplechoiceresponse>
 <p>A learner can enroll in many courses, and a course has many learners. This is
-modelled as:</p>
+modeled as:</p>
 <choicegroup type="MultipleChoice">
 <choice correct="true"><div>A many-to-many relationship, via a join table holding both keys.</div></choice>
 <choice correct="false"><div>A single foreign key on the learners table.</div></choice>
@@ -25,13 +25,13 @@ modelled as:</p>
 <solution>
 <div class="detailed-solution">
 <p>Many-to-many always needs a third table whose rows are the pairings — that is what
-the enrolment table is.</p>
+the enrollment table is.</p>
 </div>
 </solution>
 </multiplechoiceresponse>
 
 <choiceresponse>
-<p>Which are reasons to normalise? Select all that apply.</p>
+<p>Which are reasons to normalize? Select all that apply.</p>
 <checkboxgroup>
 <choice correct="true"><div>To avoid repeating the same fact in many rows.</div></choice>
 <choice correct="true"><div>To stop an update needing to be made in several places.</div></choice>

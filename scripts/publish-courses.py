@@ -75,7 +75,7 @@ DEFAULTS = {
     "PYTHON": "python",
     #: How long a course list from the LMS is reused before asking again.
     "KEYS_TTL": 30,
-    #: The enrolment mode a learner is given. Everything on this deployment is
+    #: The enrollment mode a learner is given. Everything on this deployment is
     #: open (honor); a paid course adds its own verified mode at checkout.
     "MODE": "honor",
     "SIGNATORY": "Darnel Hunter",
@@ -666,6 +666,30 @@ class DockerLms:
                               f"import {self.data_dir} {names}"])
         return [name for _, name in packages]
 
+    def delete_courses(self, keys) -> dict:
+        """Remove courses from the LMS, with their content and enrollments.
+
+        A deleted program must not leave its courses in Explore for a learner to
+        enroll in, so the course is deleted rather than hidden. The CMS command
+        asks twice and cannot be skipped, so it is answered here: a person
+        deleting a program has already been asked.
+        """
+        keys = [str(key).strip() for key in keys if str(key).strip()]
+        deleted, failed = [], []
+        for key in keys:
+            if not re.match(r"^course-v1:[A-Za-z0-9_.:+\-]+$", key):
+                failed.append({"key": key, "error": "that is not a course key"})
+                continue
+            try:
+                self._exec(self.cms, ["sh", "-c",
+                                      f"cd {self.platform} && {self.python} ./manage.py cms "
+                                      f"delete_course {key}"],
+                           stdin_text="yes\nyes\n")
+                deleted.append(key)
+            except LmsError as err:
+                failed.append({"key": key, "error": str(err)})
+        return {"deleted": deleted, "failed": failed}
+
     def reindex(self) -> str:
         """Rebuild the catalog search index the MFE catalog reads."""
         result = self._exec(self.cms, ["sh", "-c",
@@ -721,7 +745,7 @@ print("ATHENIQ_ENROLL " + json.dumps(out))
         for line in reversed((result.stdout or "").splitlines()):
             if line.startswith("ATHENIQ_ENROLL "):
                 return {"students": json.loads(line[len("ATHENIQ_ENROLL "):])}
-        raise LmsError("the LMS answered without an enrolment report")
+        raise LmsError("the LMS answered without an enrollment report")
 
     def grades(self, students, keys) -> dict:
         """Each learner's current course grade, computed by the LMS itself.
@@ -823,6 +847,38 @@ class OpenmaicLessons:
             raise LmsError(f"that is not a classroom id: {stage_id!r}")
         return stage
 
+    def delete(self, stage_id: str) -> dict:
+        """Delete a classroom and everything generated inside it.
+
+        The housekeeping tables that reference a stage carry no foreign key, so
+        they are deleted in the same transaction as the stage: scene revisions
+        (the drafts and their undo history), stage revisions, the asset
+        references it made, the withdrawals recorded against it, and the import
+        bookkeeping. `document_outlines`, `document_scenes` and `stage_meta`
+        cascade from the stage itself.
+
+        The HTTP API cannot do this: its delete is owner-scoped, and a classroom
+        submitted without an owner (which is how this deployment generates) is
+        matched by no owner, so it answers `{"ok": true}` and removes nothing.
+        The delete therefore goes through the same Postgres channel the lessons
+        are read from, and is verified by reading the row back.
+        """
+        stage = self._stage(stage_id)
+        statements = [
+            f"delete from document_scene_revision where stage_id='{stage}'",
+            f"delete from document_stage_revision where stage_id='{stage}'",
+            f"delete from document_asset_refs where stage_id='{stage}'",
+            f"delete from document_asset_withdrawals where stage_id='{stage}'",
+            f"delete from legacy_classroom_imports where stage_id='{stage}'",
+            f"delete from document_stages where id='{stage}'",
+        ]
+        self._query("begin; " + "; ".join(statements) + "; commit;")
+        remaining = self._query(
+            f"select count(*) from document_stages where id='{stage}'").strip()
+        if remaining not in ("0", ""):
+            raise LmsError(f"the classroom {stage} is still there after deleting it")
+        return {"classroomId": stage, "deleted": True}
+
     def lessons(self, stage_id: str) -> list[dict]:
         """One entry per outline chapter, with that chapter's questions."""
         stage = self._stage(stage_id)
@@ -863,7 +919,7 @@ class OpenmaicLessons:
 
 
 def _questions(scene: dict) -> list[dict]:
-    """The graded questions in one quiz scene, normalised for OLX."""
+    """The graded questions in one quiz scene, normalized for OLX."""
     content = scene.get("content") if isinstance(scene, dict) else None
     if not isinstance(content, dict) or content.get("type") != "quiz":
         return []
@@ -941,7 +997,7 @@ class Publisher:
                 with open(os.path.join(directory, name), encoding="utf-8") as fh:
                     doc = json.load(fh)
             except (OSError, ValueError):
-                continue  # one unreadable program is not a broken catalogue
+                continue  # one unreadable program is not a broken catalog
             if isinstance(doc, dict):
                 doc.setdefault("id", os.path.splitext(name)[0])
                 out.append(doc)
@@ -1025,7 +1081,7 @@ class Publisher:
             json.dump(record, fh, indent=2, sort_keys=True)
 
     def publish(self, program_ids=None, codes=None, execute: bool = False) -> dict:
-        """Create the missing courses in the LMS and reindex the catalogue."""
+        """Create the missing courses in the LMS and reindex the catalog."""
         try:
             entries = self.plan(program_ids, codes)
         except LmsError as err:
@@ -1097,6 +1153,77 @@ class Publisher:
                 self._record(done)
             self._keys = None  # the LMS changed; ask again next time
         return answer
+
+    # -- deleting ---------------------------------------------------------
+
+    def delete_courses(self, codes=None, keys=None) -> dict:
+        """Delete program courses from the LMS and refresh what the LMS holds.
+
+        Only the courses named are removed: a course two programs teach is one
+        course, and the caller has already decided it belongs to neither.
+        """
+        wanted = [str(key).strip() for key in (keys or []) if str(key).strip()]
+        if codes is not None:
+            try:
+                index = self.published(refresh=True)
+            except LmsError as err:
+                return {"available": False, "error": str(err),
+                        "deleted": [], "failed": []}
+            for code in codes:
+                key = index.get(str(code).strip().upper())
+                if key and key not in wanted:
+                    wanted.append(key)
+        if not wanted:
+            return {"available": True, "deleted": [], "failed": []}
+        try:
+            report = self.lms.delete_courses(wanted)
+        except LmsError as err:
+            return {"available": False, "error": str(err),
+                    "deleted": [], "failed": []}
+        answer = {"available": True, **report, "reindexed": False}
+        if report["deleted"]:
+            try:
+                self.lms.reindex()
+                answer["reindexed"] = True
+            except LmsError as err:
+                answer["reindexError"] = str(err)
+            self._forget(report["deleted"])
+            self._keys = None
+        return answer
+
+    def delete_classrooms(self, stages) -> dict:
+        """Delete the classrooms that existed only for a deleted course or program.
+
+        One classroom failing must not leave the rest behind, so each is deleted
+        on its own and the answer names the ones that would not go.
+        """
+        wanted = [str(stage).strip() for stage in (stages or []) if str(stage).strip()]
+        deleted, failed = [], []
+        for stage in dict.fromkeys(wanted):
+            try:
+                self.lessons.delete(stage)
+                deleted.append(stage)
+            except LmsError as err:
+                failed.append({"classroomId": stage, "error": str(err)[:300]})
+        return {"deleted": deleted, "failed": failed}
+
+    def _forget(self, keys) -> None:
+        """Drop deleted courses from the publishing record."""
+        path = os.path.join(self.work_dir, "published.json")
+        try:
+            with open(path, encoding="utf-8") as fh:
+                record = json.load(fh)
+        except (OSError, ValueError):
+            return
+        if not isinstance(record, dict):
+            return
+        for key in keys:
+            record.pop(key, None)
+        try:
+            with open(path, "w", encoding="utf-8") as fh:
+                json.dump(record, fh, indent=2, sort_keys=True)
+        except OSError:
+            pass
 
     # -- lessons ----------------------------------------------------------
 
@@ -1270,6 +1397,8 @@ def main():
     ap.add_argument("--grades", action="store_true",
                     help="read each enrolled learner's course grades from the LMS")
     ap.add_argument("--enroll", help="a learner identity to enroll in the selected programs")
+    ap.add_argument("--delete", action="store_true",
+                    help="delete the selected programs' (or --course) courses from the LMS")
     ap.add_argument("--json", action="store_true", help="machine-readable output")
     args = ap.parse_args()
 
@@ -1304,6 +1433,32 @@ def main():
                           f"{'passed' if row['passed'] else 'not passed'}"
                           + (f"  ({row['error']})" if row.get("error") else ""))
         sys.exit(0 if all(report.get("available") for report in reports) else 1)
+
+    if args.delete:
+        codes = list(args.course or [])
+        if args.program:
+            for program_id in args.program:
+                try:
+                    doc = publisher.program(program_id)
+                except KeyError:
+                    raise SystemExit(f"no program {program_id!r}") from None
+                codes += [course["code"] for semester in doc.get("semesters") or []
+                          for course in semester.get("courses") or []]
+        if not codes:
+            raise SystemExit("--delete needs --program or --course")
+        answer = publisher.delete_courses(codes=codes)
+        if args.json:
+            print(json.dumps(answer, indent=2, sort_keys=True))
+            sys.exit(1 if answer.get("failed") or not answer.get("available") else 0)
+        if not answer.get("available"):
+            print(f"error: the LMS is not reachable: {answer['error']}", file=sys.stderr)
+            sys.exit(1)
+        for key in answer["deleted"]:
+            print(f"  {key:<52} deleted")
+        for failure in answer["failed"]:
+            print(f"  {failure['key']:<52} FAILED: {failure['error']}", file=sys.stderr)
+        print(f"{len(answer['deleted'])} course(s) deleted from the LMS")
+        sys.exit(1 if answer["failed"] else 0)
 
     if args.enroll:
         if not args.program:

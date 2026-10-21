@@ -28,7 +28,7 @@ class Identity:
     groups = ("atheniq-admins",)
 
 
-class CatalogueTests(unittest.TestCase):
+class CatalogTests(unittest.TestCase):
     def test_ships_three_complete_programs(self):
         slugs = {template.slug for template in catalog.PROGRAM_TEMPLATES.values()}
         self.assertEqual(slugs, {"criminal-justice", "business-administration", "nursing"})
@@ -41,7 +41,7 @@ class CatalogueTests(unittest.TestCase):
     def test_declared_credits_are_the_credits_taught(self):
         for template in catalog.PROGRAM_TEMPLATES.values():
             with self.subTest(program=template.slug):
-                self.assertEqual(catalog.catalogue_credits(template), template.total_credits)
+                self.assertEqual(catalog.catalog_credits(template), template.total_credits)
 
     def test_every_course_names_a_final_assessment(self):
         for template in catalog.PROGRAM_TEMPLATES.values():
@@ -112,22 +112,55 @@ class StoreTests(unittest.TestCase):
         self.assertEqual([s["number"] for s in reread["plan"]["semesters"]], [1, 2])
         self.assertEqual(self.store.list_programs()[0]["courses"], 2)
 
-    def test_delete_moves_the_program_out_of_the_catalogue(self):
-        """The console's Delete is an archive: the file survives, the listing does not.
-
-        Conferrals and enrolments may point at a program that has been retired;
-        erasing the file would take the only record of them.
-        """
+    def test_delete_removes_the_program_and_reports_what_it_held(self):
+        """Delete is a delete, not an archive: the platform is in rollout, and a
+        duplicate or a test program is noise rather than a record to keep."""
         doc = self.store.create(Identity(), {"template": "nursing"})
+        self.store.generate(doc["id"], {"courses": ["NUR101"]}, lambda brief: "run-1")
+        self.store.sync(doc["id"], lambda run: {"state": "completed",
+                                                "classroomId": "stage-nur101"})
         self.assertEqual([doc["id"]], [p["id"] for p in self.store.list_programs()])
-        answer = self.store.archive(doc["id"])
+        answer = self.store.delete(doc["id"])
         self.assertTrue(answer["ok"])
-        self.assertIn(".archive", answer["archived"])
-        self.assertTrue(os.path.isfile(answer["archived"]))
+        self.assertEqual(answer["name"], doc["name"])
+        course = next(row for row in answer["courses"] if row["code"] == "NUR101")
+        self.assertEqual(course["classroomIds"], ["stage-nur101"])
         self.assertEqual([], self.store.list_programs())
+        self.assertEqual(os.listdir(self.store.root).count(f"{doc['id']}.json"), 0)
         with self.assertRaises(manager.ProgramError) as caught:
             self.store.get(doc["id"])
         self.assertEqual(caught.exception.status, 404)
+
+    def test_removing_a_course_lowers_the_credits_it_requires(self):
+        doc = self.store.create(Identity(), {"template": "nursing"})
+        before = self.store.get(doc["id"])["totalCredits"]
+        answer = self.store.remove_course(doc["id"], "NUR430")
+        self.assertEqual(answer["removed"]["code"], "NUR430")
+        self.assertEqual(answer["totalCredits"], before - 1)
+        reread = self.store.get(doc["id"])
+        self.assertNotIn("NUR430", {course["code"] for semester in reread["semesters"]
+                                    for course in semester["courses"]})
+        self.assertEqual(reread["totalCredits"], before - 1)
+
+    def test_removing_a_required_course_needs_a_decision(self):
+        doc = self.store.create(Identity(), {"template": "criminal-justice"})
+        with self.assertRaises(manager.ProgramError) as caught:
+            self.store.remove_course(doc["id"], "CJ101")
+        self.assertEqual(caught.exception.status, 409)
+        self.assertIn("CJ102", str(caught.exception))
+        answer = self.store.remove_course(doc["id"], "CJ101", force=True)
+        self.assertIn("CJ102", answer["prerequisitesCleared"])
+        reread = self.store.get(doc["id"])
+        courses = {course["code"]: course for semester in reread["semesters"]
+                   for course in semester["courses"]}
+        self.assertNotIn("CJ101", courses)
+        self.assertEqual(courses["CJ102"]["prerequisites"], [])
+
+    def test_codes_by_program_names_every_program_teaching_one(self):
+        first = self.store.create(Identity(), {"template": "nursing"})
+        second = self.store.create(Identity(), {"template": "nursing"})
+        owners = self.store.codes_by_program()["NUR101"]
+        self.assertEqual(sorted(owners), sorted([first["id"], second["id"]]))
 
     def test_store_write_failure_is_a_500_not_a_dropped_request(self):
         blocker = os.path.join(tempfile.mkdtemp(), "not-a-dir")
@@ -257,12 +290,34 @@ class StoreTests(unittest.TestCase):
         self.assertEqual(course["classroomIds"], ["stage-run-1", "stage-run-2"])
 
 
+class FakePublisher:
+    """A publisher that records what it was asked to delete.
+
+    The publisher owns both deletions — the LMS courses and the classrooms in
+    OpenMAIC — so one stand-in covers the whole cascade without docker.
+    """
+
+    def __init__(self):
+        self.deleted = []
+        self.classrooms = []
+
+    def delete_courses(self, codes=None, keys=None):
+        self.deleted.append({"codes": list(codes or []), "keys": list(keys or [])})
+        return {"available": True, "deleted": list(keys or []), "failed": []}
+
+    def delete_classrooms(self, stages):
+        self.classrooms.extend(stages)
+        return {"deleted": list(stages), "failed": []}
+
+
 class ConsoleProgramTests(unittest.TestCase):
     """The seam a request hits: console methods over the store, no socket."""
 
     def setUp(self):
         self.dir = tempfile.mkdtemp(prefix="atheniq-console-")
-        self.console = console.Console(console.Config(root=self.dir), builder=object())
+        self.publisher = FakePublisher()
+        self.console = console.Console(console.Config(root=self.dir),
+                                       builder=object(), publisher=self.publisher)
 
     def test_program_lifecycle_through_the_console(self):
         listing = self.console.programs_list()
@@ -280,6 +335,97 @@ class ConsoleProgramTests(unittest.TestCase):
         with self.assertRaises(console.Bad) as caught:
             self.console.program_confer(doc["id"], {"student": STUDENT})
         self.assertEqual(caught.exception.status, 409)
+
+    def _program_with_classroom(self, template="nursing", code="NUR101"):
+        doc = self.console.program_create(Identity(), {"template": template})
+        # No OpenMAIC behind these tests: a submitted run is a name, and the
+        # classroom it produced is what `sync` is told about below.
+        self.console.submit = lambda identity, body: {"runId": "run-1"}
+        self.console.program_generate(Identity(), doc["id"], {"courses": [code]})
+        self.console.programs.sync(doc["id"], lambda run: {
+            "state": "completed", "classroomId": f"stage-{code}"})
+        return doc
+
+    def test_deleting_a_program_deletes_its_classes_and_courses(self):
+        doc = self._program_with_classroom()
+        answer = self.console.program_delete(doc["id"])
+        self.assertTrue(answer["ok"])
+        self.assertEqual(answer["name"], doc["name"])
+        self.assertIn("stage-NUR101", self.publisher.classrooms)
+        self.assertIn("NUR101", self.publisher.deleted[-1]["codes"])
+        self.assertEqual(len(answer["courses"]), 23)
+        self.assertEqual(answer["kept"], [])
+        with self.assertRaises(console.Bad) as caught:
+            self.console.program_get(doc["id"])
+        self.assertEqual(caught.exception.status, 404)
+
+    def test_deleting_one_of_two_programs_keeps_the_shared_course(self):
+        """Two programs can teach the same code; the LMS key is the course, so a
+        delete must not take the course the remaining program still needs."""
+        first = self._program_with_classroom()
+        second = self.console.program_create(Identity(), {"template": "nursing"})
+        answer = self.console.program_delete(first["id"])
+        self.assertEqual(answer["courses"], [])
+        self.assertIn("NUR101", answer["kept"])
+        self.assertEqual(self.publisher.classrooms, [])
+        self.assertEqual(self.publisher.deleted[-1]["codes"], [])
+        self.assertEqual([second["id"]], [p["id"] for p in self.console.programs.list_programs()])
+
+    def test_removing_one_course_takes_its_classes_with_it(self):
+        doc = self._program_with_classroom(code="NUR430")
+        answer = self.console.program_remove_course(doc["id"], "NUR430")
+        self.assertEqual(answer["removed"]["code"], "NUR430")
+        self.assertEqual(answer["classrooms"]["deleted"], ["stage-NUR430"])
+        self.assertIn("NUR430", self.publisher.deleted[-1]["codes"])
+        self.assertNotIn("NUR430", {course["code"]
+                                    for semester in self.console.program_get(doc["id"])["plan"]["semesters"]
+                                    for course in semester["courses"]})
+
+    def test_templates_can_be_created_edited_and_removed(self):
+        body = {
+            "name": "Forensics Certificate", "credential": "Certificate in Forensics",
+            "credentialKind": "certificate", "level": "certificate",
+            "semesters": [{"name": "Term 1", "courses": [
+                {"code": "F101", "title": "Scene", "credits": 3}]}],
+        }
+        created = self.console.template_save(body)
+        self.assertEqual(created["slug"], "forensics-certificate")
+        self.assertEqual(created["totalCredits"], 3)
+        self.assertEqual(len(self.console.templates_list()["templates"]), 4)
+
+        edited = self.console.template_save({"name": "Forensics II"}, created["slug"])
+        self.assertEqual(edited["name"], "Forensics II")
+        self.assertEqual(edited["semesters"][0]["courses"][0]["code"], "F101")
+
+        doc = self.console.program_create(Identity(), {"template": created["slug"]})
+        self.assertEqual(doc["credential"], "Certificate in Forensics")
+
+        self.console.template_delete(created["slug"])
+        self.assertEqual(len(self.console.templates_list()["templates"]), 3)
+        with self.assertRaises(console.Bad) as caught:
+            self.console.template_get(created["slug"])
+        self.assertEqual(caught.exception.status, 404)
+
+    def test_a_shipped_template_stays_removed(self):
+        """A tombstone, not a deletion from the code: a deploy must not restore it."""
+        self.console.template_delete("nursing")
+        self.assertNotIn("nursing", [item["slug"] for item in self.console.templates_list()["templates"]])
+        fresh = console.Console(console.Config(root=self.dir),
+                                builder=object(), publisher=self.publisher)
+        self.assertNotIn("nursing", [item["slug"] for item in fresh.templates_list()["templates"]])
+        with self.assertRaises(console.Bad) as caught:
+            fresh.template_get("nursing")
+        self.assertEqual(caught.exception.status, 404)
+
+    def test_editing_a_shipped_template_writes_an_override(self):
+        original = self.console.template_get("nursing")
+        original["name"] = "Nursing (Evening)"
+        self.console.template_save(original, "nursing")
+        reread = self.console.template_get("nursing")
+        self.assertEqual(reread["name"], "Nursing (Evening)")
+        self.assertEqual(reread["totalCredits"], 75)
+        doc = self.console.program_create(Identity(), {"template": "nursing"})
+        self.assertEqual(doc["name"], "Nursing (Evening)")
 
     def test_course_materials_load_outside_a_package(self):
         """The console's material generator must not need package-relative imports."""

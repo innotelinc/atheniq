@@ -42,7 +42,7 @@ class GetVanillaVector(unittest.TestCase):
         )
 
     def test_header_value_is_folded(self):
-        # The suite's header-value cases fold whitespace; guard the behaviour.
+        # The suite's header-value cases fold whitespace; guard the behavior.
         folded = onyx.build_authorization(
             "GET", "example.amazonaws.com", "/", ACCESS, SECRET, "us-east-1",
             "service",

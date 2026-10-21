@@ -50,7 +50,7 @@ Usage:
     python3 scripts/secret-scan.py                 # scan tracked files
     python3 scripts/secret-scan.py path...         # scan specific paths
     python3 scripts/secret-scan.py --stdin [label]  # scan piped content,
-                                  # labelled as `label` (e.g. the file name)
+                                  # labeled as `label` (e.g. the file name)
     python3 scripts/secret-scan.py --history       # scan every blob in history
 
 Exit codes: 0 clean, 1 findings.
@@ -347,7 +347,7 @@ def main() -> int:
     if use_stdin:
         # `--stdin [label]` — a label names the file the content came from (used
         # by the pre-commit hook), which also activates the test-path relaxation
-        # for that file, matching the path-based behaviour exactly.
+        # for that file, matching the path-based behavior exactly.
         label_args = [a for a in args if a != "--stdin" and not a.startswith("-")]
         label = label_args[0] if label_args else "<stdin>"
         findings.extend(scan_text(label, sys.stdin.read()))

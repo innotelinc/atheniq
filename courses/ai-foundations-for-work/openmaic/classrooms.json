@@ -82,7 +82,7 @@
         "u6_graded"
       ],
       "title": "What May Leave the Building",
-      "prompt": "Run a data-handling drill: the class is shown eight snippets (a customer email with an address, a public job posting, a sick note, an internal pricing sheet, a published report, a colleague's performance note, a contract clause, a screenshot of a spreadsheet). The teacher explains why pasted text may leave the organisation and why 'delete my chat' is not a data-retention policy, then the peers classify each snippet as public, internal, confidential, or restricted and name the approved route for the confidential and restricted ones. Include a roleplay where a colleague asks the AI to summarise a restricted document, and a quiz on the employer's rule versus the tool's default. Emphasise: when unsure, stop and ask.",
+      "prompt": "Run a data-handling drill: the class is shown eight snippets (a customer email with an address, a public job posting, a sick note, an internal pricing sheet, a published report, a colleague's performance note, a contract clause, a screenshot of a spreadsheet). The teacher explains why pasted text may leave the organization and why 'delete my chat' is not a data-retention policy, then the peers classify each snippet as public, internal, confidential, or restricted and name the approved route for the confidential and restricted ones. Include a roleplay where a colleague asks the AI to summarize a restricted document, and a quiz on the employer's rule versus the tool's default. Emphasize: when unsure, stop and ask.",
       "objectives": [
         "Classify workplace data before pasting it into a tool",
         "State what counts as personal or restricted data",

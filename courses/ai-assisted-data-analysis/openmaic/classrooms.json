@@ -84,9 +84,9 @@
         "u6_graded"
       ],
       "title": "Cleaning, Describing, Charting — With Checks",
-      "prompt": "Run an assisted analysis on a supplied messy table: the teacher shows how to profile the data, list the cleaning decisions, describe the distribution, and choose a chart that answers the question. Then the AI produces a confident summary with one wrong total and one misleading chart. The peers find both, recompute the total from the table, and rewrite the caption. Include slides on checkable analysis steps, a roleplay where an AI-generated chart hides an excluded group, and a quiz on which summary sentence is supported by the data. Emphasise: recompute every number that will be quoted.",
+      "prompt": "Run an assisted analysis on a supplied messy table: the teacher shows how to profile the data, list the cleaning decisions, describe the distribution, and choose a chart that answers the question. Then the AI produces a confident summary with one wrong total and one misleading chart. The peers find both, recompute the total from the table, and rewrite the caption. Include slides on checkable analysis steps, a roleplay where an AI-generated chart hides an excluded group, and a quiz on which summary sentence is supported by the data. Emphasize: recompute every number that will be quoted.",
       "objectives": [
-        "Profile a messy table before analysing it",
+        "Profile a messy table before analyzing it",
         "Record cleaning decisions so the result is reproducible",
         "Recompute any number that will be quoted"
       ],

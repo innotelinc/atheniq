@@ -72,7 +72,7 @@ SENTENCE_RULES = (
 #: that says “edx.org” is the same claim as a logo, so they are repointed.
 #:
 #: Literal fragments outside the i18n tables: the stock logo's alt/title text,
-#: the help HTML compiled into the advanced-problem editors, and two localised
+#: the help HTML compiled into the advanced-problem editors, and two localized
 #: strings that sit inside a `JSON.parse('…')` literal, where the value is
 #: double-escaped and the table matcher cannot see the end of it. Each one is an
 #: exact string, so none of them can touch an identifier like `movedXBlockParams`.
@@ -134,14 +134,14 @@ TOKEN_RULES = (
 #: actions are links to the workspace, which enforces its own permissions, and a
 #: missing program link on a page that is about creating things is the bug.
 #: The learner dashboard gets two links, not the operator's five: a learner wants
-#: their courses and the catalogue, and the workspace is an author's tool. The
-#: catalogue is the AthenIQ portal rather than the LMS catalog MFE: the portal
+#: their courses and the catalog, and the workspace is an author's tool. The
+#: catalog is the AthenIQ portal rather than the LMS catalog MFE: the portal
 #: reads the program store, so a program or course created in the console is
 #: listed there immediately, while the LMS catalog only ever lists Open edX
 #: courses and therefore cannot show either.
 LEARNER_SECTIONS = (
     ("Courses", "https://apps.learn.innotel.us/"),
-    ("Catalogue", "https://lms.innotel.us/"),
+    ("Catalog", "https://lms.innotel.us/"),
 )
 
 #: The five the env-config component carried, in its order. Pinned as a literal:
@@ -166,7 +166,7 @@ PLATFORM_NAV_ANCHOR = sections_literal(PLATFORM_SECTIONS)
 
 #: The learner array as the dashboard shipped it: "Discover New" opened the LMS
 #: catalog MFE, which lists Open edX courses — so a program or course created in
-#: the console was not there, and could not be enrolled in. The catalogue link
+#: the console was not there, and could not be enrolled in. The catalog link
 #: now opens the portal, which reads the program store. Pinned as a literal, so
 #: the bundles already built are repointed without a rebuild.
 LEGACY_LEARNER_ANCHOR = sections_literal((
@@ -312,8 +312,8 @@ def patch_text(text: str, app: str, counts: Counter) -> str:
 
 
 #: The MFE shell's <head>. The Unity skin goes in as two stylesheets beside it,
-#: one per colour scheme: Paragon reads its palette from CSS custom properties,
-#: so a stylesheet recolours every page without rebuilding a bundle.
+#: one per color scheme: Paragon reads its palette from CSS custom properties,
+#: so a stylesheet recolors every page without rebuilding a bundle.
 UNITY_LINK = (
     '<link rel="stylesheet" href="{root}atheniq-unity.css" media="(prefers-color-scheme: light)">'
     '<link rel="stylesheet" href="{root}atheniq-unity-dark.css" media="(prefers-color-scheme: dark)">'

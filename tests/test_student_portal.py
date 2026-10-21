@@ -1,8 +1,8 @@
 """Unit tests for scripts/student-portal.py.
 
 The portal is public, so the tests are about the boundary: what it serves, and
-what it must never serve. A catalogue that leaks a gradebook is worse than no
-catalogue, and the leak would not be visible in the page — only in the JSON.
+what it must never serve. A catalog that leaks a gradebook is worse than no
+catalog, and the leak would not be visible in the page — only in the JSON.
 """
 import json
 import os
@@ -43,7 +43,7 @@ class PortalTests(unittest.TestCase):
         store.enroll(cls.doc["id"], "learner@example.org")
         store.record_completion(cls.doc["id"], "learner@example.org", "CJ101", 91, True)
 
-        cls.server, cls.catalogue = portal.make_server(
+        cls.server, cls.catalog = portal.make_server(
             portal.Config(bind="127.0.0.1", port=0, root=cls.root))
         cls.base = f"http://127.0.0.1:{cls.server.server_address[1]}"
         threading.Thread(target=cls.server.serve_forever, daemon=True).start()
@@ -78,7 +78,7 @@ class PortalTests(unittest.TestCase):
         text = body.decode()
         self.assertNotIn("learner@example.org", text)
         self.assertNotIn("\"grades\"", text)
-        # ...and the catalogue itself is intact.
+        # ...and the catalog itself is intact.
         self.assertEqual(len(doc["semesters"]), 8)
         self.assertEqual(doc["semesters"][0]["courses"][0]["code"], "CJ101")
 
@@ -122,7 +122,7 @@ class PortalTests(unittest.TestCase):
         self.assertIn(b"AthenIQ", body)
         self.assertIn(b"Programs and courses", body)
 
-    def test_the_catalogue_is_read_only(self):
+    def test_the_catalog_is_read_only(self):
         request = urllib.request.Request(self.base + "/api/public/programs",
                                          data=b"{}", method="POST")
         with self.assertRaises(urllib.error.HTTPError) as caught:
@@ -131,7 +131,7 @@ class PortalTests(unittest.TestCase):
 
     def test_path_traversal_never_reaches_disk(self):
         status, body = get(self.base, "/../../etc/passwd")
-        # The URL is normalised by the client/server before it arrives; either
+        # The URL is normalized by the client/server before it arrives; either
         # way the answer is the portal, never a file outside web/student.
         self.assertIn(status, (200, 404))
         self.assertNotIn(b"root:x:0:0", body)

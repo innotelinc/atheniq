@@ -22,7 +22,7 @@
         "u2_graded"
       ],
       "title": "A Brief, Not a Wish",
-      "prompt": "Put four vague workplace prompts on the board ('write an email about the delay', 'summarise this', 'make a plan', 'improve this'). The teacher rewrites the first one live into a brief with context, audience, constraints, an example of good output, and a definition of done, then explains each added line. The classmates rewrite the remaining three and test them against a supplied source document, comparing outputs. Include slides on the five parts of a usable brief, a roleplay where the model returns something technically correct but useless, and a quiz on which prompt is more likely to be reproducible. Close with a template learners can paste into their own tools.",
+      "prompt": "Put four vague workplace prompts on the board ('write an email about the delay', 'summarize this', 'make a plan', 'improve this'). The teacher rewrites the first one live into a brief with context, audience, constraints, an example of good output, and a definition of done, then explains each added line. The classmates rewrite the remaining three and test them against a supplied source document, comparing outputs. Include slides on the five parts of a usable brief, a roleplay where the model returns something technically correct but useless, and a quiz on which prompt is more likely to be reproducible. Close with a template learners can paste into their own tools.",
       "objectives": [
         "Write a brief with context, constraints, and a definition of done",
         "Give an example of good output instead of adjectives",
@@ -55,7 +55,7 @@
       "objectives": [
         "Critique a draft against explicit criteria",
         "Revise one attribute at a time and keep a log",
-        "Recognise drift and stop iterating"
+        "Recognize drift and stop iterating"
       ],
       "activities": [
         {
@@ -80,7 +80,7 @@
         "u6_graded"
       ],
       "title": "AI in the Tools You Already Use",
-      "prompt": "Work through a day of office tasks in the productivity suite: drafting an email thread, turning meeting notes into decisions and owners, building a spreadsheet formula, and summarising a long document. For each, the teacher shows the task, the prompt, the review gate, and the failure mode, then the peers do one task with a supplied source and compare results. Include a roleplay where an AI-written email contains a promise the organisation cannot keep, and a quiz on which outputs need a second reader. Emphasise that the tool's convenience never removes the review gate.",
+      "prompt": "Work through a day of office tasks in the productivity suite: drafting an email thread, turning meeting notes into decisions and owners, building a spreadsheet formula, and summarizing a long document. For each, the teacher shows the task, the prompt, the review gate, and the failure mode, then the peers do one task with a supplied source and compare results. Include a roleplay where an AI-written email contains a promise the organization cannot keep, and a quiz on which outputs need a second reader. Emphasize that the tool's convenience never removes the review gate.",
       "objectives": [
         "Use AI inside email, documents, and spreadsheets with a review gate",
         "Turn notes into decisions and owners",

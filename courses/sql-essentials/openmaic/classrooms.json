@@ -82,7 +82,7 @@
       "title": "Collapse Many Rows, Combine Tables",
       "prompt": "Take the two ideas that do real reporting work: aggregates with GROUP BY and joins across a shared key. Have the classmates build a monthly revenue report by joining orders to customers, then compare an inner and a left join on the same query and explain the rows that appeared or vanished.",
       "objectives": [
-        "Summarise a table with COUNT, SUM, and AVG per group",
+        "Summarize a table with COUNT, SUM, and AVG per group",
         "Join two tables on their key and know which rows survive",
         "Choose between inner, left, and full joins for a reporting question"
       ],

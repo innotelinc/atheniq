@@ -9,7 +9,7 @@ summary, and combining tables that share a key.</p>
   <li><code>COUNT(*)</code> counts rows; <code>COUNT(column)</code> counts non-null
       values in that column. They differ, and the difference is often the answer.</li>
   <li><code>COUNT(DISTINCT column)</code> counts unique values — "how many learners",
-      not "how many enrolments".</li>
+      not "how many enrollments".</li>
 </ul>
 
 <h4>GROUP BY</h4>
@@ -27,7 +27,7 @@ not <code>WHERE</code> — <code>WHERE</code> runs before the grouping exists.</
   <tr><td><code>CROSS JOIN</code></td><td>Every combination — use deliberately</td></tr>
 </table>
 
-<p>Choose the join by the question. "List every learner and their enrolment count,
+<p>Choose the join by the question. "List every learner and their enrollment count,
 including learners with none" needs a <code>LEFT JOIN</code> and a
 <code>COUNT</code> of the right table's key; a plain <code>INNER JOIN</code> would
 silently drop exactly the learners you were asked about.</p>

@@ -27,7 +27,7 @@ HOW IT LANDS. Two patches and one configuration default:
    `default` URL — it is the structure and the utility classes — and points
    `brandOverride` at AthenIQ's Unity skin, served from the LMS's own theming
    assets. No MFE bundle is rebuilt, and no MFE is left wearing another
-   platform's colours.
+   platform's colors.
 
    *Why the patch mutates in place rather than replacing the value.* The
    `default` URL carries Indigo's release branch, so hard-coding it here would

@@ -31,7 +31,7 @@ as a large effect.</p>
 </multiplechoiceresponse>
 
 <multiplechoiceresponse>
-<p>Why record cleaning decisions before analysing?</p>
+<p>Why record cleaning decisions before analyzing?</p>
 <choicegroup type="MultipleChoice">
 <choice correct="true"><div>So the result is reproducible and a challenged number has a defensible answer.</div></choice>
 <choice correct="false"><div>Because tools require a log file.</div></choice>

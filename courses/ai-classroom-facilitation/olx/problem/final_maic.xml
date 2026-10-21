@@ -3,13 +3,13 @@
 <p>Which assessment design best survives generative AI while still measuring
 understanding?</p>
 <choicegroup type="MultipleChoice">
-<choice correct="true"><div>A portfolio with a live defence, applying the concept to the learner's own context.</div></choice>
+<choice correct="true"><div>A portfolio with a live defense, applying the concept to the learner's own context.</div></choice>
 <choice correct="false"><div>A take-home essay on a widely written topic.</div></choice>
 <choice correct="false"><div>A multiple-choice test the learner can search for online.</div></choice>
 </choicegroup>
 <solution>
 <div class="detailed-solution">
-<p>Assess process and transfer: a defence makes the understanding visible and personal,
+<p>Assess process and transfer: a defense makes the understanding visible and personal,
 which a generic generated answer cannot supply.</p>
 </div>
 </solution>

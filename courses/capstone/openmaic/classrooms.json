@@ -51,9 +51,9 @@
         "u4_lab"
       ],
       "title": "Work the Queue",
-      "prompt": "Run a live service desk: a queue of tickets with different impact and urgency, a knowledge base to write into, and a user waiting. The candidate must prioritise, communicate, fix, and update the ticket — while a peer plays a user who gives incomplete information and then escalates.",
+      "prompt": "Run a live service desk: a queue of tickets with different impact and urgency, a knowledge base to write into, and a user waiting. The candidate must prioritize, communicate, fix, and update the ticket — while a peer plays a user who gives incomplete information and then escalates.",
       "objectives": [
-        "Prioritise a queue by impact, urgency, and age",
+        "Prioritize a queue by impact, urgency, and age",
         "Ask the questions that turn a vague report into a reproducible fault",
         "Keep the ticket and the user informed while you work"
       ],

@@ -7,13 +7,13 @@ This service is that front page and the read-only JSON behind it.
 
 WHY IT IS SEPARATE FROM THE CONSOLE. The console is a staff surface: every
 route needs an SSO identity and an allowed group, and the things it exposes
-include runs, specs and learner records. A catalogue must not inherit that
+include runs, specs and learner records. A catalog must not inherit that
 either way — a learner should not need a staff account to read what the school
 teaches, and a public page must not be able to reach a gradebook. So this
 process serves only:
 
     GET /                      the portal (web/student/)
-    GET /api/public/programs   running programs, as catalogue cards
+    GET /api/public/programs   running programs, as catalog cards
     GET /api/public/programs/<id>  one program: semesters, courses, finals
     GET /api/public/courses    courses and their generated classrooms
     GET /healthz               the process is up
@@ -49,7 +49,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PROGRAM_MANAGER_PATH = os.path.join(REPO, "scripts", "program-manager.py")
 BUILDER_PATH = os.path.join(REPO, "scripts", "build-classrooms.py")
 
-#: A catalogue response is public; a minute of staleness is invisible and keeps
+#: A catalog response is public; a minute of staleness is invisible and keeps
 #: a refresh loop from walking the store on every keystroke.
 CACHE_SECONDS = 60
 
@@ -89,7 +89,7 @@ class Config:
         )
 
 
-class Catalogue:
+class Catalog:
     """Read-only views over the program store and the course specs."""
 
     def __init__(self, config: Config):
@@ -115,7 +115,7 @@ class Catalogue:
         for summary in self.store.list_programs():
             try:
                 out.append(self.store.get(summary["id"]))
-            except Exception:  # noqa: BLE001 — one unreadable file is not a dead catalogue
+            except Exception:  # noqa: BLE001 — one unreadable file is not a dead catalog
                 continue
         return out
 
@@ -211,7 +211,7 @@ class Catalogue:
         """Courses that exist only in a program plan.
 
         A program carries its whole curriculum the moment it is saved, but a
-        course spec — and so a course in this catalogue — is written only when a
+        course spec — and so a course in this catalog — is written only when a
         classroom is generated. So a program created five minutes ago listed its
         courses inside the program and showed none of them under Courses, which
         reads as "the course was not created". These are those courses, marked
@@ -222,7 +222,7 @@ class Catalogue:
         for summary in self.store.list_programs():
             try:
                 doc = self.store.get(summary["id"])
-            except Exception:  # noqa: BLE001 — one unreadable file is not a dead catalogue
+            except Exception:  # noqa: BLE001 — one unreadable file is not a dead catalog
                 continue
             for semester in (doc.get("plan") or {}).get("semesters") or []:
                 for course in semester.get("courses") or []:
@@ -278,7 +278,7 @@ class Catalogue:
 
 class Handler(BaseHTTPRequestHandler):
     server_version = "AthenIQStudent/1"
-    catalogue: Catalogue = None  # set by make_server()
+    catalog: Catalog = None  # set by make_server()
 
     def log_message(self, fmt, *args):  # the portal is public; keep the log quiet
         pass
@@ -307,15 +307,15 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/healthz":
             return self._json(200, {"ok": True}, cache="no-store")
         if path == "/api/public/programs":
-            return self._json(200, self.catalogue.programs())
+            return self._json(200, self.catalog.programs())
         if path.startswith("/api/public/programs/"):
             program_id = urllib.parse.unquote(path[len("/api/public/programs/"):]).strip("/")
-            doc = self.catalogue.program(program_id)
+            doc = self.catalog.program(program_id)
             if doc is None:
                 return self._error(404, f"no program {program_id!r}")
             return self._json(200, doc)
         if path == "/api/public/courses":
-            return self._json(200, self.catalogue.courses())
+            return self._json(200, self.catalog.courses())
         if path.startswith("/api/"):
             return self._error(404, "no such endpoint")
         return self._static(path)
@@ -324,10 +324,10 @@ class Handler(BaseHTTPRequestHandler):
         return self.do_GET()
 
     def do_POST(self):
-        self._error(405, "the learner catalogue is read-only")
+        self._error(405, "the learner catalog is read-only")
 
     def _static(self, path):
-        web_root = os.path.join(self.catalogue.config.root, "web", "student")
+        web_root = os.path.join(self.catalog.config.root, "web", "student")
         rel = urllib.parse.unquote(path).lstrip("/") or "index.html"
         if rel.endswith("/"):
             rel += "index.html"
@@ -349,9 +349,9 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def make_server(config: Config):
-    catalogue = Catalogue(config)
-    handler = type("BoundHandler", (Handler,), {"catalogue": catalogue})
-    return ThreadingHTTPServer((config.bind, config.port), handler), catalogue
+    catalog = Catalog(config)
+    handler = type("BoundHandler", (Handler,), {"catalog": catalog})
+    return ThreadingHTTPServer((config.bind, config.port), handler), catalog
 
 
 def main():

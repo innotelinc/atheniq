@@ -20,12 +20,12 @@ distorts every comparison.</p>
 <choicegroup type="MultipleChoice">
 <choice correct="true"><div>Start the value axis at zero.</div></choice>
 <choice correct="false"><div>Start the axis just below the smallest value, to show the differences.</div></choice>
-<choice correct="false"><div>Use colour as the only way to tell the bars apart.</div></choice>
+<choice correct="false"><div>Use color as the only way to tell the bars apart.</div></choice>
 </choicegroup>
 <solution>
 <div class="detailed-solution">
 <p>Truncating the axis exaggerates differences in a bar chart, because the reader
-judges bars by length. Colour used alone also excludes colour-blind readers.</p>
+judges bars by length. Color used alone also excludes color-blind readers.</p>
 </div>
 </solution>
 </multiplechoiceresponse>

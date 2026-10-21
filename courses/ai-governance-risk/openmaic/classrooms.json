@@ -5,7 +5,7 @@
   "source_course": "course-v1:InnotelLabs+FAI106+2026_T4",
   "locale": "en",
   "defaults": {
-    "teacher_persona": "A risk and compliance lead who turns frameworks into decisions a small organisation can actually run, and who says plainly when a question needs counsel.",
+    "teacher_persona": "A risk and compliance lead who turns frameworks into decisions a small organization can actually run, and who says plainly when a question needs counsel.",
     "classmates": [
       "An operations manager who has no compliance team",
       "A works-council-style employee representative focused on monitoring and dignity"
@@ -21,7 +21,7 @@
         "u1_lesson",
         "u2_graded"
       ],
-      "title": "Frameworks That Apply to Your Organisation",
+      "title": "Frameworks That Apply to Your Organization",
       "prompt": "Introduce the main governance reference points at a working level: the NIST AI Risk Management Framework's functions, the OECD principles, and the risk-based structure of the EU AI Act, with the class noting that obligations and dates vary and must be checked rather than assumed. The teacher maps one use case (AI-assisted hiring screening) onto govern-map-measure-manage, then the peers map a use case of their own. Include slides on what each framework is for and is not, a roleplay where a sales team asks whether the product is 'compliant', and a quiz on which statement is safe to make publicly.",
       "objectives": [
         "Name the purpose of the main AI governance frameworks",
@@ -53,7 +53,7 @@
         "u4_graded"
       ],
       "title": "Risk Assessment You Can Defend",
-      "prompt": "Run a risk assessment on a supplied use case: affected people, harms (including harms of denial or error, not only privacy), likelihood, severity, existing controls, residual risk, and the owner who accepts it. The teacher shows a register entry that hides an unmitigated harm behind an average score, and the peers rewrite it. Include slides on risk statements versus adjectives, a roleplay where a sponsor wants the register entry softened, and a quiz on which residual-risk decision needs escalation. Emphasise that accepting risk is a named person's decision, recorded.",
+      "prompt": "Run a risk assessment on a supplied use case: affected people, harms (including harms of denial or error, not only privacy), likelihood, severity, existing controls, residual risk, and the owner who accepts it. The teacher shows a register entry that hides an unmitigated harm behind an average score, and the peers rewrite it. Include slides on risk statements versus adjectives, a roleplay where a sponsor wants the register entry softened, and a quiz on which residual-risk decision needs escalation. Emphasize that accepting risk is a named person's decision, recorded.",
       "objectives": [
         "Write a risk statement with affected people and harm",
         "Record controls and residual risk honestly",
@@ -88,7 +88,7 @@
       "objectives": [
         "Write a notice that says what the AI does and does not decide",
         "Explain an automated decision in plain language",
-        "Recognise monitoring that needs a formal decision"
+        "Recognize monitoring that needs a formal decision"
       ],
       "activities": [
         {

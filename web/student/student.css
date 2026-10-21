@@ -2,7 +2,7 @@
  *
  * The palette itself is web/student/unity-theme.css, a byte-identical copy of the
  * family's canonical theme; this file only names it the way the portal does.
- * A catalogue is read, not operated, so this page is quieter than the console:
+ * A catalog is read, not operated, so this page is quieter than the console:
  * fewer borders, more space, one accent.
  */
 @import url("unity-theme.css");

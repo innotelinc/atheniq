@@ -8,7 +8,7 @@ and the **favicon tile transform** is derived from the same bounds. When one sid
 changes without the other, the raster and vector logos silently disagree.
 
 This check rebuilds the expected SVG fragments from the geometry and asserts each
-SVG contains them (colours and `url(#…)` paint are normalised away, so a card may
+SVG contains them (colors and `url(#…)` paint are normalized away, so a card may
 use `url(#g)` where a master uses `url(#atheniq-mark)`).
 
     python3 scripts/check-brand-mark.py          # human output

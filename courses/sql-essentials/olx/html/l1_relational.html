@@ -1,6 +1,6 @@
 <h3>Relational Thinking</h3>
 <p>SQL is the standard language for asking questions of a relational database — data
-organised as tables with rows and named, typed columns, related to one another by
+organized as tables with rows and named, typed columns, related to one another by
 keys.</p>
 
 <h4>The relational model</h4>
@@ -14,7 +14,7 @@ keys.</p>
       key, expressing the relationship.</li>
 </ul>
 
-<h4>Why normalise at all</h4>
+<h4>Why normalize at all</h4>
 <p>Storing each fact once removes the three anomalies: an <em>insert</em> that cannot
 be made without inventing unrelated data, an <em>update</em> that has to be repeated
 in many places, and a <em>delete</em> that loses information you meant to keep.
@@ -22,7 +22,7 @@ Normalisation trades a little complexity in querying for consistency in storage.
 
 <h4>Relationships</h4>
 <table>
-  <tr><th>Cardinality</th><th>How it is modelled</th></tr>
+  <tr><th>Cardinality</th><th>How it is modeled</th></tr>
   <tr><td>One to many</td><td>A foreign key on the "many" side (order → customer)</td></tr>
   <tr><td>Many to many</td><td>A join table holding both keys (learner ↔ course)</td></tr>
   <tr><td>One to one</td><td>A foreign key that is also unique</td></tr>

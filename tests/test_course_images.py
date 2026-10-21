@@ -75,8 +75,8 @@ class Rendering(unittest.TestCase):
         card = images.render_course_card("ITSP101", "IT Support Foundations",
                                          "Innotel Labs · IT Support Specialist track")
         self.assertEqual(card.size, images.CARD_SIZE)
-        colours = card.getcolors(maxcolors=1_000_000)
-        self.assertGreater(len(colours), 8, "card looks blank")
+        colors = card.getcolors(maxcolors=1_000_000)
+        self.assertGreater(len(colors), 8, "card looks blank")
 
     def test_mark_tile_is_square_with_transparent_corners(self):
         tile = images.render_mark_tile(180)

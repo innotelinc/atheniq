@@ -52,6 +52,7 @@ import html
 import importlib.util
 import json
 import os
+import re
 import subprocess
 import sys
 import threading
@@ -260,7 +261,10 @@ class OpenMAIC:
                                      headers=headers, method=method)
         try:
             with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-                return resp.status, json.load(resp)
+                raw = resp.read()
+                # A delete answers 204 with no body: that is an answer, not an
+                # unreadable one, so only parse what was actually sent.
+                return resp.status, (json.loads(raw) if raw.strip() else {})
         except urllib.error.HTTPError as err:
             # Closed as soon as it is read: a refused call is an ordinary answer
             # here, not an exception worth leaking a socket for.

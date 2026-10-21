@@ -34,14 +34,14 @@ meaningless without a <code>GROUP BY</code>.</p>
 <p>"List every learner and how many courses they are enrolled in, including learners
 with none." The correct shape is:</p>
 <choicegroup type="MultipleChoice">
-<choice correct="true"><div>A <code>LEFT JOIN</code> from learners to enrolments, with <code>COUNT</code>.</div></choice>
-<choice correct="false"><div>An <code>INNER JOIN</code> from learners to enrolments.</div></choice>
+<choice correct="true"><div>A <code>LEFT JOIN</code> from learners to enrollments, with <code>COUNT</code>.</div></choice>
+<choice correct="false"><div>An <code>INNER JOIN</code> from learners to enrollments.</div></choice>
 <choice correct="false"><div>A <code>CROSS JOIN</code> of learners and courses.</div></choice>
 </choicegroup>
 <solution>
 <div class="detailed-solution">
-<p>An inner join drops learners with no enrolments — exactly the rows the question
-asks for. A left join keeps them, and <code>COUNT</code> of the enrolment key gives
+<p>An inner join drops learners with no enrollments — exactly the rows the question
+asks for. A left join keeps them, and <code>COUNT</code> of the enrollment key gives
 zero.</p>
 </div>
 </solution>

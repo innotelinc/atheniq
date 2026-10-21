@@ -36,16 +36,16 @@
  * A product picks its default scheme; the person can override either axis, and the
  * choice is remembered per browser. That is the whole point of the exercise: the
  * same page should be readable in a bright office and at 3am, and an operator who
- * has learned one product's colours should not have to relearn them in the next.
+ * has learned one product's colors should not have to relearn them in the next.
  *
  * The vocabulary is deliberately semantic — `--surface`, `--ink-faint`,
  * `--attention` — and never visual. A class that says what a thing *is* (a
- * finding, an outage, an SLA breach) cannot quietly pick a new colour, and
+ * finding, an outage, an SLA breach) cannot quietly pick a new color, and
  * `--unknown` exists as its own token because a check that never ran must never be
  * painted the same as a check that passed.
  *
  * Usage: set `data-scheme` and `data-mode` on <html> (see unity-theme.js), then use
- * the tokens. No component should name a raw colour.
+ * the tokens. No component should name a raw color.
  */
 
 /* ══ scheme: desk — light ═══════════════════════════════════════════════════ */
@@ -79,7 +79,7 @@
   --unknown: #6b6b76;
   --unknown-soft: #efeff3;
 
-  /* The products' identifying colours. A tone is a *label*, never the only
+  /* The products' identifying colors. A tone is a *label*, never the only
      signal: every tile also carries the product's name in text. */
   --tone-its: #4d6b00;
   --tone-tix: #0a5c9e;
@@ -98,7 +98,7 @@
   /*
    * ── Liquid glass ───────────────────────────────────────────────────────
    *
-   * A surface made of light rather than of a solid colour: a translucent tint
+   * A surface made of light rather than of a solid color: a translucent tint
    * over whatever is behind it, a hairline edge brighter than the tint (the
    * "light catch" on a pane's rim), a soft drop shadow to lift it off the
    * canvas, and a blur of the content underneath.
@@ -374,7 +374,7 @@
  * The security-operations console's own scheme: Sentinel. Deep navy in the dark,
  * a cool near-white in the light, and a cyan brand that means "this is the SOC"
  * the way violet means the desk and blue means operations. Modelled on the
- * open-source SIEM consoles (UTMStack and its neighbours), which is the visual
+ * open-source SIEM consoles (UTMStack and its neighbors), which is the visual
  * language somebody who works a security queue already reads without being told.
  */
 :root[data-scheme="soc"] {
@@ -884,12 +884,12 @@
  * Adopted from Genie, where the console chrome was rebuilt as glass. The material
  * itself is already here (the .glass primitives and the --glass-* tokens); what was
  * missing is the half that makes it read as glass rather than as a translucent
- * slab: a canvas with something on it. A pane blurred over one flat colour looks
+ * slab: a canvas with something on it. A pane blurred over one flat color looks
  * flat.
  *
- * Two soft colour fields, fixed behind everything, one the product's own tone and
+ * Two soft color fields, fixed behind everything, one the product's own tone and
  * one the family brand. Both come from tokens, so a product opts in by putting
- * class="liquid" on its body and gets its own colours in all six rendered states
+ * class="liquid" on its body and gets its own colors in all six rendered states
  * — no product writes a wash of its own.
  *
  * A system preference for less transparency wins over the effect: somebody who
@@ -964,7 +964,7 @@ dialog,
 }
 
 /* The page under it: one canvas, whatever the product's own body rule says. The
-   colour is a token, so this is the light canvas in light mode and each scheme's
+   color is a token, so this is the light canvas in light mode and each scheme's
    own in dark — it is not a repaint. */
 body {
   background-color: var(--canvas);

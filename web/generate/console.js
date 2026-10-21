@@ -162,9 +162,9 @@ const classroomRow = (course, classroom) => {
         `Regenerate “${classroom.title || classroom.id}”? Its classroom id is cleared and queued again.`,
         `Regenerating “${classroom.title || classroom.id}”`));
     }
-    actions.push(act("Delete", "DELETE", "",
-      `Delete the classroom for “${classroom.title || classroom.id}”? The lesson stays in the spec and is marked missing; a live classroom id is retired, not erased.`,
-      `${classroom.id} deleted`));
+    actions.push(act("Retire", "DELETE", "",
+      `Retire the classroom for “${classroom.title || classroom.id}”? The lesson stays in the spec and goes back to missing; the generated classroom id is retired, not erased. To remove the whole course use the Courses page.`,
+      `${classroom.id} retired`));
   }
 
   return el("div", { class: "row" },
@@ -379,7 +379,7 @@ const loadMe = async () => {
   }
 };
 
-// -- the whole catalogue ---------------------------------------------------
+// -- the whole catalog ---------------------------------------------------
 
 const generateMissing = async (event) => {
   const button = event.currentTarget;

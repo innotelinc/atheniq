@@ -1,8 +1,9 @@
 // AthenIQ Platform Services — courses.
 //
 // One list, three actions: open the classrooms, queue the missing ones, or
-// retire the spec. Nothing is deleted outright: archiving moves the spec to
-// courses/.archive/ so a mistake is recoverable.
+// delete the course. A delete is a delete: the spec, the classrooms generated
+// for it and its course in the LMS all go, because the platform is in rollout
+// and a course left behind is still enrollable.
 
 const state = { courses: [], me: null };
 
@@ -82,10 +83,12 @@ const courseRow = (course) => {
             }, "btn-primary")
           : null,
         isStaff()
-          ? action("Archive", async () => {
-              if (!window.confirm(`Archive ${course.slug}? It moves to courses/.archive/ and leaves the catalogue.`)) return;
-              await api(`/api/courses/${course.slug}`, { method: "DELETE" });
-              toast(`${course.slug} archived`);
+          ? action("Delete", async () => {
+              if (!window.confirm(`Delete ${course.slug}?\n\nIts ${course.generated} generated classroom(s) and its course in the LMS are deleted too. This cannot be undone.`)) return;
+              const answer = await api(`/api/courses/${course.slug}`, { method: "DELETE" });
+              const classes = (answer.classrooms && answer.classrooms.deleted || []).length;
+              const lms = (answer.lms && answer.lms.deleted || []).length;
+              toast(`${course.slug} deleted · ${classes} classroom(s), ${lms} LMS course(s)`);
               await loadCourses();
             })
           : null,

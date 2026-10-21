@@ -1,6 +1,6 @@
 // AthenIQ learner portal.
 //
-// Two reads and no writes. The page fetches the public catalogue once, renders
+// Two reads and no writes. The page fetches the public catalog once, renders
 // programs and courses from it, and fetches one program when it is opened.
 // Text goes through `el()` (textContent), never innerHTML: a course title is a
 // course title even if it contains angle brackets.
@@ -44,7 +44,7 @@ const api = async (path) => {
 const number = (value) => (value === null || value === undefined ? "—" : String(value));
 const badge = (text, kind = "") => el("span", { class: `badge ${kind}`.trim() }, text);
 
-// -- catalogue ---------------------------------------------------------------
+// -- catalog ---------------------------------------------------------------
 
 const renderStats = () => {
   const host = document.getElementById("stats");
@@ -116,17 +116,17 @@ const courseCard = (course) => {
   );
 };
 
-const renderCatalogue = () => {
+const renderCatalog = () => {
   const grid = document.getElementById("program-grid");
   grid.replaceChildren();
   if (!state.programs.length) {
     grid.append(el("p", { class: "empty" },
-      "No program is running yet. Platform Services can create one from the catalogue."));
+      "No program is running yet. Platform Services can create one from the catalog."));
   } else {
     for (const program of state.programs) grid.append(programCard(program));
   }
   document.getElementById("programs-count").textContent =
-    `${state.programs.length} running · ${state.templates.length} catalogue templates`;
+    `${state.programs.length} running · ${state.templates.length} catalog templates`;
 
   const courses = document.getElementById("course-grid");
   courses.replaceChildren();
@@ -248,15 +248,15 @@ const openProgram = async (programId) => {
 
 const boot = async () => {
   try {
-    const [catalogue, courses] = await Promise.all([
+    const [catalog, courses] = await Promise.all([
       api("/api/public/programs"),
       api("/api/public/courses"),
     ]);
-    state.programs = catalogue.programs || [];
-    state.templates = catalogue.templates || [];
+    state.programs = catalog.programs || [];
+    state.templates = catalog.templates || [];
     state.courses = courses.courses || [];
     renderStats();
-    renderCatalogue();
+    renderCatalog();
   } catch (error) {
     document.getElementById("program-grid").replaceChildren(
       el("p", { class: "empty" }, error.message));

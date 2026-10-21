@@ -11,7 +11,7 @@
  *
  *   1. **Paragon variables** (`--pgn-*`) — the learner MFEs (catalog, learning,
  *      account, ...) paint from these. Loaded as the Paragon theme's
- *      `brandOverride`, this recolours every MFE without rebuilding a bundle.
+ *      `brandOverride`, this recolors every MFE without rebuilding a bundle.
  *   2. **Surface rules** — the LMS's own pages, and the one thing this platform
  *      will not print: another platform's badge. Indigo's footer draws a
  *      "Powered by Open edX" logo whose hover text is the image's `alt`;
@@ -20,7 +20,7 @@
  * The palette is Unity's, transcribed from `theme/unity-theme.css` (the
  * canonical copy) rather than invented here. Change it there first.
  *
- * SCOPE. Colour and brand only, nothing structural: a stylesheet cannot rename
+ * SCOPE. Color and brand only, nothing structural: a stylesheet cannot rename
  * a template, and Indigo's compiled SCSS still owns geometry and spacing.
  */
 :root {

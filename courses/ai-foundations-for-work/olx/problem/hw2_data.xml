@@ -1,9 +1,9 @@
 <problem display_name="Homework: Data Boundaries" max_attempts="3" showanswer="finished" weight="1.0">
 <multiplechoiceresponse>
-<p>A colleague asks a public AI chat to summarise a document containing customer
+<p>A colleague asks a public AI chat to summarize a document containing customer
 addresses and account numbers. What is the core problem?</p>
 <choicegroup type="MultipleChoice">
-<choice correct="true"><div>Restricted data has left the organisation's systems.</div></choice>
+<choice correct="true"><div>Restricted data has left the organization's systems.</div></choice>
 <choice correct="false"><div>The summary might be inaccurate.</div></choice>
 <choice correct="false"><div>The document was too long for the tool.</div></choice>
 </choicegroup>

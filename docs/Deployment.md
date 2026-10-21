@@ -165,8 +165,8 @@ a failed deploy rather than a page that quietly kept the old brand.
 
 The same deploy installs **Unity** on those pages: `atheniq-unity.css` and
 `atheniq-unity-dark.css` (the canonical copies in `contrib/atheniq-theme/mfe`) go
-beside each bundle and the app shell links both, one per colour scheme. The
-palette is the console's — `--pgn-*` custom properties, so it recolours Paragon
+beside each bundle and the app shell links both, one per color scheme. The
+palette is the console's — `--pgn-*` custom properties, so it recolors Paragon
 without rebuilding an MFE bundle. Passing `--unity-css` to the patcher is what
 puts them there; the deploy script does it for every app and refuses to run
 without the skin.
@@ -522,7 +522,7 @@ a stackable certificate; `scripts/program-catalog.py` ships three
 (`tutor` on this host) and `conferrals/` beside it receives the signed record.
 
 ```text
-GET    /api/programs                     running programs + catalogue templates
+GET    /api/programs                     running programs + catalog templates
 POST   /api/programs                     create from a template or a course list
 GET    /api/programs/<id>                the program with its semester plan and finals
 GET    /api/programs/<id>/progress?student=…
@@ -534,9 +534,64 @@ POST   /api/programs/<id>/publish        create the program's courses in the LMS
 POST   /api/programs/<id>/enroll         enroll a learner (program and LMS)
 POST   /api/programs/<id>/complete       record a grade and final result by hand
 POST   /api/programs/<id>/confer         confer the credential and sign it
+DELETE /api/programs/<id>                delete it, its courses and their classrooms
+DELETE /api/programs/<id>/courses/<code> remove one course, its classrooms and its LMS course
+GET    /api/templates                    the catalog templates
+POST   /api/templates                    create a template
+GET    /api/templates/<slug>             one template, curriculum included
+PUT    /api/templates/<slug>             replace a template
+DELETE /api/templates/<slug>             remove a template from the catalog
 ```
 
-`/programs.html` is the learner's page (catalogue, progress, what they can take
+#### Deleting a program, a course, or a class
+
+Delete is a delete. The platform is in rollout, so a duplicate program or a
+visibility test is noise in the catalog rather than a record worth keeping, and
+`DELETE /api/programs/<id>` removes the program outright — no `.archive/` copy
+that the next operator has to know about.
+
+The cascade is deliberately conservative about anything shared:
+
+- the program's JSON file goes first, so the catalog cannot show a program whose
+  courses are already gone;
+- a course is deleted from the LMS (`manage.py cms delete_course`, which also
+  removes its enrollments) only when no remaining program teaches that code —
+  the LMS key is the course, not the program, so two programs can share one;
+- every classroom the deleted courses recorded is deleted from OpenMAIC's
+  store by the publisher, which is the one component on the host that can reach
+  it (the HTTP delete is owner-scoped and matches no owner here); a classroom
+  that is already gone is a success, not a failure;
+- the answer reports what was deleted, what was kept because another program
+  still uses it, and any classroom the generator refused to remove.
+
+`DELETE /api/programs/<id>/courses/<code>` is the same cascade for one course.
+A course that other courses require answers `409` naming them: removing it would
+leave a prerequisite nothing can satisfy. `?force=1` removes it and drops those
+requirements, and says which ones in `prerequisitesCleared`.
+
+`DELETE /api/courses/<slug>` deletes an authored course: its spec directory, the
+classrooms that spec recorded (current and retired) out of OpenMAIC, and the LMS
+course named by its `source_course`.
+
+#### Catalog templates are data
+
+`scripts/program-catalog.py` still ships the three templates the platform
+launched with, but the catalog is editable from `/programs.html`: **New
+template**, **Edit** and **Remove** beside each entry. A template is stored in
+the same shape as a program (semesters, courses, credits, prerequisites, finals),
+so what the editor saves is what creation reads.
+
+- A template an operator writes lives in `programs/templates/<slug>.json`.
+- Editing a shipped template writes an override with the same slug rather than
+  changing the code: an edit survives a deploy.
+- Removing a shipped template records a tombstone in
+  `programs/templates/retired.json`, so the next deploy does not quietly bring
+  it back. Creating a template with that slug clears the tombstone.
+- Saving validates the curriculum before writing — every prerequisite present
+  and taught in an earlier semester, every credit counted once — and refuses
+  with the reasons a program could not be walked.
+
+`/programs.html` is the learner's page (catalog, progress, what they can take
 next); the instructor/administrator controls on the same page appear only when
 the caller holds `GENERATION_ALLOWED_GROUPS`. Conferral is refused until every
 course, credit, GPA and final requirement is met, and the signed degree is
@@ -547,7 +602,7 @@ creates `programs/` and `conferrals/` owned by that user.
 #### Programs are courses in the LMS
 
 A plan is not a course. Until the LMS has the course, it cannot be enrolled in,
-so it never appears in *My courses*, and the catalogue that *Explore courses*
+so it never appears in *My courses*, and the catalog that *Explore courses*
 reads from does not know it exists. `scripts/publish-courses.py` closes that gap:
 for every course in a program it writes a real OLX package and imports it into
 the CMS, under a key derived from the course code
@@ -595,13 +650,13 @@ sudo -u tutor python3 scripts/publish-courses.py --program <id> --enroll learner
 
 ### Learner portal — `lms.innotel.us`
 
-`scripts/student-portal.py` serves the learner-facing catalogue: the programs the
+`scripts/student-portal.py` serves the learner-facing catalog: the programs the
 platform runs and the courses it teaches, with the semesters, prerequisites and
 final examinations behind each one. It is deliberately **public and read-only** —
 a learner should not need a staff account to read what the school teaches, and a
 public page must not be able to reach a gradebook. The JSON it answers with
 (`/api/public/programs`, `/api/public/programs/<id>`, `/api/public/courses`)
-drops enrolments, grades and the creating account before it leaves the process.
+drops enrollments, grades and the creating account before it leaves the process.
 
 ```text
 STUDENT_BIND=192.168.1.59   STUDENT_PORT=8092   STUDENT_ROOT=/home/tutor/atheniq-generation
@@ -1316,7 +1371,7 @@ Verified live (2026-09):
   with no manual step.
 
 Cleanup note: a soft-deleted duplicate document may remain from early test runs
-(idempotency was added right after); completed requests cannot be cancelled by
+(idempotency was added right after); completed requests cannot be canceled by
 design.
 
 Re-verified live after the PARTIAL auto-resume + `--status` change (2026-09):

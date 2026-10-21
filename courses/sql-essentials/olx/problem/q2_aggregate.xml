@@ -1,6 +1,6 @@
 <problem display_name="Homework: Joins &amp; Aggregates" max_attempts="3" showanswer="finished" weight="1.0">
 <multiplechoiceresponse>
-<p>Which counts unique learners rather than enrolments?</p>
+<p>Which counts unique learners rather than enrollments?</p>
 <choicegroup type="MultipleChoice">
 <choice correct="true"><div><code>COUNT(DISTINCT learner_id)</code></div></choice>
 <choice correct="false"><div><code>COUNT(*)</code></div></choice>
@@ -8,7 +8,7 @@
 </choicegroup>
 <solution>
 <div class="detailed-solution">
-<p><code>COUNT(learner_id)</code> counts non-null enrolments; only
+<p><code>COUNT(learner_id)</code> counts non-null enrollments; only
 <code>DISTINCT</code> collapses the repeats to unique learners.</p>
 </div>
 </solution>

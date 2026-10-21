@@ -25,7 +25,7 @@ image:
 The header is the same mechanism: an env-config runtime definition plus a
 `PLUGIN_SLOTS` entry that adds one nav to the desktop main menu and one to the
 mobile menu. It carries exactly two links — the learner's own courses and the
-AthenIQ catalogue (`lms.innotel.us`, the page that reads the program store) —
+AthenIQ catalog (`lms.innotel.us`, the page that reads the program store) —
 and only on the dashboard. The workspace menu (Courses · Programs · Classrooms
 · Studio · Platform) is *not* in it: those are staff pages in the console, and
 a learner's header offering five tools they cannot use is what it looked like.
@@ -60,13 +60,13 @@ FOOTER_SLOT = "org.openedx.frontend.layout.footer.v1"
 AI_CONSOLE_URL = "https://ai.lms.innotel.us/"
 
 #: The learner dashboard is a learner's page, not an operator's: it offers the
-#: two places a learner needs — their courses and the catalogue. The catalogue is
+#: two places a learner needs — their courses and the catalog. The catalog is
 #: the AthenIQ portal (`lms.innotel.us`), because that is the page that reads the
 #: program store: a program created in the console is there as soon as it is
 #: saved, which the LMS course list (Open edX courses only) can never show.
 LEARNER_SECTIONS = (
     ("Courses", "https://apps.learn.innotel.us/"),
-    ("Catalogue", "https://lms.innotel.us/"),
+    ("Catalog", "https://lms.innotel.us/"),
 )
 
 #: There is no workspace nav. Courses · Programs · Classrooms · Studio ·
@@ -77,7 +77,7 @@ LEARNER_SECTIONS = (
 
 #: What the authoring app's create buttons become. The stock page offers one
 #: "+ New Course"; a program, a classroom and a media library are created the
-#: same way, in the workspace, and land in the same catalogue.
+#: same way, in the workspace, and land in the same catalog.
 STUDIO_ACTIONS = (
     ("+ New Program", AI_CONSOLE_URL + "programs.html"),
     ("+ New Course", AI_CONSOLE_URL + "course-create.html"),
@@ -99,7 +99,7 @@ HEADER_MOBILE_SLOT = "org.openedx.frontend.layout.header_mobile_main_menu.v1"
 #: per-card, which is the wrong place for a create action.
 AUTHORING_SLOT = "org.openedx.frontend.authoring.page_banner.v1"
 
-#: `all`, because that is the only value this deployment's MFE build honours:
+#: `all`, because that is the only value this deployment's MFE build honors:
 #: tutor-mfe compiles one `env.config.jsx` and every app target copies it, so a
 #: named app would simply lose the widget rather than place it. The app that may
 #: show it is chosen in the component instead (see HEADER_COMPONENT): Studio

@@ -192,9 +192,9 @@ class HeaderLinks(unittest.TestCase):
     def test_the_dashboard_gets_two_links_and_no_workspace_menu(self):
         self.assertIn("LEARNER_SECTIONS = (", self.text)
         self.assertIn('("Courses", "https://apps.learn.innotel.us/")', self.text)
-        # The catalogue is the portal: it reads the program store, so a program
+        # The catalog is the portal: it reads the program store, so a program
         # created in the console is listed there, which the LMS catalog is not.
-        self.assertIn('("Catalogue", "https://lms.innotel.us/")', self.text)
+        self.assertIn('("Catalog", "https://lms.innotel.us/")', self.text)
         self.assertNotIn('("Discover New"', self.text)
         # Only the dashboard renders it; every other app gets nothing at all.
         self.assertIn("path.startsWith('/learner-dashboard')", self.text)

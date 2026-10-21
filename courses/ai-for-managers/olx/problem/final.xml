@@ -32,13 +32,13 @@ the review needs.</p>
 <multiplechoiceresponse>
 <p>An AI screening tool rejects a candidate. Who is accountable?</p>
 <choicegroup type="MultipleChoice">
-<choice correct="true"><div>The organisation that deployed it, through a named human owner.</div></choice>
+<choice correct="true"><div>The organization that deployed it, through a named human owner.</div></choice>
 <choice correct="false"><div>The model vendor.</div></choice>
 <choice correct="false"><div>Nobody; the algorithm decided.</div></choice>
 </choicegroup>
 <solution>
 <div class="detailed-solution">
-<p>Accountability does not transfer with the tool. The deploying organisation owns the
+<p>Accountability does not transfer with the tool. The deploying organization owns the
 decision.</p>
 </div>
 </solution>

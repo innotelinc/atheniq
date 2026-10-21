@@ -31,7 +31,7 @@ support.</p>
 <multiplechoiceresponse>
 <p>Where do binding obligations for your deployment come from?</p>
 <choicegroup type="MultipleChoice">
-<choice correct="true"><div>The law and sector rules that apply to your organisation and use, confirmed for your case.</div></choice>
+<choice correct="true"><div>The law and sector rules that apply to your organization and use, confirmed for your case.</div></choice>
 <choice correct="false"><div>Whichever framework your team prefers.</div></choice>
 <choice correct="false"><div>The vendor's marketing page.</div></choice>
 </choicegroup>

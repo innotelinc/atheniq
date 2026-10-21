@@ -8,7 +8,7 @@ page wins — update them together.
 ## The name
 
 - **AthenIQ** — one word, capital A, capital IQ, no space, no hyphen. The wordmark
-  sets a terminal period in the accent colour: `AthenIQ.`
+  sets a terminal period in the accent color: `AthenIQ.`
 - **The meaning** — a play on **Athene** (Athena), the Greek goddess of wisdom, and
   **IQ**, a measure of intelligence. *Athene + IQ*: wisdom, amplified. Say it
   "ATH-uh-nik". When the name is explained, keep the pairing — Athene **and** IQ —
@@ -16,7 +16,7 @@ page wins — update them together.
 - **Innotel Labs** — the company. Use it in attribution: *"AthenIQ — an Innotel Labs
   product"* or *"© Innotel Labs"*.
 - **Innotel Platform Stack** — the wider platform AthenIQ belongs to. Keep the
-  product names (Authentik, Cerulean, ONYX, Magnate, Signara) capitalised as written.
+  product names (Authentik, Cerulean, ONYX, Magnate, Signara) capitalized as written.
 
 ## Logo
 
@@ -67,7 +67,7 @@ stale from a separate URL. Update the SVG master and the embedded copy together;
 the tests fail if they diverge.
 
 **Clear space.** Leave at least the width of one eye-ring (≈ 1/3 of the mark) around
-the mark on every side. Do not stretch, rotate, recolour, or add effects.
+the mark on every side. Do not stretch, rotate, recolor, or add effects.
 
 **Minimum size.** The mark is legible down to 20 px; below that use the favicon tile.
 
@@ -86,7 +86,7 @@ amber.
 | `--p-border` | `#22323d` | Hairlines and borders |
 | `--p-text` | `#eef4f8` | Primary text |
 | `--p-text-secondary` | `#c2cfd9` | Body/secondary text |
-| `--p-text-muted` | `#93a4b1` | Captions, de-emphasised text |
+| `--p-text-muted` | `#93a4b1` | Captions, de-emphasized text |
 | `--p-accent` | `#10b981` | Brand accent, links, primary actions |
 | `--p-accent-hover` | `#34d399` | Accent hover |
 | `--p-accent-tint` | `rgba(16, 185, 129, 0.12)` | Accent wash (kickers, chips) |
@@ -103,13 +103,13 @@ System sans-serif: `ui-sans-serif, system-ui, "Segoe UI", Roboto, "Helvetica Neu
 sans-serif`. Code and commands use a monospace stack. The wordmark is set heavy
 (700) with slight positive letter-spacing.
 
-## Colour and accessibility
+## Color and accessibility
 
 - Body text is `--p-text-secondary` or brighter on the dark canvas; never place
   `--p-text-muted` body copy.
-- Primary buttons are emerald with `--p-bg`-coloured text — keep the pair; white on
+- Primary buttons are emerald with `--p-bg`-colored text — keep the pair; white on
   emerald fails contrast.
-- Never convey state by colour alone; pair `--p-success` / `--p-gold` with a label.
+- Never convey state by color alone; pair `--p-success` / `--p-gold` with a label.
 
 ## Changing the brand
 

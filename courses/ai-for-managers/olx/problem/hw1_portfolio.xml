@@ -9,7 +9,7 @@ best first response?</p>
 </choicegroup>
 <solution>
 <div class="detailed-solution">
-<p>The behaviour is a signal that the need is real and the route is wrong. Stop the
+<p>The behavior is a signal that the need is real and the route is wrong. Stop the
 exposure, then remove the reason for it.</p>
 </div>
 </solution>
@@ -35,7 +35,7 @@ responsibility.</p>
 <choicegroup type="MultipleChoice">
 <choice correct="true"><div>Stop it; the benefit does not justify the exposure.</div></choice>
 <choice correct="false"><div>Pilot it to see whether risk is manageable.</div></choice>
-<choice correct="false"><div>Standardise it with a review step.</div></choice>
+<choice correct="false"><div>Standardize it with a review step.</div></choice>
 </choicegroup>
 <solution>
 <div class="detailed-solution">

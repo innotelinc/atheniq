@@ -24,7 +24,7 @@ user moves. Manual mapping does not scale; Domain Admin violates least privilege
 <solution>
 <div class="detailed-solution">
 <p>Kerberos is time-sensitive; more than five minutes of skew invalidates tickets. Keep
-domain controllers synchronised to reliable time sources.</p>
+domain controllers synchronized to reliable time sources.</p>
 </div>
 </solution>
 </multiplechoiceresponse>

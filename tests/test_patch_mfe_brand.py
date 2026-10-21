@@ -171,7 +171,7 @@ class OnDisk(unittest.TestCase):
 class LearnerDashboard(unittest.TestCase):
     """The dashboard gets two links, not the operator's five."""
 
-    def test_the_five_workspace_links_become_courses_and_catalogue(self):
+    def test_the_five_workspace_links_become_courses_and_catalog(self):
         source = 'p=' + brand.sections_literal(brand.PLATFORM_SECTIONS) + ',b=()=>1'
         result, counts = patch(source, app="learner-dashboard")
         self.assertEqual(counts["learner-nav"], 1)

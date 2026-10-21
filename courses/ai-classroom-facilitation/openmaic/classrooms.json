@@ -84,7 +84,7 @@
         "u6_check"
       ],
       "title": "Run It Live",
-      "prompt": "Facilitate a short live session with the agent in role, then have the agent fail in a plausible way. Let the peers practise the recovery: stop, question it in the open, keep the humans talking, and debrief against the success criteria.",
+      "prompt": "Facilitate a short live session with the agent in role, then have the agent fail in a plausible way. Let the peers practice the recovery: stop, question it in the open, keep the humans talking, and debrief against the success criteria.",
       "objectives": [
         "Brief a session and state the AI-use policy up front",
         "Keep the discussion with the learners rather than the model",

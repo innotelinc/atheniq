@@ -329,7 +329,7 @@ class PublishTests(Fixture):
 
 
 class EnrolTests(Fixture):
-    def test_enrol_puts_the_learner_in_every_course_of_the_program(self):
+    def test_enroll_puts_the_learner_in_every_course_of_the_program(self):
         self.publisher.publish(execute=True)
         report = self.publisher.enroll(self.program["id"], "tester@example.org")
         self.assertTrue(report["available"])
@@ -408,7 +408,7 @@ class LessonTests(Fixture):
         self.assertFalse(os.path.exists(os.path.join(olx, "problem")))
         self.assertIn("program office", read(os.path.join(olx, "html", "l2_syllabus.html")))
 
-    def test_quiz_scenes_are_normalised(self):
+    def test_quiz_scenes_are_normalized(self):
         scene = {"outlineId": "scene_1", "content": {"type": "quiz", "questions": [
             {"type": "single", "question": "Pick B", "analysis": "Because B.",
              "answer": ["B"], "options": [{"label": "A", "value": "A"},

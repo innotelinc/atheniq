@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""AthenIQ — program catalogue.
+"""AthenIQ — program catalog.
 
 A whole credential is more than a pile of courses: it is an ordered set of
 semesters, each course carrying credit hours, prerequisites, and a final
@@ -17,7 +17,7 @@ Every course is a `Course`; every term is a `Semester`; the credential is a
 `ProgramTemplate`. `program-manager.py` turns a template into a stored program,
 checks the prerequisite graph, plans generation, and tracks a learner to
 conferral. Nothing here touches the network or the filesystem: it is data and
-two helpers, so the catalogue can be imported by the console, a batch script, or
+two helpers, so the catalog can be imported by the console, a batch script, or
 a test with equal ease.
 
 Stdlib only, like every other script in this tree.
@@ -188,11 +188,11 @@ _CRIMINAL_JUSTICE = ProgramTemplate(
                "writing. Learners revise one analytical essay against feedback.",
                final="portfolio", kind="general-education"),
             _c("MATH110", "College Algebra", 3,
-               "Functions, linear systems, and applied modelling. Learners solve "
+               "Functions, linear systems, and applied modeling. Learners solve "
                "problems drawn from crime-rate and budget data.",
                final="comprehensive", kind="general-education"),
             _c("PSYC101", "Introduction to Psychology", 3,
-               "Perception, memory, motivation, and behaviour, with emphasis on "
+               "Perception, memory, motivation, and behavior, with emphasis on "
                "eyewitness memory and stress response.",
                final="comprehensive", kind="general-education"),
             _c("CJ110", "Law Enforcement Ethics", 3,
@@ -206,7 +206,7 @@ _CRIMINAL_JUSTICE = ProgramTemplate(
                "rational choice — tested against reported crime data.",
                prereq=("CJ101",)),
             _c("CJ120", "Criminal Law", 3,
-               "Elements of offences, mens rea, defences, and the limits of "
+               "Elements of offenses, mens rea, defenses, and the limits of "
                "statute. Learners brief cases and apply the elements to facts.",
                prereq=("CJ101",)),
             _c("CJ130", "Policing in America", 3,
@@ -383,7 +383,7 @@ _BUSINESS = ProgramTemplate(
     min_gpa=2.0,
     capstone="BUS496 Capstone: Strategy Simulation",
     description=(
-        "A four-year degree across the functions every organisation runs on — "
+        "A four-year degree across the functions every organization runs on — "
         "accounting, finance, marketing, operations, people, and strategy. The "
         "sequence builds the numbers first, then the functions, then the "
         "integration: a consulting practicum, a business plan, and a strategy "
@@ -412,7 +412,7 @@ _BUSINESS = ProgramTemplate(
         )),
         Semester(2, "Spring — Decision Foundations", (
             _c("ACCT202", "Managerial Accounting", 3,
-               "Cost behaviour, contribution margin, and budgeting for decisions. "
+               "Cost behavior, contribution margin, and budgeting for decisions. "
                "Learners build a flexible budget and explain the variance.",
                prereq=("ACCT201",)),
             _c("ECON102", "Macroeconomics", 3,
@@ -420,7 +420,7 @@ _BUSINESS = ProgramTemplate(
                "statement and forecast one consequence.",
                prereq=("ECON101",)),
             _c("BUS210", "Business Law I", 3,
-               "Contracts, agency, and tort in commercial life. Learners analyse "
+               "Contracts, agency, and tort in commercial life. Learners analyze "
                "a contract dispute and pick the winning argument.",
                prereq=("BUS101",)),
             _c("MATH120", "Business Mathematics", 3,
@@ -428,7 +428,7 @@ _BUSINESS = ProgramTemplate(
                "price a loan and a lease.",
                final="comprehensive", kind="general-education"),
             _c("BUS220", "Principles of Management", 3,
-               "Planning, organising, leading, and controlling, with the evidence "
+               "Planning, organizing, leading, and controlling, with the evidence "
                "on what managers actually do.",
                prereq=("BUS101",)),
         )),
@@ -445,7 +445,7 @@ _BUSINESS = ProgramTemplate(
                "Sampling, hypothesis tests, and regression for managers, with a "
                "spreadsheet-based project.",
                prereq=("MATH120",), final="project"),
-            _c("BUS320", "Organisational Behaviour", 3,
+            _c("BUS320", "Organisational Behavior", 3,
                "Motivation, teams, power, and culture, applied to one real "
                "workplace case.",
                prereq=("BUS220",)),
@@ -459,7 +459,7 @@ _BUSINESS = ProgramTemplate(
                "Capital structure, cost of capital, and working capital. Learners "
                "recommend a financing plan.",
                prereq=("FIN301",)),
-            _c("MKT320", "Consumer Behaviour", 3,
+            _c("MKT320", "Consumer Behavior", 3,
                "How buyers decide: attention, framing, and habit. Learners design "
                "and critique an experiment.",
                prereq=("MKT301",), final="project"),
@@ -533,7 +533,7 @@ _BUSINESS = ProgramTemplate(
                "produced current rules.",
                prereq=("BUS460",)),
             _c("BUS493", "Advanced Business Analytics", 3,
-               "Forecasting, optimisation, and causal inference for managers.",
+               "Forecasting, optimization, and causal inference for managers.",
                prereq=("BUS450",), final="project"),
             _c("BUS494", "Internship I", 3,
                "Supervised industry placement with a weekly log and supervisor "
@@ -629,7 +629,7 @@ _NURSING = ProgramTemplate(
                "complete a full head-to-toe assessment under observation.",
                prereq=("NUR101",), final="practical", classrooms=4),
             _c("NUR120", "Fundamentals of Nursing Practice", 4,
-               "Medication administration, wound care, and mobility, practised in "
+               "Medication administration, wound care, and mobility, practiced in "
                "lab and simulated scenarios.",
                prereq=("NUR101",), final="practical", classrooms=5),
             _c("BIO202", "Anatomy and Physiology II", 4,
@@ -637,7 +637,7 @@ _NURSING = ProgramTemplate(
                "lab practicals.",
                prereq=("BIO201",), final="practical", kind="general-education", classrooms=5),
             _c("MICR201", "Microbiology", 4,
-               "Pathogens, immunity, and sterilisation, with a lab project on "
+               "Pathogens, immunity, and sterilization, with a lab project on "
                "chain of infection.",
                prereq=("CHEM101",), final="practical", kind="general-education", classrooms=4),
             _c("NUR130", "Pharmacology I", 2,
@@ -648,7 +648,7 @@ _NURSING = ProgramTemplate(
         Semester(3, "Semester 3 — Medical-Surgical Core", (
             _c("NUR201", "Medical-Surgical Nursing I", 5,
                "Care of adults with acute and chronic illness: assessment, "
-               "prioritisation, and intervention. Clinical rotation alongside "
+               "prioritization, and intervention. Clinical rotation alongside "
                "the classroom.",
                prereq=("NUR120", "BIO202"), final="practical", classrooms=6),
             _c("NUR210", "Pharmacology II", 2,
@@ -725,7 +725,7 @@ _NURSING = ProgramTemplate(
 )
 
 
-#: Every program the platform ships. Order is the order the catalogue shows.
+#: Every program the platform ships. Order is the order the catalog shows.
 PROGRAM_TEMPLATES: dict[str, ProgramTemplate] = {
     template.slug: template
     for template in (_CRIMINAL_JUSTICE, _BUSINESS, _NURSING)
@@ -733,7 +733,7 @@ PROGRAM_TEMPLATES: dict[str, ProgramTemplate] = {
 
 
 def list_templates() -> list[dict]:
-    """Every template as a summary, for the catalogue page."""
+    """Every template as a summary, for the catalog page."""
     out = []
     for template in PROGRAM_TEMPLATES.values():
         out.append({
@@ -766,7 +766,7 @@ def prerequisite_errors(template: ProgramTemplate) -> list[str]:
     A prerequisite that is taught in the same term as the course that needs it is
     not a prerequisite — it is a scheduling error that would make the plan
     impossible to walk. This returns human-readable problems, so both the
-    catalogue test and the API can refuse a broken program with a real reason.
+    catalog test and the API can refuse a broken program with a real reason.
     """
     index = template.course_index()
     problems: list[str] = []
@@ -783,6 +783,6 @@ def prerequisite_errors(template: ProgramTemplate) -> list[str]:
     return problems
 
 
-def catalogue_credits(template: ProgramTemplate) -> int:
+def catalog_credits(template: ProgramTemplate) -> int:
     """Credits actually listed in the semesters (must equal total_credits)."""
     return sum(semester.credits for semester in template.semesters)

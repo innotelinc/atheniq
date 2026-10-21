@@ -43,7 +43,7 @@
 }
 
 /* The Studio logo is a dark raster on a now-dark bar: lift it instead of
-   recolouring it, so the mark keeps its own shape. */
+   recoloring it, so the mark keeps its own shape. */
 .wrapper-header .brand-image {
   filter: brightness(0) invert(1);
   opacity: 0.94;

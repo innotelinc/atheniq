@@ -29,21 +29,21 @@
   </header>
 
   <main class="wrap layout">
-    <section class="panel" aria-labelledby="catalogue-h">
+    <section class="panel" aria-labelledby="catalog-h">
       <div class="panel-head">
-        <h1 id="catalogue-h">Programs</h1>
+        <h1 id="catalog-h">Programs</h1>
         <div class="head-tools">
           <span class="counts" id="counts"></span>
         </div>
       </div>
       <p class="sub">A program is the whole credential: every semester, every course, every prerequisite and final examination, ending in a degree or a stackable certificate. Pick one to see its curriculum and your progress through it.</p>
-      <div id="catalogue" class="program-grid" aria-live="polite"><p class="empty">loading…</p></div>
+      <div id="catalog" class="program-grid" aria-live="polite"><p class="empty">loading…</p></div>
     </section>
 
     <aside class="side">
       <section class="panel" aria-labelledby="create-h" id="create-panel" hidden>
         <div class="panel-head"><h2 id="create-h">Run a program</h2></div>
-        <p class="sub">Start a program from a catalogue template. The full curriculum — semesters, courses, finals — is created in one step, then generated classroom by classroom.</p>
+        <p class="sub">Start a program from a catalog template. The full curriculum — semesters, courses, finals — is created in one step, then generated classroom by classroom.</p>
         <form id="create-form" class="brief" autocomplete="off">
           <label for="create-template">Template</label>
           <select id="create-template" name="template"></select>
@@ -77,6 +77,73 @@
 
   <section class="wrap" id="detail-wrap" hidden>
     <article class="panel program-detail" id="detail" aria-live="polite"></article>
+  </section>
+
+  <section class="wrap" id="templates-wrap" hidden>
+    <article class="panel" aria-labelledby="templates-h">
+      <div class="panel-head">
+        <h2 id="templates-h">Catalog templates</h2>
+        <div class="head-tools">
+          <button class="btn btn-secondary btn-small" id="template-new" type="button">New template</button>
+        </div>
+      </div>
+      <p class="sub">A template is the curriculum a program is created from: its semesters, courses, credits, prerequisites and finals. Editing a shipped template saves an override, so the change survives a deploy; removing one leaves it out of the catalog until it is created again.</p>
+      <div id="template-list" class="template-list" aria-live="polite"></div>
+
+      <form id="template-form" class="brief template-form" autocomplete="off" hidden>
+        <div class="template-grid">
+          <div>
+            <label for="tpl-name">Name</label>
+            <input id="tpl-name" name="name" type="text" maxlength="120" required>
+          </div>
+          <div>
+            <label for="tpl-credential">Credential awarded</label>
+            <input id="tpl-credential" name="credential" type="text" maxlength="160">
+          </div>
+          <div>
+            <label for="tpl-level">Level</label>
+            <select id="tpl-level" name="level">
+              <option value="bachelor">Bachelor</option>
+              <option value="associate">Associate</option>
+              <option value="certificate">Certificate</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+          <div>
+            <label for="tpl-kind">Award</label>
+            <select id="tpl-kind" name="credentialKind">
+              <option value="degree">Degree</option>
+              <option value="certificate">Certificate</option>
+            </select>
+          </div>
+          <div>
+            <label for="tpl-min-gpa">Minimum GPA</label>
+            <input id="tpl-min-gpa" name="minGpa" type="number" min="0" max="4" step="0.1" value="2.0">
+          </div>
+          <div>
+            <label for="tpl-capstone">Capstone</label>
+            <input id="tpl-capstone" name="capstone" type="text" maxlength="120" placeholder="CJ450 Capstone Seminar II">
+          </div>
+        </div>
+        <label for="tpl-description">Description</label>
+        <textarea id="tpl-description" name="description" rows="3" maxlength="1200"></textarea>
+
+        <div class="template-semesters-head">
+          <h3>Semesters</h3>
+          <span class="hint" id="tpl-tally"></span>
+        </div>
+        <div id="tpl-semesters" class="template-semesters"></div>
+        <div class="brief-actions">
+          <button class="btn btn-secondary btn-small" id="tpl-add-semester" type="button">Add semester</button>
+          <span class="hint">A prerequisite must be taught in an earlier semester.</span>
+        </div>
+        <div class="brief-actions">
+          <button class="btn btn-primary" id="tpl-save" type="submit">Save template</button>
+          <button class="btn btn-secondary" id="tpl-cancel" type="button">Cancel</button>
+          <span class="hint" id="tpl-hint"></span>
+        </div>
+      </form>
+    </article>
   </section>
 
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>

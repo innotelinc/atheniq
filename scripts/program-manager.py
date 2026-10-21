@@ -8,7 +8,7 @@ certificate that is conferred only when every requirement is satisfied.
 This module is the working half of that sentence. It:
 
     * stores programs as JSON under `programs/`, one file each;
-    * builds them from a catalogue template (criminal-justice,
+    * builds them from a catalog template (criminal-justice,
       business-administration, nursing) or from an explicit course list;
     * validates the prerequisite graph — a prerequisite taught in the same term
       as the course that needs it is a scheduling error, not a prerequisite;
@@ -26,6 +26,7 @@ Stdlib only, like every other script in this tree.
 """
 from __future__ import annotations
 
+import copy
 import importlib.util
 import json
 import os
@@ -40,7 +41,7 @@ CATALOG_PATH = os.path.join(HERE, "program-catalog.py")
 
 
 def _load_catalog():
-    """The catalogue, imported by path (the filename has a hyphen).
+    """The catalog, imported by path (the filename has a hyphen).
 
     The module is registered in `sys.modules` before it executes: dataclasses
     resolve their annotations through their own module entry, and an unregistered
@@ -111,6 +112,290 @@ def course_pass_mark(course: dict) -> float:
     return CLINICAL_PASS_MARK if course.get("kind") == "clinical" else PASS_MARK
 
 
+def _is_credit_minimum(problem: str) -> bool:
+    """Whether a validation problem is only a credential's minimum length.
+
+    A template is built to a shape (a bachelor's is 120 credits); a running
+    program is edited over time, and removing a course from one deliberately
+    lowers what it awards. The minimum belongs to the catalog, not to an
+    operator pruning a curriculum that has not been awarded yet.
+    """
+    return problem.startswith("an associate credential cannot require") or \
+        problem.startswith("a bachelor's credential requires")
+
+
+class TemplateStore:
+    """The catalog: the templates that ship with the platform, and the ones an
+    operator writes.
+
+    A template is stored in the same JSON shape as a program, because a program
+    *is* a template with learners attached. Editing a shipped template writes an
+    override beside it instead of changing the code, so an edit survives a
+    deploy and the shipped file stays the record of what the platform intended.
+    Deleting a shipped template records a tombstone for the same reason: a deploy
+    must not quietly bring back something an operator retired.
+    """
+
+    def __init__(self, root: str, catalog=None, validate=None, clock=time.time):
+        self.root = root
+        self.catalog = catalog if catalog is not None else _load_catalog()
+        self.validate = validate
+        self.clock = clock
+        self._lock = threading.Lock()
+
+    # -- storage ---------------------------------------------------------
+
+    def _dir(self) -> str:
+        return self.root
+
+    def _path(self, slug: str) -> str:
+        return os.path.join(self._dir(), f"{_slug(slug)}.json")
+
+    def _retired_path(self) -> str:
+        return os.path.join(self._dir(), "retired.json")
+
+    def _retired(self) -> list[str]:
+        try:
+            with open(self._retired_path(), encoding="utf-8") as fh:
+                doc = json.load(fh)
+        except (OSError, ValueError):
+            return []
+        return [str(slug) for slug in (doc.get("slugs") if isinstance(doc, dict) else doc) or []]
+
+    def _set_retired(self, slugs: list[str]) -> None:
+        try:
+            os.makedirs(self._dir(), exist_ok=True)
+            tmp = f"{self._retired_path()}.{os.getpid()}.tmp"
+            with open(tmp, "w", encoding="utf-8") as fh:
+                json.dump({"slugs": sorted(set(slugs))}, fh, indent=2)
+                fh.write("\n")
+            os.replace(tmp, self._retired_path())
+        except OSError as err:
+            raise ProgramError(500, f"cannot record the retired templates: {err}") from err
+
+    def _stored(self, slug: str) -> dict | None:
+        try:
+            with open(self._path(slug), encoding="utf-8") as fh:
+                doc = json.load(fh)
+        except FileNotFoundError:
+            return None
+        except (OSError, ValueError) as err:
+            raise ProgramError(500, f"template {slug!r} is unreadable: {err}") from err
+        if not isinstance(doc, dict):
+            raise ProgramError(500, f"template {slug!r} is not an object")
+        return doc
+
+    def _shipped(self, slug: str) -> dict | None:
+        try:
+            return self.catalog.get_template(slug).as_dict()
+        except KeyError:
+            return None
+
+    # -- reading ---------------------------------------------------------
+
+    def get(self, slug: str, missing: int = 404) -> dict:
+        """One complete template, override before shipped, with a real error."""
+        slug = _slug(slug)
+        doc = self._stored(slug)
+        if doc is None:
+            if slug in self._retired():
+                raise ProgramError(missing, f"template {slug!r} was removed from the catalog")
+            doc = self._shipped(slug)
+        if doc is None:
+            known = ", ".join(item["slug"] for item in self.summaries()) or "none"
+            raise ProgramError(missing, f"no program template {slug!r}; known: {known}")
+        doc.setdefault("slug", slug)
+        return doc
+
+    @staticmethod
+    def _summary(doc: dict) -> dict:
+        courses = [course for semester in doc.get("semesters") or []
+                   for course in semester.get("courses") or []]
+        return {
+            "slug": doc.get("slug"),
+            "name": doc.get("name"),
+            "credential": doc.get("credential"),
+            "credentialKind": doc.get("credentialKind") or "degree",
+            "level": doc.get("level") or "custom",
+            "totalCredits": doc.get("totalCredits"),
+            "semesters": len(doc.get("semesters") or []),
+            "courses": len(courses),
+            "description": doc.get("description") or "",
+            "certificates": [cert.get("name") for cert in doc.get("certificates") or []],
+            "edited": bool(doc.get("edited")),
+        }
+
+    def summaries(self) -> list[dict]:
+        """Every template the catalog offers, shipped order first."""
+        retired = set(self._retired())
+        live = {}
+        try:
+            names = sorted(os.listdir(self._dir()))
+        except OSError:
+            names = []
+        for name in names:
+            if not name.endswith(".json") or name == "retired.json":
+                continue
+            doc = self._stored(name[: -len(".json")])
+            if doc:
+                doc.setdefault("slug", name[: -len(".json")])
+                live[doc["slug"]] = self._summary(doc)
+        out = []
+        for item in self.catalog.list_templates():
+            if item["slug"] in retired:
+                continue
+            out.append(live.pop(item["slug"], item))
+        out.extend(live[slug] for slug in sorted(live))
+        return out
+
+    # -- writing ---------------------------------------------------------
+
+    def save(self, body: dict, slug: str | None = None) -> dict:
+        """Create or replace one template, refusing one that cannot be walked."""
+        if not isinstance(body, dict):
+            raise ProgramError(400, "expected a JSON object")
+        existing = None
+        if slug:
+            existing = self.get(slug, missing=404)
+        name = str(body.get("name") or (existing or {}).get("name") or "").strip()
+        if not name:
+            raise ProgramError(400, "a template needs a name")
+        target = _slug(slug or body.get("slug") or name)
+        if slug is None and (self._stored(target) or (self._shipped(target) and target not in self._retired())):
+            raise ProgramError(409, f"a template called {target!r} already exists — edit it instead")
+        doc = self._normalize(body, base=existing, slug=target, name=name)
+        problems = [problem for problem in (self.validate or (lambda _doc: []))(doc)
+                    if not _is_credit_minimum(problem)]
+        if problems:
+            raise ProgramError(400, "the template is not schedulable: " + "; ".join(problems))
+        doc["edited"] = True
+        with self._lock:
+            try:
+                os.makedirs(self._dir(), exist_ok=True)
+                tmp = f"{self._path(target)}.{os.getpid()}.tmp"
+                with open(tmp, "w", encoding="utf-8") as fh:
+                    json.dump(doc, fh, indent=2, ensure_ascii=False, sort_keys=True)
+                    fh.write("\n")
+                os.replace(tmp, self._path(target))
+            except OSError as err:
+                raise ProgramError(500, f"cannot write the template store at {self._dir()}: {err}") from err
+            retired = [item for item in self._retired() if item != target]
+            if retired != self._retired():
+                self._set_retired(retired)
+        return self.get(target)
+
+    def _normalize(self, body: dict, base: dict | None, slug: str, name: str) -> dict:
+        """The body as a complete template, with the curriculum kept walkable."""
+        merged = copy.deepcopy(base or {})
+        for key in ("name", "credential", "description", "capstone", "level",
+                    "credentialKind", "certificates", "semesters"):
+            if key in body:
+                merged[key] = body[key]
+        merged["slug"] = slug
+        merged["name"] = name
+        merged.setdefault("credential", name)
+        merged.setdefault("credentialKind", "degree")
+        merged.setdefault("level", "custom")
+        merged.setdefault("description", "")
+        merged.setdefault("capstone", "")
+        merged.setdefault("certificates", [])
+        try:
+            merged["minGpa"] = round(float(body.get("minGpa", merged.get("minGpa", 2.0))), 2)
+        except (TypeError, ValueError):
+            raise ProgramError(400, "minGpa must be a number") from None
+        if not 0 <= merged["minGpa"] <= 4:
+            raise ProgramError(400, "minGpa must be between 0 and 4")
+        semesters_in = merged.get("semesters")
+        if not isinstance(semesters_in, list) or not semesters_in:
+            raise ProgramError(400, "a template needs a non-empty `semesters` list")
+        semesters = []
+        seen: set[str] = set()
+        for number, semester in enumerate(semesters_in, start=1):
+            if not isinstance(semester, dict):
+                raise ProgramError(400, f"semester {number} must be an object")
+            courses = []
+            for raw in semester.get("courses") or []:
+                if not isinstance(raw, dict):
+                    raise ProgramError(400, f"semester {number} has a course that is not an object")
+                code = str(raw.get("code") or "").strip().upper()
+                if not code:
+                    raise ProgramError(400, f"semester {number} has a course with no code")
+                if code in seen:
+                    raise ProgramError(400, f"course {code} appears twice")
+                seen.add(code)
+                try:
+                    credits = int(raw.get("credits", 3))
+                except (TypeError, ValueError):
+                    raise ProgramError(400, f"{code}: credits must be a whole number") from None
+                if not 1 <= credits <= 12:
+                    raise ProgramError(400, f"{code}: credits must be between 1 and 12")
+                prereq = raw.get("prerequisites") or []
+                if isinstance(prereq, str):
+                    prereq = [prereq]
+                courses.append({
+                    "code": code,
+                    "title": str(raw.get("title") or code).strip(),
+                    "credits": credits,
+                    "description": str(raw.get("description") or "").strip(),
+                    "prerequisites": [str(item).strip().upper() for item in prereq if str(item).strip()],
+                    "finalExam": str(raw.get("finalExam") or "comprehensive").strip(),
+                    "kind": str(raw.get("kind") or "core").strip(),
+                    "classrooms": _classroom_count(raw.get("classrooms")),
+                })
+            if not courses:
+                raise ProgramError(400, f"semester {number} has no courses")
+            semesters.append({"number": number,
+                              "name": str(semester.get("name") or f"Semester {number}").strip(),
+                              "credits": sum(course["credits"] for course in courses),
+                              "courses": courses})
+        merged["semesters"] = semesters
+        merged["totalCredits"] = sum(semester["credits"] for semester in semesters)
+        certificates = []
+        for cert in merged.get("certificates") or []:
+            if not isinstance(cert, dict):
+                continue
+            cert_name = str(cert.get("name") or "").strip()
+            if not cert_name:
+                continue
+            certificates.append({
+                "slug": _slug(cert.get("slug") or cert_name),
+                "name": cert_name,
+                "afterSemester": int(cert.get("afterSemester") or 1),
+                "requiredCourses": [str(code).strip().upper()
+                                    for code in cert.get("requiredCourses") or []
+                                    if str(code).strip()],
+                "description": str(cert.get("description") or "").strip(),
+            })
+        merged["certificates"] = certificates
+        merged["at"] = _now_iso(self.clock)
+        return merged
+
+    def delete(self, slug: str) -> dict:
+        """Remove a template from the catalog outright.
+
+        A shipped template is retired by tombstone rather than deleted from the
+        code, so the next deploy cannot restore what an operator removed; a
+        template an operator wrote is a file, and the file goes.
+        """
+        slug = _slug(slug)
+        stored = self._stored(slug)
+        shipped = self._shipped(slug)
+        retired = self._retired()
+        if stored is None and (shipped is None or slug in retired):
+            raise ProgramError(404, f"no template {slug!r}")
+        with self._lock:
+            if stored is not None:
+                try:
+                    os.remove(self._path(slug))
+                except OSError as err:
+                    raise ProgramError(500, f"cannot remove template {slug!r}: {err}") from err
+            if shipped is not None and slug not in retired:
+                self._set_retired(retired + [slug])
+        return {"ok": True, "slug": slug,
+                "source": "shipped" if shipped is not None else "written",
+                "shipped": shipped is not None}
+
+
 class ProgramStore:
     """Programs on disk, and the rules that make them real credentials."""
 
@@ -119,6 +404,11 @@ class ProgramStore:
         self.clock = clock
         self.catalog = _load_catalog()
         self._lock = threading.Lock()
+        #: The catalog sits beside the programs it creates: an override an
+        #: operator writes belongs to this store, not to the code tree.
+        self.templates = TemplateStore(os.path.join(root, "templates"),
+                                       catalog=self.catalog,
+                                       validate=self.validate, clock=clock)
 
     # -- storage ---------------------------------------------------------
 
@@ -163,7 +453,7 @@ class ProgramStore:
                                     f"{err}") from err
 
     def template_summaries(self) -> list[dict]:
-        return self.catalog.list_templates()
+        return self.templates.summaries()
 
     def list_programs(self) -> list[dict]:
         """Every stored program, newest first, as a summary."""
@@ -215,7 +505,7 @@ class ProgramStore:
         """Create a program from a template, or from an explicit course list.
 
         Body:
-            template      a catalogue slug (criminal-justice, ...)
+            template      a catalog slug (criminal-justice, ...)
             name          override the program name
             credential    override the credential name
             startTerm     informational label, e.g. "Fall 2026"
@@ -227,10 +517,7 @@ class ProgramStore:
             raise ProgramError(400, "expected a JSON object")
         template_slug = str(body.get("template") or "").strip()
         if template_slug:
-            try:
-                template = self.catalog.get_template(template_slug)
-            except KeyError as err:
-                raise ProgramError(400, str(err)) from None
+            template = self.templates.get(template_slug, missing=400)
             doc = self._from_template(template, body)
         else:
             doc = self._from_body(body)
@@ -245,9 +532,11 @@ class ProgramStore:
             self._write(doc)
         return self.get(doc["id"])
 
-    def _from_template(self, template, body: dict) -> dict:
-        doc = template.as_dict()
-        doc["template"] = template.slug
+    def _from_template(self, template: dict, body: dict) -> dict:
+        doc = copy.deepcopy(template)
+        doc.pop("slug", None)
+        doc.pop("edited", None)
+        doc["template"] = template.get("slug")
         if body.get("name"):
             doc["name"] = str(body["name"]).strip()
         if body.get("credential"):
@@ -602,29 +891,113 @@ class ProgramStore:
             self._write(doc)
         return self.get(doc["id"])
 
-    def archive(self, program_id: str) -> dict:
-        """Retire a program without losing it: move its file to `.archive/`.
+    def codes_by_program(self) -> dict[str, list[str]]:
+        """Every course code and the programs that teach it.
 
-        A hard delete would take the only record of a credential somebody may
-        have been awarded; an archive keeps the file (and the conferrals beside
-        it) while removing the program from the catalogue.
+        The LMS key is the course, not the program, so two programs can share a
+        code; a delete has to know that before it removes a course nobody else
+        teaches.
+        """
+        out: dict[str, list[str]] = {}
+        for summary in self.list_programs():
+            try:
+                doc = self._read(summary["id"])
+            except ProgramError:
+                continue
+            for code in self._course_map(doc):
+                out.setdefault(code, []).append(doc["id"])
+        return out
+
+    def delete(self, program_id: str) -> dict:
+        """Remove a program outright, and say what existed only for it.
+
+        This is a delete, not an archive: the platform is in rollout, and a
+        duplicate or a test program is noise in the catalog rather than a
+        record worth keeping. The answer carries every course (and its
+        classrooms) so the caller can cascade to the LMS and OpenMAIC, which
+        this store deliberately knows nothing about.
         """
         doc = self._read(program_id)
-        source = self._path(program_id)
-        target_dir = os.path.join(self._dir(), ".archive")
+        path = self._path(program_id)
+        courses = []
+        for semester, course in ((semester, course)
+                                 for semester in doc.get("semesters", [])
+                                 for course in semester.get("courses", [])):
+            courses.append({
+                "code": course["code"],
+                "title": course.get("title") or course["code"],
+                "semester": semester.get("number"),
+                "classroomIds": [stage for stage in course.get("classroomIds") or [] if stage],
+                "lessons": (course.get("lessons") or {}).get("count") or 0,
+            })
         try:
-            os.makedirs(target_dir, exist_ok=True)
-            target = os.path.join(
-                target_dir, f"{doc['id']}.{time.strftime('%Y%m%dT%H%M%S', time.gmtime(self.clock()))}.json")
-            os.replace(source, target)
+            os.remove(path)
+        except FileNotFoundError:
+            raise ProgramError(404, f"no program {program_id!r}") from None
         except OSError as err:
-            raise ProgramError(500, f"cannot archive {program_id!r}: {err}") from err
-        return {"ok": True, "program": doc["id"], "archived": target}
+            raise ProgramError(500, f"cannot delete {program_id!r}: {err}") from err
+        return {"ok": True, "program": doc["id"], "name": doc.get("name"),
+                "courses": courses,
+                "conferrals": [record.get("conferred") for record in
+                               (doc.get("enrollments") or {}).values()
+                               if record.get("conferred")]}
+
+    def remove_course(self, program_id: str, code: str, force: bool = False) -> dict:
+        """Take one course out of a program's curriculum.
+
+        A course that other courses require cannot be removed without deciding
+        what those requirements become, so that is a refusal unless `force` says
+        to drop them. The classes that existed for the course are returned, not
+        removed here: the console owns the LMS and OpenMAIC.
+        """
+        code = str(code or "").strip().upper()
+        doc = self._read(program_id)
+        courses = self._course_map(doc)
+        course = courses.get(code)
+        if course is None:
+            raise ProgramError(404, f"no course {code!r} in {doc['name']}")
+        dependents = sorted(other["code"] for other in courses.values()
+                            if other is not course and code in (other.get("prerequisites") or []))
+        if dependents and not force:
+            raise ProgramError(
+                409, f"{code} is a prerequisite for {', '.join(dependents)}; "
+                     "remove those first, or confirm to drop the requirement")
+        for semester in doc.get("semesters", []):
+            semester["courses"] = [item for item in semester.get("courses", [])
+                                   if item["code"] != code]
+            semester["credits"] = sum(item.get("credits", 0) for item in semester["courses"])
+        doc["semesters"] = [semester for semester in doc.get("semesters", [])
+                            if semester["courses"]]
+        for number, semester in enumerate(doc["semesters"], start=1):
+            semester["number"] = number
+        if force:
+            for semester in doc["semesters"]:
+                for item in semester["courses"]:
+                    item["prerequisites"] = [prereq for prereq in item.get("prerequisites") or []
+                                             if prereq != code]
+        for cert in doc.get("certificates") or []:
+            cert["requiredCourses"] = [required for required in cert.get("requiredCourses") or []
+                                       if required != code]
+        doc["totalCredits"] = sum(course_item.get("credits", 0)
+                                  for semester in doc["semesters"]
+                                  for course_item in semester["courses"])
+        problems = [problem for problem in self.validate(doc) if not _is_credit_minimum(problem)]
+        if problems:
+            raise ProgramError(400, "the program would not be schedulable: "
+                               + "; ".join(problems))
+        with self._lock:
+            self._write(doc)
+        return {"ok": True, "program": doc["id"],
+                "removed": {"code": code, "title": course.get("title"),
+                            "classroomIds": [stage for stage in course.get("classroomIds") or [] if stage],
+                            "lessons": (course.get("lessons") or {}).get("count") or 0},
+                "prerequisitesCleared": dependents if force else [],
+                "totalCredits": doc["totalCredits"]}
 
     def reset_courses(self, program_id: str, codes: list[str] | None = None) -> dict:
         """Forget generated classrooms so they can be generated again.
 
-        Only the generation bookkeeping is cleared: grades, enrolments and the
+        Only the generation bookkeeping is cleared: grades, enrollments and the
         curriculum stay. Retiring a classroom must not retire a learner's work.
         """
         doc = self._read(program_id)
@@ -950,8 +1323,8 @@ def final_exam_blueprint(course: dict) -> dict:
             "sections": [
                 {"name": "Skill demonstration", "weight": 50,
                  "detail": "Perform the assessed procedure under observation."},
-                {"name": "Safety and judgement", "weight": 30,
-                 "detail": "Recognise a hazard, state the response, and act on it."},
+                {"name": "Safety and judgment", "weight": 30,
+                 "detail": "Recognize a hazard, state the response, and act on it."},
                 {"name": "Documentation", "weight": 20,
                  "detail": "Record the encounter accurately and completely."},
             ],

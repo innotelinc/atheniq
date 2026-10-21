@@ -2,7 +2,7 @@
 
 A Tutor plugin for the learner MFEs:
 
-1. a white-labelled **footer** (below), and
+1. a white-labeled **footer** (below), and
 2. an **AI Classroom link** in the Studio (authoring) header that opens
    `ai.lms.innotel.us`,
 3. a **browserslist refresh** so builds stop compiling against a stale
@@ -16,7 +16,7 @@ the slot registration. A learner reading a course has no use for the generator;
 the instructor writing that course does.
 
 The registration is for the `all` wildcard because that is the only value this
-build honours — naming an app as well would insert the same widget twice, since
+build honors — naming an app as well would insert the same widget twice, since
 `all` is rendered unguarded.
 
 The refresh is a Dockerfile patch at the `mfe-dockerfile-pre-npm-build` and

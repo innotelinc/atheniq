@@ -4,9 +4,9 @@ After=network-online.target
 Wants=network-online.target
 
 [Service]
-# Public and read-only: the catalogue a learner reads before signing in. It
+# Public and read-only: the catalog a learner reads before signing in. It
 # serves web/student/ and three JSON views over programs/ and courses/, and it
-# never touches enrolments, grades or the signing configuration.
+# never touches enrollments, grades or the signing configuration.
 Environment=PYTHONUNBUFFERED=1
 Environment=STUDENT_BIND=192.168.1.59
 Environment=STUDENT_PORT=8092

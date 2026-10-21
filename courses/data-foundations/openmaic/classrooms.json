@@ -97,7 +97,7 @@
         },
         {
           "type": "quiz",
-          "title": "Reporting and visualisation"
+          "title": "Reporting and visualization"
         }
       ]
     },
@@ -109,7 +109,7 @@
         "u8_final"
       ],
       "title": "Where the Number Comes From",
-      "prompt": "Work through systems and ownership: source of truth per entity, who may change a value, retention, and personal data. Have the classmates resolve a conflict where two dashboards disagree, trace each figure to its system of record, and say which one the organisation should trust and why.",
+      "prompt": "Work through systems and ownership: source of truth per entity, who may change a value, retention, and personal data. Have the classmates resolve a conflict where two dashboards disagree, trace each figure to its system of record, and say which one the organization should trust and why.",
       "objectives": [
         "Name the system of record for each important entity",
         "Explain who may change a value and who may only read it",

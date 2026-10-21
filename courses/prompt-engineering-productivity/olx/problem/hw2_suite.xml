@@ -19,7 +19,7 @@ promise, so it must match the policy.</p>
 <p>Which output needs a second reader before it leaves the team?</p>
 <choicegroup type="MultipleChoice">
 <choice correct="true"><div>An external proposal containing a price and a delivery date.</div></choice>
-<choice correct="false"><div>An internal note summarising your own meeting.</div></choice>
+<choice correct="false"><div>An internal note summarizing your own meeting.</div></choice>
 <choice correct="false"><div>A draft agenda for a team stand-up.</div></choice>
 </choicegroup>
 <solution>

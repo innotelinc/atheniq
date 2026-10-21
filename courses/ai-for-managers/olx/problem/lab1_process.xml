@@ -47,7 +47,7 @@ is.</p>
 <choiceresponse>
 <p>Which costs belong in the change calculation? Select all that apply.</p>
 <checkboxgroup>
-<choice correct="true"><div>Review labour added by the new output.</div></choice>
+<choice correct="true"><div>Review labor added by the new output.</div></choice>
 <choice correct="true"><div>Expected rework.</div></choice>
 <choice correct="true"><div>Licence and implementation.</div></choice>
 <choice correct="true"><div>Training time.</div></choice>
@@ -55,7 +55,7 @@ is.</p>
 </checkboxgroup>
 <solution>
 <div class="detailed-solution">
-<p>Net gain includes review, rework, licence, implementation and training. Unrelated
+<p>Net gain includes review, rework, license, implementation and training. Unrelated
 spending is not part of the case.</p>
 </div>
 </solution>
