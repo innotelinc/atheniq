@@ -152,13 +152,19 @@ const classroomRow = (course, classroom) => {
       }
     },
   }, label);
-  if (staff && classroom.generated) {
-    actions.push(act("Regenerate", "POST", "/regenerate",
-      `Regenerate “${classroom.title || classroom.id}”? Its classroom id is cleared and queued again.`,
-      `Regenerating “${classroom.title || classroom.id}”`));
+  // Delete is offered for every classroom, generated or not: a brief that was
+  // queued and never filled is exactly the one somebody wants gone, and hiding
+  // the button on it left the row with no way out. Regenerate still needs a
+  // live classroom to replace.
+  if (staff) {
+    if (classroom.generated) {
+      actions.push(act("Regenerate", "POST", "/regenerate",
+        `Regenerate “${classroom.title || classroom.id}”? Its classroom id is cleared and queued again.`,
+        `Regenerating “${classroom.title || classroom.id}”`));
+    }
     actions.push(act("Delete", "DELETE", "",
-      `Delete the classroom for “${classroom.title || classroom.id}”? The spec keeps the lesson and marks it missing; nothing else is touched.`,
-      `${classroom.id} retired`));
+      `Delete the classroom for “${classroom.title || classroom.id}”? The lesson stays in the spec and is marked missing; a live classroom id is retired, not erased.`,
+      `${classroom.id} deleted`));
   }
 
   return el("div", { class: "row" },

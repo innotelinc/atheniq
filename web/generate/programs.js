@@ -482,12 +482,12 @@ const renderDetail = () => {
       el("button", {
         class: "btn btn-secondary", type: "button",
         onclick: async (event) => {
-          if (!window.confirm(`Archive ${doc.name}? It moves to programs/.archive/ and leaves the catalogue; conferrals it already issued are kept.`)) return;
+          if (!window.confirm(`Delete ${doc.name}? It leaves the catalogue and moves to programs/.archive/, so it can be restored; conferrals it already issued are kept.`)) return;
           const node = event.currentTarget;
           node.disabled = true;
           try {
             await api(`/api/programs/${doc.id}`, { method: "DELETE" });
-            toast(`${doc.name} archived`);
+            toast(`${doc.name} deleted`);
             state.current = null;
             state.progress = null;
             document.getElementById("detail-wrap").hidden = true;
@@ -497,7 +497,7 @@ const renderDetail = () => {
             node.disabled = false;
           }
         },
-      }, "Archive"),
+      }, "Delete"),
     ) : null,
   ));
 

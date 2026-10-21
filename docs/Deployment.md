@@ -151,9 +151,17 @@ MFE, so the widget decides for itself where to appear (`/authoring` only); a
 learner has no use for the workspace. On the same page it adds the create row
 the platform actually needs (**+ New Program · + New Course · + New Classroom ·
 + New Library**), inserted into `org.openedx.frontend.authoring.page_banner.v1`.
-The stock page still renders its own heading and single "+ New course" button:
-those strings live in the compiled bundle, so only a fork of the authoring app
-can remove them.
+The stock page also renders its own heading and its own two buttons, and those
+live in the compiled bundle — no template and no slot can reach them. They are
+rewritten in the bundle instead, by `scripts/patch-mfe-brand.py`: the heading
+becomes **AthenIQ Studio**, the two stock buttons become the same four create
+actions, and every edX product name and trademark notice is taken out of every
+MFE's copy. `scripts/deploy-mfe-brand.sh` runs the patch over each app's built
+`dist` and stacks the results into the runtime image — a COPY rather than a
+webpack rebuild, which is why the asset hashes (and every `index.html`
+reference) stay valid. Both scripts are pinned to the bundle they were written
+against and fail loudly when an anchor is missing, so an MFE upgrade shows up as
+a failed deploy rather than a page that quietly kept the old brand.
 
 ### One session across Studio, the LMS and the MFEs
 

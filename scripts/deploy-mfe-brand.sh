@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+# deploy-mfe-brand.sh — put the AthenIQ copy into the compiled MFEs.
+#
+# The MFE image is assembled from one image per app (`atheniq/openedx-mfe:<app>-*`),
+# each holding that app's built `dist`. There is no Tutor install on this host, so
+# this does what `tutor images build mfe` would: take each app's dist, run
+# `patch-mfe-brand.py` over it, and stack the results into one runtime image.
+#
+# Nothing is rebuilt with webpack. The patch only rewrites text inside files that
+# webpack already produced, so the bundles keep their hashed names — every
+# `index.html` reference stays valid — and the layer is a COPY of a few hundred
+# megabytes instead of a rebuild of thirteen Node apps.
+#
+# Usage:
+#   scripts/deploy-mfe-brand.sh            # patch, assemble, retag, recreate
+#   DRY_RUN=1 scripts/deploy-mfe-brand.sh  # patch and assemble, do not retag/recreate
+#
+# Env:
+#   SRC_SUFFIX   tag suffix of the app images to patch (default 20261020)
+#   DST_SUFFIX   suffix for the patched images      (default: today, YYYYMMDD)
+#   BASE         the runtime base image             (default overhangio/openedx-mfe:22.0.0-indigo.pre-nav)
+#   TARGET       the tag the deployment runs        (default overhangio/openedx-mfe:22.0.0-indigo)
+
+set -euo pipefail
+
+SRC_SUFFIX="${SRC_SUFFIX:-20261020}"
+DST_SUFFIX="${DST_SUFFIX:-$(date -u +%Y%m%d)}"
+BASE="${BASE:-overhangio/openedx-mfe:22.0.0-indigo.pre-nav}"
+TARGET="${TARGET:-overhangio/openedx-mfe:22.0.0-indigo}"
+WORK="${WORK:-/tmp/mfe-brand-$DST_SUFFIX}"
+DRY_RUN="${DRY_RUN:-0}"
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PATCH="$HERE/patch-mfe-brand.py"
+
+# Site is built from a different source path than the app MFEs.
+APPS="authn account profile catalog learning learner-dashboard discussions gradebook communications ora-grading admin-console authoring site"
+
+dist_path() { [ "$1" = site ] && echo /openedx/site/dist || echo /openedx/app/dist; }
+
+mkdir -p "$WORK"
+
+for app in $APPS; do
+  src="atheniq/openedx-mfe:$app-$SRC_SUFFIX"
+  dist="$(dist_path "$app")"
+  echo "=== $app"
+  rm -rf "$WORK/$app"
+  mkdir -p "$WORK/$app"
+  cid="$(docker create "$src")"
+  docker cp "$cid:$dist" "$WORK/$app/dist" >/dev/null
+  docker rm "$cid" >/dev/null
+  python3 "$PATCH" "$WORK/$app/dist" --app "$app"
+  printf 'FROM %s\nCOPY dist %s\n' "$src" "$dist" | \
+    docker build -q -t "atheniq/openedx-mfe:$app-$DST_SUFFIX" -f - "$WORK/$app" >/dev/null
+done
+
+echo "=== assembling $TARGET"
+printf 'FROM %s\n' "$BASE" > "$WORK/Dockerfile"
+for app in $APPS; do
+  printf 'COPY --from=atheniq/openedx-mfe:%s-%s %s /openedx/dist/%s\n' \
+    "$app" "$DST_SUFFIX" "$(dist_path "$app")" "$app" >> "$WORK/Dockerfile"
+done
+docker build -t "$TARGET" "$WORK" >/dev/null
+
+echo "=== assembled $(docker image inspect -f '{{.Id}}' "$TARGET")"
+
+if [ "$DRY_RUN" = 1 ]; then
+  echo "DRY_RUN: left $TARGET retagged; the running container is untouched"
+  exit 0
+fi
+
+# The previous image stays under its own tag: a brand patch that breaks a page
+# is then one retag away from being undone, without a rebuild.
+previous="$(docker inspect -f '{{.Image}}' tutor_local-mfe-1 2>/dev/null || true)"
+if [ -n "$previous" ]; then
+  rollback="overhangio/openedx-mfe:rollback-$(date -u +%Y%m%d%H%M)"
+  docker tag "$previous" "$rollback"
+  echo "=== rollback tag $rollback"
+fi
+
+compose="/home/tutor/.local/share/tutor/env/local"
+docker compose -f "$compose/docker-compose.yml" -f "$compose/docker-compose.prod.yml" \
+  up -d --force-recreate --no-deps mfe
+
+sleep 5
+docker inspect -f 'mfe runs {{.Image}}' tutor_local-mfe-1
+echo "=== target is $(docker image inspect -f '{{.Id}}' "$TARGET")"
