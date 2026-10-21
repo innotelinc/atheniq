@@ -90,6 +90,8 @@ class FakeLms:
         self.fail_imports = set(fail_imports)
         self.fail_reindex_times = 0
         self.down = False
+        self.images = {}
+        self.deleted = []
 
     def course_ids(self):
         if self.down:
@@ -112,6 +114,19 @@ class FakeLms:
     def import_batch(self, packages):
         self.batches += 1
         return [self._import(olx, name) for olx, name in packages]
+
+    def set_course_images(self, mapping):
+        if self.down:
+            raise publisher.LmsError("docker: cannot connect")
+        self.images.update(mapping)
+        return {"updated": sorted(mapping), "missing": []}
+
+    def delete_all_courses(self):
+        if self.down:
+            raise publisher.LmsError("docker: cannot connect")
+        deleted, self.keys = list(self.keys), []
+        self.deleted.extend(deleted)
+        return {"available": True, "deleted": deleted, "failed": []}
 
     def reindex(self):
         self.reindexes += 1

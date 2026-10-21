@@ -13,8 +13,13 @@ HOW IT LANDS. Two patches and one configuration default:
 1. **The theme files**, rendered into the Open edX build context and `COPY`-ed
    over Indigo's theme *after* the image's own asset collection, followed by a
    `collectstatic` so the collected, content-hashed copies — the ones a browser
-   actually fetches — are the AthenIQ ones. The LMS header logo, the footer, the
-   index overlay, the favicon and the Unity stylesheets all arrive this way.
+   actually fetches — are the AthenIQ ones. Both halves arrive this way: the LMS
+   footer and `<head>` hook, the header logo, the favicon, the index overlay and
+   the Unity skin; and **Studio's** header and skin, which used to be applied by
+   hand after a deploy. The two served static directories are copied explicitly
+   (`/openedx/staticfiles/atheniq/` and `/openedx/staticfiles/indigo/atheniq/`),
+   so `/static/atheniq/…` and Studio's `/static/indigo/atheniq/…` resolve even if
+   a collect is run with `--skip-themes`.
 
    Why after `collectstatic` rather than before: the theme directory is copied
    into the image at one point and its static assets are collected at another,
@@ -78,6 +83,15 @@ if not THEME_DIR.is_dir():  # pragma: no cover - a broken install, said plainly
 THEME_ROOT = "/openedx/themes/indigo/lms"
 CMS_THEME_ROOT = "/openedx/themes/indigo/cms"
 
+#: Where a browser actually fetches the two skins from. The LMS theming app
+#: resolves `/theming/asset/atheniq/…` out of the *top-level* collected static
+#: directory, and Studio asks for `/static/indigo/atheniq/…` (the theme's static
+#: namespace). Both are copied explicitly rather than left to `collectstatic`,
+#: which namespaces theme static as `indigo/` only and would leave the LMS's
+#: `/static/atheniq/…` URLs — the ones `head-extra.html` links — unserved.
+LMS_STATIC_ROOT = "/openedx/staticfiles/atheniq"
+CMS_STATIC_ROOT = "/openedx/staticfiles/indigo/atheniq"
+
 #: The Tutor settings patches that carry the Unity skin into the MFEs.
 MFE_SETTINGS_PATCH = "mfe-lms-common-settings"
 
@@ -128,6 +142,13 @@ hooks.Filters.ENV_PATCHES.add_item(
 # does not.
 COPY --chown=app:app ./atheniq-theme/lms/ {THEME_ROOT}/
 COPY --chown=app:app ./atheniq-theme/cms/ {CMS_THEME_ROOT}/
+# The two skins' served copies. `head-extra.html` links `/static/atheniq/…` and
+# Studio's header links `/static/indigo/atheniq/…`; these are the directories
+# those URLs resolve to, so the stylesheets, the switch and the course photos
+# are in place even if a collect is ever run with `--skip-themes`.
+COPY --chown=app:app ./atheniq-theme/lms/static/atheniq/ {LMS_STATIC_ROOT}/
+COPY --chown=app:app ./atheniq-theme/lms/static/images/ {LMS_STATIC_ROOT}/images/
+COPY --chown=app:app ./atheniq-theme/cms/static/atheniq/ {CMS_STATIC_ROOT}/
 RUN ./manage.py lms collectstatic --noinput --settings=tutor.assets && \\
     ./manage.py cms collectstatic --noinput --settings=tutor.assets
 """,

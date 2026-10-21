@@ -172,7 +172,9 @@ make check-gating  # fail if the catalog cannot be gated cleanly
 make check-courses # validate the OLX course packages under courses/
 make check-classrooms # validate the OpenMAIC classroom specs against the OLX
 make images        # render the PNG brand + course-card assets (needs Pillow)
+make course-photos # fetch the course-card photographs (per-subject pool)
 make check-brand   # fail if the brand mark drifts between the generator and the SVGs
+make theme         # apply Unity to the LMS and Studio, and bake it into the image
 make test          # unit tests (stdlib unittest)
 make check-commits
 make check-compose

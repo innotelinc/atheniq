@@ -123,30 +123,46 @@ applies it without an image rebuild. It also flows into the MFEs' runtime config
 (`/api/mfe_config/v1` reports `SITE_NAME: AthenIQ`).
 
 The Indigo theme additionally hard-codes "Powered by: Tutor + Open edX" in its
-footer and an edX trademark paragraph, and ships the upstream header logo and
-favicon. [`contrib/atheniq-theme`](../contrib/atheniq-theme) holds clean
-replacements — the footer/overlay templates plus the generated
-`logo.png` / `logo-white.png` / `favicon.ico` (render them with `make images`).
-Apply them to the running LMS with:
+footer and an edX trademark paragraph, ships the upstream header logo and
+favicon, and comes with its own compiled palette.
+[`contrib/atheniq-theme`](../contrib/atheniq-theme) holds the replacement: the
+LMS footer and `<head>` hook, Studio's header, the generated
+`logo.png` / `logo-white.png` / `favicon.ico` (`make images`) and the course
+photographs (`make course-photos`), all painted from **Unity**, the Innotel
+Platform Stack's one theme.
+
+Unity is vendored byte-for-byte as `unity-theme.css` + `unity-theme.js` in both
+`lms/static/atheniq/` and `cms/static/atheniq/`. The LMS runs in the `desk`
+register (the training range's), Studio in `operations` (an authoring console),
+and the light/dark axis is the person's — `head-extra.html` adopts Indigo's own
+dark-mode cookie so the two switches never disagree. The LMS skin
+(`atheniq-lms.css`) and Studio's (`unity-cms.css`) name Unity tokens and no raw
+colours, so a palette change reaches both by replacing one file.
+
+Apply the whole overlay — **both halves**, no manual Studio step — with:
 
 ```bash
 make theme        # == ./scripts/apply-atheniq-theme.sh
 ```
 
-The script copies the files into the running LMS **and bakes them into the image
-the compose project starts from** — a one-layer derivative of
+The script copies the files into the running LMS and CMS **and bakes them into
+the image the compose project starts from** — a one-layer derivative of
 `overhangio/openedx` that is seconds to build, not the edx-platform source
 rebuild. That is what makes the brand survive `tutor local launch`: the platform
 is stopped and recreated from the image, so a copy in the container's writable
-layer would be gone. The untouched image is kept as
+layer would be gone. It restarts both containers, and verifies the baked image
+carries the LMS templates, the Studio header, the skins and the course photos
+before reporting success. The untouched image is kept as
 `atheniq/openedx-theme-base:<tag>`; rolling back is a retag and a `tutor local
 start -d`. `--no-bake` gives the old footprint (a look, lost on the next
-recreate).
+recreate); `--no-restart` skips the restart.
 
 `tutor images build openedx` replaces the tag from source, so enable the
 [`contrib/tutor-atheniq-theme`](../contrib/tutor-atheniq-theme) plugin before a
-rebuild: its Dockerfile patch copies the same overlay in and re-collects the
-static assets, which is the durable form of this step.
+rebuild: its Dockerfile patch copies the same overlay in — LMS, CMS, the served
+static copies under `/openedx/staticfiles/atheniq/` and
+`/openedx/staticfiles/indigo/atheniq/` — and re-collects the static assets,
+which is the durable form of this step.
 
 > **The learner MFEs** (catalog, learning, profile) render their own footer from
 compiled JS bundles. Indigo installs its footer into the frontend-plugin-framework
@@ -648,6 +664,16 @@ the CMS, under a key derived from the course code
   course with no grade yet is skipped, and a pass that would break a
   prerequisite is reported rather than written. `program_complete` remains for an
   office making a correction by hand.
+- **Every published course gets a card photograph.** `config/course-photos.json`
+  is a pool of high-resolution photographs, one set per subject; a course routes
+  to a subject by its title and to a photograph in that pool by a hash of its
+  code, so the choice is stable and varied within a program. `make
+  course-photos` fetches the pool into
+  `contrib/atheniq-theme/lms/static/images/courses/`, `make theme` installs it,
+  and publishing writes `/static/atheniq/images/courses/<file>` into the
+  course's `CourseOverview.course_image_url` — the field the catalog API, the
+  learner dashboard and Studio all read. `--images` re-applies the mapping to
+  every course without importing anything (after a pool change).
 - The publisher needs `docker` for the unit's user (`tutor` is in the `docker`
   group on this host) and the containers named in `publish-courses.py`
   (`tutor_local-cms-1`, `tutor_local-lms-1`) plus `openmaic-postgres-1` for the
@@ -656,10 +682,17 @@ the CMS, under a key derived from the course code
 ```bash
 sudo -u tutor python3 scripts/publish-courses.py                    # plan, touches nothing
 sudo -u tutor python3 scripts/publish-courses.py --execute          # publish what is missing
+sudo -u tutor python3 scripts/publish-courses.py --images            # (re)apply card photographs
+sudo -u tutor python3 scripts/publish-courses.py --delete-all        # remove every course, reindex
 sudo -u tutor python3 scripts/publish-courses.py --attach <id> --course BUS101 --classroom <stage>
 sudo -u tutor python3 scripts/publish-courses.py --program <id> --grades
 sudo -u tutor python3 scripts/publish-courses.py --program <id> --enroll learner@example.org
 ```
+
+`--delete-all` removes every course in the CMS with its content, enrollments and
+overview row, then reindexes catalog search — a start from scratch. It is not a
+filter: after it, the next `--execute` re-creates the program courses from the
+plans with fresh keys and their photographs.
 
 ### Learner portal — `lms.innotel.us`
 

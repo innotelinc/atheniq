@@ -39,6 +39,8 @@ updates it without orphaning a learner's grades.
     python3 scripts/publish-courses.py --attach <program> --course BUS101 --classroom <id>
     python3 scripts/publish-courses.py --program <id> --grades
     python3 scripts/publish-courses.py --program <id> --enroll learner@x.edu
+    python3 scripts/publish-courses.py --images             # (re)apply card photographs
+    python3 scripts/publish-courses.py --delete-all         # remove every course, reindex
     python3 scripts/publish-courses.py --json
 
 After the imports the CMS is reindexed so the new courses appear in the catalog
@@ -105,6 +107,21 @@ def _module(name, path):
 def programs_module():
     """`program-manager.py`: the shape of a program, and how a course is assessed."""
     return _module("atheniq_program_manager", os.path.join(HERE, "program-manager.py"))
+
+
+def photos_module():
+    """`course-photos.py`: the course-card photographs."""
+    return _module("course_photos", os.path.join(HERE, "course-photos.py"))
+
+
+def course_image_url(code: str, title: str, description: str = "") -> str:
+    """The card photograph for a course, as the LMS will serve it.
+
+    The one place the publisher and the catalog page agree on a course's
+    photograph: both call the same resolver, so the same course cannot show one
+    picture in the learner catalog and another in the LMS.
+    """
+    return photos_module().resolve(code, title, description)["url"]
 
 
 class LmsError(RuntimeError):
@@ -690,6 +707,106 @@ class DockerLms:
                 failed.append({"key": key, "error": str(err)})
         return {"deleted": deleted, "failed": failed}
 
+    def delete_all_courses(self) -> dict:
+        """Delete every course the CMS holds, in one process.
+
+        `delete_course` is a management command that asks twice; calling it once
+        per course would also pay a Django start-up per course, which on a
+        hundred-course estate is most of an hour. This runs the same function
+        (`contentstore.utils.delete_course`) in a loop inside one shell, then
+        removes the learner records that belong to the course: its enrollments
+        and its `CourseOverview` row, so a deleted course cannot linger in
+        Explore or in a learner's *My courses*.
+        """
+        try:
+            keys = self.course_ids()
+        except LmsError as err:
+            return {"available": False, "error": str(err), "deleted": [], "failed": []}
+        if not keys:
+            return {"available": True, "deleted": [], "failed": []}
+        script = f"""
+import json
+from common.djangoapps.student.models import CourseEnrollment
+from cms.djangoapps.contentstore.utils import delete_course
+from opaque_keys.edx.keys import CourseKey
+from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
+from xmodule.modulestore import ModuleStoreEnum
+from xmodule.modulestore.django import modulestore
+
+keys = json.loads({json.dumps(keys)!r})
+deleted, failed = [], []
+for raw in keys:
+    try:
+        key = CourseKey.from_string(raw)
+        if modulestore().get_course(key):
+            delete_course(key, ModuleStoreEnum.UserID.mgmt_command, False)
+        CourseEnrollment.objects.filter(course_id=key).delete()
+        CourseOverview.objects.filter(id=key).delete()
+        deleted.append(raw)
+    except Exception as err:  # noqa: BLE001 - one bad course must not stop the rest
+        failed.append({{"key": raw, "error": str(err)[:300]}})
+print("ATHENIQ_DELETED " + json.dumps({{"deleted": deleted, "failed": failed}}))
+"""
+        result = self._exec(self.cms, ["sh", "-c",
+                                       f"cd {self.platform} && {self.python} ./manage.py cms shell"],
+                            stdin_text=script)
+        report = None
+        for line in (result.stdout or "").splitlines():
+            if line.startswith("ATHENIQ_DELETED "):
+                report = json.loads(line[len("ATHENIQ_DELETED "):])
+        if report is None:
+            return {"available": False, "error": "the CMS returned no deletion report",
+                    "deleted": [], "failed": []}
+        return {"available": True, **report}
+
+    def set_course_images(self, mapping) -> dict:
+        """Write each course's card photograph into its `CourseOverview`.
+
+        `course_image_url` is what the catalog API, the learner dashboard and
+        Studio's schedule page all read. The photograph itself is a URL into the
+        LMS's own static files (`/static/atheniq/images/courses/…`) — not an
+        upload per course — so one pool serves every course and a re-publish
+        only rewrites a string.
+
+        The overview is cached, and the LMS keeps its own cache namespace, so
+        both are cleared: without that, the card can show the old tile until the
+        cache expires, which reads as "the photo did not apply".
+        """
+        plan = {str(key).strip(): str(url).strip()
+                for key, url in (mapping or {}).items() if key and url}
+        if not plan:
+            return {"updated": [], "missing": []}
+        script = f"""
+import json
+from django.core.cache import cache
+from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
+
+plan = json.loads({json.dumps(plan)!r})
+updated, missing = [], []
+for key, url in plan.items():
+    if CourseOverview.objects.filter(id=key).update(course_image_url=url):
+        updated.append(key)
+    else:
+        missing.append(key)
+cache.clear()
+print("ATHENIQ_IMAGES " + json.dumps({{"updated": updated, "missing": missing}}))
+"""
+        result = self._exec(self.cms, ["sh", "-c",
+                                       f"cd {self.platform} && {self.python} ./manage.py cms shell"],
+                            stdin_text=script)
+        report = None
+        for line in (result.stdout or "").splitlines():
+            if line.startswith("ATHENIQ_IMAGES "):
+                report = json.loads(line[len("ATHENIQ_IMAGES "):])
+        if report is None:
+            raise LmsError("the CMS did not report which course images were written")
+        # The LMS caches overviews under its own key prefix; a clear on the CMS
+        # side does not reach them.
+        self._exec(self.lms, ["sh", "-c",
+                              f"cd {self.platform} && {self.python} ./manage.py lms shell"],
+                   stdin_text="from django.core.cache import cache\ncache.clear()\n")
+        return report
+
     def reindex(self) -> str:
         """Rebuild the catalog search index the MFE catalog reads."""
         result = self._exec(self.cms, ["sh", "-c",
@@ -1152,9 +1269,62 @@ class Publisher:
             if answer["reindexed"]:
                 self._record(done)
             self._keys = None  # the LMS changed; ask again next time
+        if execute:
+            # A card photograph is part of publishing, not a separate chore, and
+            # it is re-applied to courses that already existed so a pool update
+            # reaches the whole catalog the next time anything is published.
+            try:
+                answer["images"] = self.set_images(entries)
+            except LmsError as err:
+                answer["images"] = {"available": False, "error": str(err)}
         return answer
 
+    # -- photographs ------------------------------------------------------
+
+    def set_images(self, entries=None) -> dict:
+        """Give every planned course its Unity-pool card photograph."""
+        if entries is None:
+            try:
+                entries = self.plan()
+            except LmsError as err:
+                return {"available": False, "error": str(err)}
+        mapping = {
+            entry["key"]: course_image_url(entry["code"], entry["title"],
+                                           entry.get("description") or "")
+            for entry in entries
+        }
+        if not mapping:
+            return {"available": True, "updated": [], "missing": []}
+        try:
+            report = self.lms.set_course_images(mapping)
+        except LmsError as err:
+            return {"available": False, "error": str(err), "planned": len(mapping)}
+        return {"available": True, **report, "planned": len(mapping)}
+
     # -- deleting ---------------------------------------------------------
+
+    def delete_all(self) -> dict:
+        """Remove every course from the LMS, for a start from scratch.
+
+        Deliberately not a filter: "delete all" has to mean all, or the course
+        that was forgotten keeps its key and re-publishing it is a no-op.
+        """
+        try:
+            report = self.lms.delete_all_courses()
+        except LmsError as err:
+            return {"available": False, "error": str(err), "deleted": [], "failed": []}
+        if not report.get("available"):
+            return report
+        answer = {**report, "reindexed": False}
+        if report.get("deleted"):
+            try:
+                self.lms.reindex()
+                answer["reindexed"] = True
+            except LmsError as err:
+                answer["reindexError"] = str(err)
+            self._forget(report["deleted"])
+            self._keys = None
+        return answer
 
     def delete_courses(self, codes=None, keys=None) -> dict:
         """Delete program courses from the LMS and refresh what the LMS holds.
@@ -1399,10 +1569,42 @@ def main():
     ap.add_argument("--enroll", help="a learner identity to enroll in the selected programs")
     ap.add_argument("--delete", action="store_true",
                     help="delete the selected programs' (or --course) courses from the LMS")
+    ap.add_argument("--delete-all", action="store_true",
+                    help="delete every course in the LMS, then reindex (a start from scratch)")
+    ap.add_argument("--images", action="store_true",
+                    help="(re)apply the course-card photographs to every planned course")
     ap.add_argument("--json", action="store_true", help="machine-readable output")
     args = ap.parse_args()
 
     publisher = Publisher(args.root, work_dir=args.work_dir)
+
+    if args.delete_all:
+        answer = publisher.delete_all()
+        if args.json:
+            print(json.dumps(answer, indent=2, sort_keys=True))
+            sys.exit(1 if answer.get("failed") or not answer.get("available") else 0)
+        if not answer.get("available"):
+            print(f"error: the LMS is not reachable: {answer.get('error')}", file=sys.stderr)
+            sys.exit(1)
+        for failure in answer["failed"]:
+            print(f"  {failure['key']:<52} FAILED: {failure['error']}", file=sys.stderr)
+        print(f"{len(answer['deleted'])} course(s) deleted from the LMS"
+              + (" and the catalog reindexed" if answer.get("reindexed") else ""))
+        sys.exit(1 if answer["failed"] else 0)
+
+    if args.images:
+        answer = publisher.set_images()
+        if args.json:
+            print(json.dumps(answer, indent=2, sort_keys=True))
+            sys.exit(0 if answer.get("available") else 1)
+        if not answer.get("available"):
+            print(f"error: {answer.get('error')}", file=sys.stderr)
+            sys.exit(1)
+        print(f"course photographs: {len(answer.get('updated') or [])} of "
+              f"{answer.get('planned') or 0} course(s) updated")
+        for key in answer.get("missing") or []:
+            print(f"  {key:<52} not in the CMS", file=sys.stderr)
+        sys.exit(0)
     if args.attach:
         if not args.course or len(args.course) != 1:
             raise SystemExit("--attach needs exactly one --course")

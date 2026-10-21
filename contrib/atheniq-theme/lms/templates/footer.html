@@ -2,8 +2,17 @@
 ## AthenIQ theme override of the Indigo LMS footer.
 ##
 ## Removes the "Powered by: Tutor + Open edX" logo list and the edX trademark
-## paragraph so the LMS carries a single brand — AthenIQ. Kept structurally
-## identical to Indigo's footer.html otherwise, so its CSS still applies.
+## paragraph so the LMS carries a single brand — AthenIQ — and lays the footer
+## out as the platform's own: the mark, the one-line statement of what AthenIQ
+## is, and the three groups of places a learner or an author actually goes.
+##
+## The stylesheets are **not** linked here any more. `head-extra.html` loads
+## Unity and the LMS skin in the `<head>`; a `<link>` at the end of the body was
+## a flash of Indigo's colours on every page load, and it is gone.
+##
+## The mark is inline SVG rather than an `<img>`: it inherits `currentColor`
+## from Unity (so it follows the light/dark mode without a second file) and it
+## cannot 404 through a static path that a re-collect has moved.
 <%page expression_filter="h"/>
 <%!
   from datetime import datetime
@@ -15,128 +24,69 @@
 <% footer = get_footer(is_secure=is_secure) %>
 <% icp_license_info = getattr(settings, 'ICP_LICENSE_INFO', {})%>
 <%namespace name='static' file='static_content.html'/>
-##
-## The Unity skin. AthenIQ is the LearningOps platform of the Innotel Platform
-## Stack, where every product wears one theme (the platform stack's `standards/
-## unity`, vendored per product as `theme/unity-theme.css`). Indigo is a Tutor
-## theme, not a platform one, so the palette is layered on top of it from here —
-## with the family's `desk` register, which is the training range's own. The file
-## itself is `contrib/atheniq-theme/lms/static/atheniq/`; the footer is the one
-## template this overlay owns on every LMS page, so this is where it is linked.
-##
-## Served through `/theming/asset/`, which resolves to the *collected* copy — so
-## it survives an asset re-collection and never 404s the way a hand-written
-## `/static/...` path does.
-##
-<link rel="stylesheet" href="/theming/asset/atheniq/unity-light.css">
-<link rel="stylesheet" href="/theming/asset/atheniq/unity-dark.css" media="(prefers-color-scheme: dark)">
-<!-- NEW IN INDIGO update footer -->
-% if uses_bootstrap:
-<div class="wrapper wrapper-footer">
+<div class="wrapper wrapper-footer atheniq-footer">
   <footer id="footer" class="tutor-container"
     % if bidi:
       dir=${bidi}
     % endif
   >
-  <div class="footer-top">
-    <nav class="nav-colophon" aria-label="${_('About')}">
-      <ol>
+    <div class="atheniq-footer-grid">
+      <div class="atheniq-footer-brand">
+        <a class="atheniq-footer-mark" href="/">
+          <svg viewBox="0 0 64 64" role="img" focusable="false" aria-hidden="true">
+            <g fill="none" stroke="currentColor" stroke-width="4.6"
+               stroke-linecap="round" stroke-linejoin="round">
+              <path d="M32 14 L56 25 L32 36 L8 25 Z"/>
+              <path d="M22 38 V45 L32 50 L42 45 V38"/>
+              <path d="M56 25 V38"/>
+            </g>
+            <circle cx="56" cy="40.6" r="2.6" fill="currentColor"/>
+            <path d="M32 3.6 L34.6 7.3 L32 11 L29.4 7.3 Z" fill="currentColor"/>
+          </svg>
+          <span>AthenIQ</span>
+        </a>
+        <p class="atheniq-footer-tagline">LearningOps for the Innotel Platform Stack: programs, classrooms and credentials in one place.</p>
+      </div>
 
-          <li>
-            <a href="/about">About Us</a>
-          </li>
-
-          <li>
-            <a href="/blog">Blog</a>
-          </li>
-
-          <li>
-            <a href="/donate">Donate</a>
-          </li>
-
-          <li>
-            <a href="/tos">Terms of Service</a>
-          </li>
-
-          <li>
-            <a href="/privacy">Privacy Policy</a>
-          </li>
-
-          <li>
-            <a href="/help">Help</a>
-          </li>
-
-          <li>
-            <a href="/contact">Contact Us</a>
-          </li>
-
-      </ol>
-    </nav>
-
-  </div>
-  <span class="copyright-site">©${datetime.now().year} AthenIQ · Innotel Labs. All Rights Reserved.</span>
-    <div class="colophon">
-
-      % if context.get('include_language_selector', footer_language_selector_is_enabled()):
-          <%include file="${static.get_template_path('widgets/footer-language-selector.html')}"/>
-      % endif
-    </div>
-  </footer>
-</div>
-% else:
-<!-- NEW IN INDIGO update footer -->
-  <div class="wrapper wrapper-footer">
-    <footer id="footer" class="tutor-container"
-      % if bidi:
-        dir=${bidi}
-      % endif
-    >
-    <div class="footer-top">
-      <nav class="nav-colophon" aria-label="${_('About')}">
-        <ol>
-
-            <li>
-              <a href="/about">About Us</a>
-            </li>
-
-            <li>
-              <a href="/blog">Blog</a>
-            </li>
-
-            <li>
-              <a href="/donate">Donate</a>
-            </li>
-
-            <li>
-              <a href="/tos">Terms of Service</a>
-            </li>
-
-            <li>
-              <a href="/privacy">Privacy Policy</a>
-            </li>
-
-            <li>
-              <a href="/help">Help</a>
-            </li>
-
-            <li>
-              <a href="/contact">Contact Us</a>
-            </li>
-
-        </ol>
+      <nav class="atheniq-footer-col" aria-label="${_('Learn')}">
+        <h2>${_('Learn')}</h2>
+        <ul>
+          <li><a href="https://apps.learn.innotel.us/catalog/">${_('Course catalog')}</a></li>
+          <li><a href="https://apps.learn.innotel.us/learning/">${_('My courses')}</a></li>
+          <li><a href="https://learn.innotel.us/programs.html">${_('Programs')}</a></li>
+        </ul>
       </nav>
 
-    </div>
-    <span class="copyright-site">©${datetime.now().year} AthenIQ · Innotel Labs. All Rights Reserved.</span>
-      <div class="colophon">
+      <nav class="atheniq-footer-col" aria-label="${_('Platform')}">
+        <h2>${_('Platform')}</h2>
+        <ul>
+          <li><a href="https://ai.lms.innotel.us/programs.html">${_('Platform Services')}</a></li>
+          <li><a href="https://studio.innotel.us/">${_('Studio')}</a></li>
+          <li><a href="/help">${_('Help')}</a></li>
+        </ul>
+      </nav>
 
+      <nav class="atheniq-footer-col" aria-label="${_('Company')}">
+        <h2>${_('Company')}</h2>
+        <ul>
+          <li><a href="/about">${_('About')}</a></li>
+          <li><a href="/contact">${_('Contact')}</a></li>
+          <li><a href="/tos">${_('Terms of Service')}</a></li>
+          <li><a href="/privacy">${_('Privacy Policy')}</a></li>
+        </ul>
+      </nav>
+    </div>
+
+    <div class="atheniq-footer-base">
+      <span class="copyright-site">©${datetime.now().year} AthenIQ · Innotel Labs. ${_('All Rights Reserved.')}</span>
+      <div class="colophon">
         % if context.get('include_language_selector', footer_language_selector_is_enabled()):
             <%include file="${static.get_template_path('widgets/footer-language-selector.html')}"/>
         % endif
       </div>
-    </footer>
-  </div>
-% endif
+    </div>
+  </footer>
+</div>
 % if include_dependencies:
   <%static:js group='base_vendor'/>
   <%static:css group='style-vendor'/>

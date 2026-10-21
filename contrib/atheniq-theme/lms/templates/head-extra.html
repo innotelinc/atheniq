@@ -1,0 +1,86 @@
+## mako
+## AthenIQ — Unity, in the head, before the first paint.
+##
+## `main.html` includes `head-extra.html` on every server-rendered LMS page, and
+## it is the only hook in the `<head>` a theme gets. That makes it the right
+## place for three things:
+##
+##   1. **The palette.** Unity's tokens (`unity-theme.css`) and the LMS skin
+##      (`atheniq-lms.css`) load here rather than at the end of the body, so a
+##      page never paints Indigo's colours and then repaints ours.
+##
+##   2. **The scheme.** `desk` — the training range's register, which is what a
+##      learning platform is — is set on `<html>` before anything renders.
+##
+##   3. **The mode.** Unity and Indigo each have a light/dark switch. They are
+##      the same decision, so this adopts Indigo's cookie (`selected-paragon-
+##      theme-variant`, which its toggle already writes) into Unity's storage
+##      and lets Unity paint from it. Without that adoption the two would
+##      disagree: Indigo's `body.indigo-dark-theme` and Unity's `data-mode`
+##      would flip at different times, and half the page would lag the other.
+##
+## The switch itself is Indigo's existing header control — no new widget, and no
+## second place to change the appearance. `UnityTheme` owns the tokens; the
+## listener at the bottom keeps Indigo's compiled SCSS class in step.
+<script>
+(function () {
+  var root = document.documentElement;
+  root.setAttribute("data-scheme", "desk");
+
+  function cookie(name) {
+    try {
+      var found = document.cookie.match(new RegExp("(?:^|; )" + name + "=([^;]*)"));
+      return found ? decodeURIComponent(found[1]) : "";
+    } catch (error) {
+      return "";
+    }
+  }
+
+  function stored(key) {
+    try { return localStorage.getItem(key) || ""; } catch (error) { return ""; }
+  }
+
+  // Indigo's choice is the person's choice. Adopt it once, so a browser that
+  // already picked dark on this site does not have to pick again for Unity.
+  var indigo = cookie("selected-paragon-theme-variant");
+  if ((indigo === "dark" || indigo === "light") && !stored("ontrak.mode")) {
+    try { localStorage.setItem("ontrak.mode", indigo); } catch (error) {}
+  }
+})();
+</script>
+<link rel="stylesheet" href="/static/atheniq/unity-theme.css">
+<link rel="stylesheet" href="/static/atheniq/atheniq-lms.css">
+<script src="/static/atheniq/unity-theme.js"></script>
+<script>
+(function () {
+  function syncIndigo(dark) {
+    if (document.body) {
+      document.body.classList.toggle("indigo-dark-theme", !!dark);
+    }
+  }
+
+  function bind() {
+    if (!window.UnityTheme) { return; }
+    syncIndigo(window.UnityTheme.isDark());
+
+    var input = document.getElementById("toggle-switch-input");
+    if (input && !input.dataset.atheniqUnity) {
+      input.dataset.atheniqUnity = "1";
+      input.checked = window.UnityTheme.isDark();
+      input.addEventListener("change", function () {
+        window.UnityTheme.setMode(input.checked ? "dark" : "light");
+      });
+    }
+
+    window.addEventListener("unity:theme", function (event) {
+      syncIndigo(event.detail && event.detail.mode === "dark");
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bind);
+  } else {
+    bind();
+  }
+})();
+</script>

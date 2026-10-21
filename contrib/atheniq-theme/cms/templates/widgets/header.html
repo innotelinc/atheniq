@@ -13,7 +13,20 @@
   from openedx.core.djangoapps.lang_pref.api import header_language_selector_is_enabled, released_languages
 %>
 <div class="wrapper-header wrapper" id="view-top">
+  ## AthenIQ — Unity, in the `operations` register, before the first paint.
+  ##
+  ## Studio is an authoring console, not the learner's service desk, and Unity
+  ## separates the two: `data-scheme="operations"` is the graphite-and-blue
+  ## register. The mode is the person's, read from storage by unity-theme.js.
+  ##
+  ## The three files are linked rather than bundled because Studio's own SCSS is
+  ## compiled into the image and cannot import from a theme; this header is the
+  ## one template every Studio page renders, which makes it the seam.
+  <script>window.UNITY_DEFAULT_SCHEME = "operations";
+  document.documentElement.setAttribute("data-scheme", "operations");</script>
+  <link rel="stylesheet" href="${static.url('indigo/atheniq/unity-theme.css')}">
   <link rel="stylesheet" href="${static.url('indigo/atheniq/unity-cms.css')}">
+  <script src="${static.url('indigo/atheniq/unity-theme.js')}"></script>
   <header class="primary" role="banner">
     <div class="wrapper wrapper-l">
       <h1 class="branding">

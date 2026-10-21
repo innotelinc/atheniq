@@ -10,8 +10,8 @@ SHELL := /bin/bash
         openmaic-up openmaic-down convex-up convex-down convex-key generation-console \
         onyx-check onyx-buckets onyx-selftest magnate-probe \
         paid-status entitlement-status entitlement-sync \
-        check-commits check-compose check-tracks check-courses check-classrooms check-catalog check-syllabus check-images check-brand cert-check \
-        catalog syllabus images course-bundle course-import test tutor-quickstart \
+        check-commits check-compose check-tracks check-courses check-classrooms check-catalog check-syllabus check-images check-brand check-course-photos cert-check \
+        catalog syllabus images course-photos course-bundle course-import test tutor-quickstart \
         theme gating check-gating gating-apply track-credential-status
 
 help: ## Show this help message
@@ -124,6 +124,12 @@ check-images: ## Fail if a PNG raster is missing or mis-sized
 check-brand: ## Fail if the brand mark drifts between the generator and the SVGs
 	python3 scripts/check-brand-mark.py
 
+course-photos: ## Fetch the course-card photographs (one pool per subject)
+	python3 scripts/course-photos.py --fetch
+
+check-course-photos: ## Fail if a course photograph is missing, mis-sized or unmapped
+	python3 scripts/course-photos.py --check
+
 course-bundle: ## Bundle each OLX course into dist/courses/*.tar.gz
 	python3 scripts/import-courses.py --bundle
 
@@ -164,5 +170,5 @@ cert-check: ## Verify the public names' certificates (coverage, chain, expiry) -
 tutor-quickstart: ## First boot of the LMS (interactive Tutor bring-up)
 	tutor local quickstart
 
-theme: ## Brand the LMS (footer, logo, favicon, skin) and bake it into the image, so a recreate keeps it
+theme: ## Brand the LMS and Studio (Unity, footer, header, photos) and bake it into the image, so a recreate keeps it
 	bash scripts/apply-atheniq-theme.sh

@@ -1,47 +1,79 @@
-# AthenIQ LMS theme overlay
+# AthenIQ theme overlay — LMS and Studio wear Unity
 
-Files that white-label the Tutor LMS (themed with **Indigo**) as **AthenIQ**:
+Files that white-label the Tutor platform (themed with **Indigo**) as
+**AthenIQ**, in the Innotel Platform Stack's one theme, **Unity**
+(`theme/unity-theme.css` in the platform stack; the canvas, ink, brand, status
+and shape tokens this overlay names).
+
+Both halves of the platform are covered by the same script. The Studio half used
+to be copied in by hand after a deploy; it is now part of `make theme` and of the
+baked image, exactly like the LMS footer.
+
+## The LMS
 
 | File | Replaces | Why |
 | --- | --- | --- |
-| `lms/templates/footer.html` | Indigo's footer | Drops the "Powered by: Tutor + Open edX" logo list and the edX trademark paragraph; shows an AthenIQ copyright. |
+| `lms/templates/head-extra.html` | — (a new `<head>` hook) | Loads Unity and the LMS skin **before the first paint**, sets `data-scheme="desk"`, and adopts Indigo's dark-mode cookie into Unity's mode so the two switches cannot disagree. |
+| `lms/templates/footer.html` | Indigo's footer | Drops the "Powered by: Tutor + Open edX" logo list and the edX trademark paragraph; lays out the mark, the platform statement and the three groups of places people actually go. |
 | `lms/templates/index_overlay.html` | Indigo's overlay | Names the platform and states what the name means. |
-| `lms/static/images/logo.png` | Indigo's header logo | The AthenIQ mark (light header). |
-| `lms/static/images/logo-white.png` | Indigo's dark-header logo | The AthenIQ mark (dark header). |
-| `lms/static/images/favicon.ico` | Indigo's favicon | The AthenIQ favicon tile. |
+| `lms/static/atheniq/unity-theme.css` | — | **The canonical Unity palette**, vendored byte-for-byte: three schemes × two modes and the shared primitives. |
+| `lms/static/atheniq/unity-theme.js` | — | **The canonical Unity switch**, vendored byte-for-byte. Owns `data-mode` / `data-scheme` on `<html>`. |
+| `lms/static/atheniq/atheniq-lms.css` | Indigo's compiled chrome | The LMS skin: header, footer, buttons, forms, tables, cards, course page and notices, every rule naming a Unity token. |
+| `lms/static/atheniq/unity-light.css` / `unity-dark.css` | — | Paragon's `brandOverride` for the learner MFEs: the same palette expressed as `--pgn-*` variables, so every MFE is recolored without a bundle rebuild. |
+| `lms/static/images/logo.png` / `logo-white.png` / `favicon.ico` | Indigo's marks | The AthenIQ mark. |
+| `lms/static/images/courses/*.jpg` | — | The course-card photographs (see below). |
 
-The `lms/static/images/*.png` / `*.ico` files are **generated** — render them with
-`make images` (they come from the same mark geometry as the landing-page assets;
-see [docs/Brand.md](../../docs/Brand.md)).
+## Studio
 
-The `PLATFORM_NAME` itself is a Tutor config value, not a template — set it with:
+| File | Replaces | Why |
+| --- | --- | --- |
+| `cms/templates/widgets/header.html` | Studio's header | Loads Unity in the **`operations`** register, keeps the Platform Services entry, and sets the scheme before content paints. |
+| `cms/static/atheniq/unity-theme.css` | — | The same canonical Unity palette, for Studio's origin. |
+| `cms/static/atheniq/unity-theme.js` | — | The same canonical switch. |
+| `cms/static/atheniq/unity-cms.css` | Studio's chrome | Header, course navigation, buttons, forms, tables, the outline tree, status and dialogs — all Unity tokens; the editing surface stays light and legible. |
+
+## Course photographs
+
+`config/course-photos.json` is the pool: one set of photographs per **subject**
+(ai, data, security, networks, software, business, finance, health, science,
+justice, writing, support, leadership, learning). A course resolves to a subject
+by its title, then to a photograph in that pool by a hash of its code — stable
+across runs, varied within a program.
 
 ```bash
-tutor config save --set PLATFORM_NAME=AthenIQ
+make course-photos         # fetch the pool (Unsplash, free for commercial use)
+make check-course-photos   # every file present and 1200×675
+python3 scripts/course-photos.py --list   # how each course resolves
 ```
+
+`publish-courses.py` writes `/static/atheniq/images/courses/<file>` into every
+course's `CourseOverview.course_image_url` when it publishes, so the card in
+Explore and the same course's record in the LMS show the same picture.
 
 ## Applying
 
-The templates and rasters live inside the LMS image under
+The templates and rasters live inside the LMS and CMS images under
 `/openedx/themes/indigo/`, so copy them in and restart:
 
 ```bash
-make images            # regenerate the rasters first, if stale
-make theme             # == ./scripts/apply-atheniq-theme.sh
+make images                # regenerate the brand rasters, if stale
+make course-photos         # fetch the course photographs, if missing
+make theme                 # == ./scripts/apply-atheniq-theme.sh
 ```
 
-The script does not stop at the copy. `docker cp` into the running container is
-lost when the container is recreated (`tutor local launch` stops and starts the
+The script does not stop at the copy. `docker cp` into the running containers is
+lost when they are recreated (`tutor local launch` stops and starts the
 platform), so it also **bakes the files into the image the compose project
 starts from** — one `COPY` layer over the upstream `overhangio/openedx` image,
 built in seconds, with the untouched image kept as
-`atheniq/openedx-theme-base:<tag>` for a rollback. `--no-bake` is the old
-behaviour: a look that the next recreate throws away.
+`atheniq/openedx-theme-base:<tag>` for a rollback. It restarts **both** the LMS
+and the CMS; `--no-restart` skips that, `--no-bake` is the old behaviour (a look
+that the next recreate throws away).
 
 For a deployment that rebuilds `openedx` from source instead, enable
 [`../tutor-atheniq-theme`](../tutor-atheniq-theme): its Dockerfile patch copies
-this overlay into the image and re-collects the static assets, so
-`tutor images build openedx` produces the same result.
+this overlay into the image, places the served static copies, and re-collects the
+static assets, so `tutor images build openedx` produces the same result.
 
 ## The learner MFEs
 
