@@ -25,7 +25,8 @@ WHAT IT SERVES. One page (`web/generate/`) and the JSON behind it:
     GET    /api/programs/<id>/progress?student=…  one learner's standing
     POST   /api/programs/<id>/generate  submit a classroom run per course
     POST   /api/programs/<id>/sync      record finished runs into the plan
-    POST   /api/programs/<id>/enroll    enrol a learner
+    POST   /api/programs/<id>/enroll    enrol a learner (in the programme and the LMS)
+    POST   /api/programs/<id>/publish   create the programme's courses in the LMS
     POST   /api/programs/<id>/complete  record a grade and final result
     POST   /api/programs/<id>/confer    confer the degree/certificate and sign it
 
@@ -90,6 +91,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BUILDER_PATH = os.path.join(REPO, "scripts", "build-classrooms.py")
 PROGRAM_MANAGER_PATH = os.path.join(REPO, "scripts", "program-manager.py")
+PUBLISHER_PATH = os.path.join(REPO, "scripts", "publish-courses.py")
 CERT_BRIDGE_PATH = os.path.join(REPO, "scripts", "cert-bridge.py")
 COURSE_MATERIALS_PATH = os.path.join(REPO, "scripts", "course-materials.py")
 
@@ -137,6 +139,29 @@ def _load_builder():
     """
     name = "atheniq_build_classrooms"
     spec = importlib.util.spec_from_file_location(name, BUILDER_PATH)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    try:
+        spec.loader.exec_module(module)
+    except BaseException:
+        sys.modules.pop(name, None)
+        raise
+    return module
+
+
+def _load_publisher():
+    """The LMS publisher, imported by path.
+
+    A programme's courses are only useful once the LMS has them: that is what
+    *Explore courses* lists and what a learner can be enrolled in. The publisher is
+    where the OLX shell and the CMS import live, so the console does not grow a
+    second copy of that knowledge.
+    """
+    name = "atheniq_publish_courses"
+    existing = sys.modules.get(name)
+    if existing is not None:
+        return existing
+    spec = importlib.util.spec_from_file_location(name, PUBLISHER_PATH)
     module = importlib.util.module_from_spec(spec)
     sys.modules[name] = module
     try:
@@ -257,6 +282,14 @@ class Config:
     #: Where the run -> spec map is kept, so a restart does not forget a classroom
     #: that finished while the process was down. Empty keeps it in memory.
     state_path: str = ""
+    #: Publish a programme's courses into the LMS as it is created (and when the
+    #: page asks): a course that is not in the LMS cannot be enrolled in, so it can
+    #: never appear in *My courses* or *Explore courses*. Off by default here so a
+    #: test or a laptop needs no docker; `from_env` turns it on unless the
+    #: deployment sets `GENERATION_PUBLISH=0`.
+    publish_courses: bool = False
+    #: Where the generated OLX shells and the publishing record are kept.
+    lms_work_dir: str = ""
 
     @classmethod
     def from_env(cls, env=None):
@@ -276,6 +309,9 @@ class Config:
             classroom_host=env.get("CLASSROOM_HOST", "https://classroom.innotel.us").rstrip("/"),
             autorecord_seconds=int(env.get("GENERATION_AUTORECORD_SECONDS", "0")),
             state_path=env.get("GENERATION_STATE", ""),
+            publish_courses=env.get("GENERATION_PUBLISH", "1").strip().lower()
+            not in ("0", "false", "no", "off"),
+            lms_work_dir=env.get("GENERATION_LMS_DIR", ""),
         )
 
 
@@ -312,10 +348,26 @@ class Console:
     (502), so the HTTP layer is only about status codes and shapes.
     """
 
-    def __init__(self, config, builder=None, clock=time.time, programs=None):
+    def __init__(self, config, builder=None, clock=time.time, programs=None, publisher=None):
         self.config = config
         self.builder = builder or _load_builder()
         self.clock = clock
+        self.publisher = publisher
+        if self.publisher is None and config.publish_courses:
+            # A host without docker (or without the LMS) must still start the
+            # console: publishing then reports that it is unavailable instead of
+            # taking the page down with it.
+            try:
+                module = _load_publisher()
+                self.publisher = module.Publisher(
+                    config.root,
+                    work_dir=config.lms_work_dir or os.path.join(config.root, "lms"),
+                    clock=clock)
+            except Exception:  # noqa: BLE001 — a broken publisher is not a broken console
+                self.publisher = None
+        #: program id -> the last publish run, so the page can say what happened
+        #: without the request having to last as long as a whole programme's imports.
+        self._publish_runs = {}
         self._program_module = _load_program_manager()
         self._program_error = self._program_module.ProgramError
         if programs is None:
@@ -1308,10 +1360,96 @@ class Console:
         })
 
     def program_get(self, program_id: str) -> dict:
-        return self._program(self.programs.get, program_id)
+        """One programme, with where it stands in the LMS right now.
+
+        `lms` is the answer to the question the page has to ask out loud — is
+        this programme's curriculum real in the LMS, and how much of it? — so a
+        course that was created in the console is never only a line in a JSON
+        file without saying so.
+        """
+        doc = self._program(self.programs.get, program_id)
+        doc["lms"] = self.program_lms_status(program_id)
+        return doc
 
     def program_create(self, identity: Identity, body: dict) -> dict:
-        return self._program(self.programs.create, identity, body)
+        doc = self._program(self.programs.create, identity, body)
+        # Publish in the background: a degree is forty courses, and the page must
+        # come back with the programme rather than block on the CMS imports. A
+        # console without the publisher still creates programmes; the page says
+        # the LMS part is off.
+        try:
+            self.program_publish(doc["id"])
+        except Bad:
+            pass
+        return doc
+
+    # -- the LMS ----------------------------------------------------------
+
+    def _publisher(self):
+        if self.publisher is None:
+            raise Bad(503, "publishing to the LMS is off on this console "
+                           "(set GENERATION_PUBLISH=1 on a host with docker)")
+        return self.publisher
+
+    def program_lms_status(self, program_id: str) -> dict:
+        """How many of a programme's courses the LMS holds, and the last publish run."""
+        with self._lock:
+            run = dict(self._publish_runs.get(program_id) or {})
+        if self.publisher is None:
+            return {"available": False, "reason": "publishing is off", "run": run or None}
+        try:
+            status = self.publisher.status(program_id)
+        except Exception as err:  # noqa: BLE001 — the page must still render
+            status = {"available": False, "error": str(err),
+                      "published": 0, "courses": 0}
+        status["run"] = run or None
+        return status
+
+    def program_publish(self, program_id: str) -> dict:
+        """Start creating this programme's missing courses in the LMS.
+
+        Idempotent and asynchronous: a course already in the LMS is skipped, so
+        calling this on every page open is cheap, and the caller gets an answer at
+        once while the imports run in the background. Progress is visible through
+        `program_lms_status`.
+        """
+        publisher = self._publisher()
+        # The store is the authority on whether this id exists, so a typo is a 404
+        # here rather than a background thread that fails silently.
+        self._program(self.programs.get, program_id)
+        with self._lock:
+            if (self._publish_runs.get(program_id) or {}).get("running"):
+                return {"running": True, "alreadyRunning": True, "program": program_id}
+            self._publish_runs[program_id] = {"running": True, "startedAt": self._stamp()}
+
+        def work() -> None:
+            try:
+                answer = publisher.publish([program_id], execute=True)
+            except Exception as err:  # noqa: BLE001 — reported, not raised in a thread
+                answer = {"available": False, "error": str(err),
+                          "published": [], "failed": []}
+            summary = {
+                "running": False,
+                "finishedAt": self._stamp(),
+                "available": answer.get("available", True),
+                "published": len(answer.get("published") or []),
+                "skipped": len(answer.get("skipped") or []),
+                "failed": (answer.get("failed") or [])[:10],
+                "reindexed": answer.get("reindexed"),
+                "error": answer.get("error"),
+            }
+            with self._lock:
+                self._publish_runs[program_id] = summary
+            if summary["published"] or summary["failed"]:
+                print(f"publish {program_id}: {summary['published']} published, "
+                      f"{len(summary['failed'])} failed", file=sys.stderr)
+
+        threading.Thread(target=work, name=f"atheniq-publish-{program_id}",
+                         daemon=True).start()
+        return {"running": True, "program": program_id}
+
+    def _stamp(self) -> str:
+        return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(self.clock()))
 
     def program_generate(self, identity: Identity, program_id: str, body: dict) -> dict:
         """Submit one classroom run per course, semester by semester.
@@ -1339,8 +1477,21 @@ class Console:
         return self._program(self.programs.sync, program_id, self.run)
 
     def program_enroll(self, program_id: str, body: dict) -> dict:
-        return self._program(self.programs.enroll, program_id,
-                             str(body.get("student") or ""))
+        """Enrol a learner in the programme, and in its courses in the LMS.
+
+        The programme record is what the registrar's report is built from; the LMS
+        enrolment is what puts the course in the learner's *My courses*. Both, in
+        that order: a learner who is on the programme must not lose that because
+        the LMS was briefly unreachable.
+        """
+        student = str(body.get("student") or "")
+        answer = self._program(self.programs.enroll, program_id, student)
+        if self.publisher is not None:
+            try:
+                answer["lms"] = self.publisher.enroll(program_id, student)
+            except Exception as err:  # noqa: BLE001 — the local enrolment stands
+                answer["lms"] = {"available": False, "error": str(err)}
+        return answer
 
     def program_complete(self, program_id: str, body: dict) -> dict:
         return self._program(self.programs.record_completion, program_id,
@@ -1755,6 +1906,8 @@ class Handler(BaseHTTPRequestHandler):
                     return self._json(200, self.console.program_sync(program_id))
                 if action == "enroll":
                     return self._json(201, self.console.program_enroll(program_id, body))
+                if action == "publish":
+                    return self._json(202, self.console.program_publish(program_id))
                 if action == "complete":
                     return self._json(200, self.console.program_complete(program_id, body))
                 if action == "confer":

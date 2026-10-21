@@ -528,7 +528,8 @@ GET    /api/programs/<id>                the program with its semester plan and 
 GET    /api/programs/<id>/progress?student=…
 POST   /api/programs/<id>/generate       one classroom run per course (semester/course filters)
 POST   /api/programs/<id>/sync           record finished runs into the plan
-POST   /api/programs/<id>/enroll         enrol a learner
+POST   /api/programs/<id>/publish        create the programme's courses in the LMS
+POST   /api/programs/<id>/enroll         enrol a learner (programme and LMS)
 POST   /api/programs/<id>/complete       record a grade and final result
 POST   /api/programs/<id>/confer         confer the credential and sign it
 ```
@@ -540,6 +541,40 @@ course, credit, GPA and final requirement is met, and the signed degree is
 rendered by `scripts/cert-bridge.py` and pushed through Signara using the same
 signer as course certificates. Because the service runs as `tutor`, the unit
 creates `programs/` and `conferrals/` owned by that user.
+
+#### Programmes are courses in the LMS
+
+A plan is not a course. Until the LMS has the course, it cannot be enrolled in,
+so it never appears in *My courses*, and the catalogue that *Explore courses*
+reads from does not know it exists. `scripts/publish-courses.py` closes that gap:
+for every course in a programme it writes a real OLX package and imports it into
+the CMS, under a key derived from the course code
+(`course-v1:InnotelLabs+ACCT201+2026_T4`), then reindexes catalog search.
+
+- The unit sets `GENERATION_PUBLISH=1`, so a programme created in the console
+  publishes in the background; the programme page also has **Publish to LMS** and
+  reports `LMS: 12/40 courses`. Publishing is idempotent — a course already in
+  the LMS is skipped — so the button is also the repair.
+- `POST /api/programs/<id>/enroll` enrols the learner in the LMS as well (honor
+  mode, created when the course has none), which is what puts the courses in
+  their dashboard. A learner with no LMS account yet is reported rather than
+  failed; they are enrolled on their next sign-in from the console.
+- The generated packages live under `GENERATION_LMS_DIR`
+  (`/home/tutor/atheniq-generation/lms`, owned by `tutor`; create it once with
+  `install -d -o tutor -g tutor -m 750 /home/tutor/atheniq-generation/lms`), not
+  in this repo: they are derived from the plan, not authored. Each is a **course shell** — overview,
+  syllabus, course plan, assessment — from what the plan actually says, with no
+  invented lessons. Classrooms generated later are imported into the same course
+  key by `build-classrooms.py --publish`.
+- The publisher needs `docker` for the unit's user (`tutor` is in the `docker`
+  group on this host) and the containers named in `publish-courses.py`
+  (`tutor_local-cms-1`, `tutor_local-lms-1`).
+
+```bash
+sudo -u tutor python3 scripts/publish-courses.py                    # plan, touches nothing
+sudo -u tutor python3 scripts/publish-courses.py --execute          # publish what is missing
+sudo -u tutor python3 scripts/publish-courses.py --program <id> --enroll learner@example.org
+```
 
 ### Learner portal — `lms.innotel.us`
 

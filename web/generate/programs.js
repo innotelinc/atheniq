@@ -265,6 +265,49 @@ const semesterBlock = (semester) => {
     body);
 };
 
+// The LMS holds the courses a learner can actually enrol in, so "is this
+// programme real there" is a fact the page states rather than implies.
+const lmsBadge = (doc) => {
+  const lms = doc.lms || {};
+  if (!lms.available) return badge("LMS: publishing off", "locked");
+  const total = lms.courses || 0;
+  const done = lms.published || 0;
+  return badge(`LMS: ${done}/${total} courses`, done === total ? "ok" : "ready");
+};
+
+const publishProgram = async (doc, button) => {
+  button.disabled = true;
+  button.textContent = "publishing…";
+  try {
+    const answer = await api(`/api/programs/${doc.id}/publish`, { method: "POST", body: "{}" });
+    toast(answer.alreadyRunning
+      ? "A publish run is already working through this programme"
+      : "Creating the missing courses in the LMS…");
+    // Each course is a CMS import, so this finishes in minutes, not milliseconds.
+    for (let attempt = 0; attempt < 150; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const fresh = await api(`/api/programs/${encodeURIComponent(doc.id)}`);
+      state.current = fresh;
+      renderDetail();
+      const run = fresh.lms && fresh.lms.run;
+      if (run && !run.running) {
+        const failed = run.failed || [];
+        toast(failed.length
+          ? `${run.published} published · ${failed.length} failed — ${failed[0].code}: ${failed[0].error}`
+          : `${run.published} course${run.published === 1 ? "" : "s"} now in the LMS`,
+          failed.length ? "bad" : "ok");
+        return;
+      }
+    }
+    toast("Still publishing — reopen the programme to see where it got to", "bad");
+  } catch (error) {
+    toast(error.message, "bad");
+  } finally {
+    button.disabled = false;
+    button.textContent = "Publish to LMS";
+  }
+};
+
 const stat = (label, value, note) => el("div", { class: "stat" },
   el("div", { class: "stat-value" }, value),
   el("div", { class: "stat-label" }, label),
@@ -377,6 +420,7 @@ const renderDetail = () => {
         badge(`minimum GPA ${doc.minGpa}`),
         doc.startTerm ? badge(doc.startTerm) : null,
         doc.credentialKind === "certificate" ? badge("certificate", "ok") : badge("degree", "ok"),
+        lmsBadge(doc),
       ),
       el("p", { class: "sub" }, doc.description),
       (doc.certificates || []).length
@@ -387,6 +431,14 @@ const renderDetail = () => {
         : null,
     ),
     isStaff() ? el("div", { class: "detail-actions" },
+      el("button", {
+        class: "btn btn-primary", type: "button",
+        disabled: !(doc.lms || {}).available,
+        title: (doc.lms || {}).available
+          ? "Create every missing course in the LMS so learners can enrol and it lists in Explore courses"
+          : "Publishing to the LMS is off on this console",
+        onclick: (event) => publishProgram(doc, event.currentTarget),
+      }, "Publish to LMS"),
       el("button", {
         class: "btn btn-primary", type: "button",
         onclick: async (event) => {
@@ -622,11 +674,17 @@ const boot = async () => {
     if (!student) { toast("Enter a learner identity.", "bad"); return; }
     state.student = student;
     try {
-      await api(`/api/programs/${programId}/enroll`, {
+      const answer = await api(`/api/programs/${programId}/enroll`, {
         method: "POST", body: JSON.stringify({ student }),
       });
       await openProgram(programId);
-      toast(`Enrolled ${student}`);
+      // The LMS is where "My courses" comes from, so say what it did — including
+      // the case where the learner has no LMS account yet.
+      const lms = answer.lms;
+      const row = lms && lms.students && lms.students[0];
+      if (row && row.missing) toast(`Enrolled ${student} on the programme — no LMS account yet`);
+      else if (row) toast(`Enrolled ${student} — ${row.enrolled.length} courses in the LMS`);
+      else toast(`Enrolled ${student}`);
     } catch (error) {
       toast(error.message, "bad");
     }

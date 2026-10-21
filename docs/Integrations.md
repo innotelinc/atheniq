@@ -35,6 +35,12 @@ assessments, grading, and learner records.
     overrides applied with `make theme`, and the
     [`contrib/tutor-atheniq-mfe`](../contrib/tutor-atheniq-mfe) plugin for the
     learner-MFE footer (see [docs/Deployment.md](Deployment.md#branding--the-platform-is-atheniq)).
+- **Programmes become courses** — `scripts/publish-courses.py` writes an OLX
+  shell for every course in a console programme and imports it into the CMS, so
+  the catalogue that *Explore courses* reads knows the course and a learner can
+  be enrolled (which is what fills *My courses*). Keys are
+  `course-v1:InnotelLabs+<CODE>+<TERM>`; publishing is idempotent and runs from
+  the console (see [Deployment](Deployment.md#programmes-are-courses-in-the-lms)).
 - Tutor keeps its own upgrade path (`tutor local upgrade`); consult upstream
   release notes before major bumps.
 
