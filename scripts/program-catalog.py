@@ -445,7 +445,7 @@ _BUSINESS = ProgramTemplate(
                "Sampling, hypothesis tests, and regression for managers, with a "
                "spreadsheet-based project.",
                prereq=("MATH120",), final="project"),
-            _c("BUS320", "Organisational Behavior", 3,
+            _c("BUS320", "Organizational Behavior", 3,
                "Motivation, teams, power, and culture, applied to one real "
                "workplace case.",
                prereq=("BUS220",)),

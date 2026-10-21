@@ -48,7 +48,7 @@ decision.</p>
 <p>Which gain is most often overstated in an AI business case?</p>
 <choicegroup type="MultipleChoice">
 <choice correct="true"><div>Time saved in one step, with review and rework omitted.</div></choice>
-<choice correct="false"><div>Licence cost.</div></choice>
+<choice correct="false"><div>License cost.</div></choice>
 <choice correct="false"><div>Training time.</div></choice>
 </choicegroup>
 <solution>

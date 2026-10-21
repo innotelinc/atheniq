@@ -48,9 +48,9 @@ LESSONS = [{
              {"value": "B", "label": "Prints money", "correct": False},
          ]},
         {"prompt": "Which of these are inputs? Select all that apply.", "kind": "multiple",
-         "solution": "Labour and capital are inputs; weather is not.",
+         "solution": "Labor and capital are inputs; weather is not.",
          "options": [
-             {"value": "A", "label": "Labour", "correct": True},
+             {"value": "A", "label": "Labor", "correct": True},
              {"value": "B", "label": "Capital", "correct": True},
              {"value": "C", "label": "Weather", "correct": False},
          ]},

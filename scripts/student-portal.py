@@ -18,7 +18,7 @@ process serves only:
     GET /api/public/courses    courses and their generated classrooms
     GET /healthz               the process is up
 
-WHAT IS DELIBERATELY ABSENT. Enrolment records, grades, runs, specs and the
+WHAT IS DELIBERATELY ABSENT. Enrollment records, grades, runs, specs and the
 signing configuration never cross this boundary. `_public_program` drops the
 `enrollments` map and the creator before answering, so the page cannot leak a
 learner by being asked the wrong question.

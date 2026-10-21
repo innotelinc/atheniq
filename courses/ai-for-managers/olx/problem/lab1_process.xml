@@ -49,7 +49,7 @@ is.</p>
 <checkboxgroup>
 <choice correct="true"><div>Review labor added by the new output.</div></choice>
 <choice correct="true"><div>Expected rework.</div></choice>
-<choice correct="true"><div>Licence and implementation.</div></choice>
+<choice correct="true"><div>License and implementation.</div></choice>
 <choice correct="true"><div>Training time.</div></choice>
 <choice correct="false"><div>The vendor's conference sponsorship.</div></choice>
 </checkboxgroup>

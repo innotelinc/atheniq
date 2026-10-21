@@ -1,7 +1,7 @@
 """The MFE brand patch, checked against the shapes the bundles actually use.
 
 The patch rewrites *compiled* assets, so the only thing worth testing is that
-each rule recognises the code it was written for and that the rewrite cannot
+each rule recognizes the code it was written for and that the rewrite cannot
 reach anything else: an i18n table, a `defaultMessage`, an exact literal, and
 the Studio home's action list. The identifier cases are here because "edX" is a
 substring of `movedXBlockParams` — a replacement that ignores that would rename
