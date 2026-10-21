@@ -24,7 +24,11 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 THEME_DIR="${REPO}/contrib/atheniq-theme"
 LMS_CONTAINER="${LMS_CONTAINER:-tutor_local-lms-1}"
 THEME_TARGET="${THEME_TARGET:-/openedx/themes/indigo/lms/templates}"
+THEME_STATIC="${THEME_STATIC:-/openedx/themes/indigo/lms/static}"
 IMAGES_TARGET="${IMAGES_TARGET:-/openedx/themes/indigo/lms/static/images}"
+# The footer links /theming/asset/atheniq/…, which the LMS resolves out of the
+# collected static files — the theme directory alone is not what a browser gets.
+STATIC_TARGET="${STATIC_TARGET:-/openedx/staticfiles/atheniq}"
 
 restart=1
 [ "${1:-}" = "--no-restart" ] && restart=0
@@ -48,6 +52,14 @@ done
 
 for file in logo.png logo-white.png favicon.ico; do
   copy "${THEME_DIR}/lms/static/images/${file}" "${IMAGES_TARGET}"
+done
+
+# The Unity skin the footer links. Both copies matter: the theme's static dir is
+# where a rebuilt image takes it from, and the collected copy is what this
+# running LMS serves at /theming/asset/atheniq/….
+for file in unity-light.css unity-dark.css; do
+  copy "${THEME_DIR}/lms/static/atheniq/${file}" "${THEME_STATIC}/atheniq"
+  copy "${THEME_DIR}/lms/static/atheniq/${file}" "${STATIC_TARGET}"
 done
 
 if [ "${restart}" = "1" ]; then
