@@ -145,9 +145,9 @@ hooks.Filters.ENV_PATCHES.add_item(
 COPY --chown=app:app ./atheniq-theme/lms/ {THEME_ROOT}/
 COPY --chown=app:app ./atheniq-theme/cms/ {CMS_THEME_ROOT}/
 # The two skins' served copies. `head-extra.html` links `/static/atheniq/…` and
-# Studio's header links `/static/indigo/atheniq/…`; these are the directories
-# those URLs resolve to, so the stylesheets, the switch and the course photos
-# are in place even if a collect is ever run with `--skip-themes`.
+# Studio's header resolves to `/static/studio/atheniq/…`; these are the
+# directories those URLs resolve to, so the stylesheets, the switch and the
+# course photos are in place even if a collect is ever run with `--skip-themes`.
 COPY --chown=app:app ./atheniq-theme/lms/static/atheniq/ {LMS_STATIC_ROOT}/
 COPY --chown=app:app ./atheniq-theme/lms/static/images/ {LMS_STATIC_ROOT}/images/
 COPY --chown=app:app ./atheniq-theme/cms/static/atheniq/ {CMS_STATIC_ROOT}/

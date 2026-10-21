@@ -207,7 +207,7 @@ class Plugin(unittest.TestCase):
         self.assertIn("/openedx/themes/indigo/cms", self.text)
 
     def test_the_static_copies_are_where_the_templates_look(self):
-        """`/static/atheniq/…` and `/static/indigo/atheniq/…` are two namespaces."""
+        """`/static/atheniq/…` and `/static/studio/atheniq/…` are two namespaces."""
         self.assertIn("/openedx/staticfiles/atheniq", self.text)
         # Studio's static namespace is `studio`, not the theme's directory name.
         self.assertIn("/openedx/staticfiles/studio/atheniq", self.text)
