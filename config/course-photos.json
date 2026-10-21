@@ -93,13 +93,56 @@
         "1518186285589-2f7649de83e0"
       ]
     },
+    "health": {
+      "keywords": [
+        "nursing",
+        "nurse",
+        "patient",
+        "clinical",
+        "anatomy",
+        "pharmacology",
+        "health",
+        "medical",
+        "midwifery",
+        "care",
+        "diagnosis"
+      ],
+      "photos": [
+        "1576091160399-112ba8d25d1d",
+        "1584982751601-97dcc096659c",
+        "1519494026892-80bbd2d6fd0d",
+        "1584515933487-779824d29309",
+        "1576091160550-2173dba999ef",
+        "1631217868264-e5b90bb7e133",
+        "1587854692152-cbe660dbde88"
+      ]
+    },
+    "science": {
+      "keywords": [
+        "science",
+        "chemistry",
+        "biology",
+        "physics",
+        "laboratory",
+        "lab",
+        "research methods",
+        "evidence"
+      ],
+      "photos": [
+        "1579684385127-1ef15d508118",
+        "1585435557343-3b092031a831",
+        "1532187863486-abf9dbad1b69",
+        "1527613426441-4da17471b66d",
+        "1579165466741-7f35e4755660",
+        "1581091226825-a6a2a5aee158"
+      ]
+    },
     "networks": {
       "keywords": [
         "network",
         "cloud",
         "infrastructure",
         "server",
-        "systems",
         "support",
         "helpdesk",
         "hardware",
@@ -175,50 +218,6 @@
         "1553877522-43269d4ea984",
         "1600880292203-757bb62b4baf",
         "1542744173-8e7e53415bb0"
-      ]
-    },
-    "health": {
-      "keywords": [
-        "nursing",
-        "nurse",
-        "patient",
-        "clinical",
-        "anatomy",
-        "pharmacology",
-        "health",
-        "medical",
-        "midwifery",
-        "care",
-        "diagnosis"
-      ],
-      "photos": [
-        "1576091160399-112ba8d25d1d",
-        "1584982751601-97dcc096659c",
-        "1519494026892-80bbd2d6fd0d",
-        "1584515933487-779824d29309",
-        "1576091160550-2173dba999ef",
-        "1631217868264-e5b90bb7e133",
-        "1587854692152-cbe660dbde88"
-      ]
-    },
-    "science": {
-      "keywords": [
-        "science",
-        "chemistry",
-        "biology",
-        "physics",
-        "laboratory",
-        "lab",
-        "research methods",
-        "evidence"
-      ],
-      "photos": [
-        "1579684385127-1ef15d508118",
-        "1585435557343-3b092031a831",
-        "1532187863486-abf9dbad1b69",
-        "1527613426441-4da17471b66d",
-        "1579165466741-7f35e4755660",
-        "1581091226825-a6a2a5aee158"
       ]
     },
     "justice": {

@@ -1,8 +1,9 @@
-import re
-from django.test import Client
+from openedx.core.djangoapps.content.course_overviews.models import CourseOverview as C
 
-c = Client(SERVER_NAME="studio.innotel.us")
-page = c.get("/this-page-does-not-exist").content.decode("utf-8", "replace")
-for line in page.splitlines():
-    if "stylesheet" in line or "unity" in line or "data-scheme" in line:
-        print(line.strip()[:240])
+rows = list(C.objects.values_list("id", "course_image_url", "display_name"))
+mapped = [r for r in rows if "/static/atheniq/images/courses/" in (r[1] or "")]
+print("TOTAL", len(rows), "MAPPED", len(mapped))
+for row in mapped[:8]:
+    print("ROW", row)
+unmapped = [r for r in rows if "/static/atheniq/images/courses/" not in (r[1] or "")]
+print("UNMAPPED", len(unmapped), unmapped[:3])
