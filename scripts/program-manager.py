@@ -526,6 +526,10 @@ class ProgramStore:
                     if status.get("state") == "completed" and stage:
                         if stage not in course.setdefault("classroomIds", []):
                             course["classroomIds"].append(stage)
+                            # A new classroom means the lessons and examination
+                            # in the LMS belong to an older one; mark them unbuilt
+                            # so they are written again from this classroom.
+                            course.pop("lessons", None)
                         if record:
                             try:
                                 record(course, stage)
@@ -630,10 +634,16 @@ class ProgramStore:
             for course in semester.get("courses", []):
                 if wanted and course["code"] not in wanted:
                     continue
-                if course.get("classroomIds") or course.get("runIds"):
+                had = (course.get("classroomIds") or course.get("runIds")
+                       or (course.get("lessons") or {}).get("count"))
+                if had:
                     cleared.append(course["code"])
                 course["classroomIds"] = []
                 course["runIds"] = []
+                # The lessons in the LMS were built from the classroom being
+                # forgotten; leaving the count here would make the next build
+                # skip the course and keep the retired classroom's courseware.
+                course.pop("lessons", None)
                 course["status"] = "planned"
         if not cleared and wanted:
             raise ProgramError(404, "no matching course had generated classrooms")

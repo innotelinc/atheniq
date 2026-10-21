@@ -227,6 +227,36 @@ class StoreTests(unittest.TestCase):
         self.assertEqual(self.store.sync(doc["id"], status)["recorded"], [])
 
 
+    def test_regenerating_a_course_forgets_its_lessons(self):
+        doc = self.store.create(Identity(), {"template": "criminal-justice"})
+        self.store.generate(doc["id"], {"courses": ["CJ101"]}, lambda brief: "run-1")
+        self.store.sync(doc["id"], lambda run: {"state": "completed",
+                                                "classroomId": f"stage-{run}"})
+        self.store.set_lessons(doc["id"], "CJ101",
+                               {"lessons": 5, "questions": 9, "classroomId": "stage-run-1"})
+        course = self.store.get(doc["id"])["semesters"][0]["courses"][0]
+        self.assertEqual(course["lessons"]["count"], 5)
+        answer = self.store.reset_courses(doc["id"], ["CJ101"])
+        self.assertEqual(answer["cleared"], ["CJ101"])
+        course = self.store.get(doc["id"])["semesters"][0]["courses"][0]
+        self.assertNotIn("lessons", course)
+        self.assertEqual(course["classroomIds"], [])
+
+    def test_a_new_classroom_marks_the_old_lessons_unbuilt(self):
+        doc = self.store.create(Identity(), {"template": "criminal-justice"})
+        self.store.generate(doc["id"], {"courses": ["CJ101"]}, lambda brief: "run-1")
+        self.store.sync(doc["id"], lambda run: {"state": "completed",
+                                                "classroomId": f"stage-{run}"})
+        self.store.set_lessons(doc["id"], "CJ101",
+                               {"lessons": 5, "questions": 9, "classroomId": "stage-run-1"})
+        self.store.generate(doc["id"], {"courses": ["CJ101"]}, lambda brief: "run-2")
+        self.store.sync(doc["id"], lambda run: {"state": "completed",
+                                                "classroomId": f"stage-{run}"})
+        course = self.store.get(doc["id"])["semesters"][0]["courses"][0]
+        self.assertNotIn("lessons", course)
+        self.assertEqual(course["classroomIds"], ["stage-run-1", "stage-run-2"])
+
+
 class ConsoleProgramTests(unittest.TestCase):
     """The seam a request hits: console methods over the store, no socket."""
 
