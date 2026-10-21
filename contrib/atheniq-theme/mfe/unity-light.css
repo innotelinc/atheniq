@@ -201,6 +201,33 @@ header {
   box-shadow: none;
 }
 
+/* --------------------------------------------------------- the course cards -- */
+
+/* WHAT THIS IS. Every card in the catalog and the dashboard carries the
+ * photograph the publisher wrote into the course's `course_image_url` (see
+ * `scripts/course-photos.py`). Paragon renders it at the image's own aspect
+ * ratio, which makes a wall of cards ragged: the pool is 16:9 and the card is
+ * the first place that shape should be visible. Cropping here rather than
+ * shipping pre-cropped variants means a new photograph needs no second file. */
+.pgn__card-image-cap,
+.course-card .pgn__card-image-cap,
+.course-card img,
+.discovery-card img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: #f1effa;
+}
+
+/* The card itself is a surface on the canvas, with Unity's radius and lift. */
+.course-card,
+.discovery-card {
+  border: 1px solid #e4e0f0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgb(25 20 48 / 5%), 0 10px 30px -14px rgb(25 20 48 / 18%);
+}
+
 /* -------------------------------------------------------------- LMS pages -- */
 
 .wrapper-footer { background: #f1effa !important; border-top: 1px solid #e4e0f0; }

@@ -189,6 +189,28 @@ header {
   box-shadow: none;
 }
 
+/* --------------------------------------------------------- the course cards -- */
+
+/* The same 16:9 crop as the light skin; the pool is one shape in both modes.
+ * Keep this rule in step with `unity-light.css`. */
+.pgn__card-image-cap,
+.course-card .pgn__card-image-cap,
+.course-card img,
+.discovery-card img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: #221a40;
+}
+
+.course-card,
+.discovery-card {
+  border: 1px solid #332a55;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 35%), 0 10px 30px -14px rgb(0 0 0 / 55%);
+}
+
 /* -------------------------------------------------------------- LMS pages -- */
 
 .wrapper-footer { background: #221a40 !important; border-top: 1px solid #332a55; }
