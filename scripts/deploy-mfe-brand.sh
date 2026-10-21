@@ -32,6 +32,13 @@ DRY_RUN="${DRY_RUN:-0}"
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PATCH="$HERE/patch-mfe-brand.py"
+# The Unity skin the patcher installs beside each bundle: the canonical copies
+# from contrib/atheniq-theme, so the MFEs and the console wear one palette.
+UNITY_CSS="${UNITY_CSS:-$HERE/../contrib/atheniq-theme/mfe}"
+if [ ! -f "$UNITY_CSS/unity-light.css" ]; then
+  echo "deploy-mfe-brand: no Unity skin at $UNITY_CSS (set UNITY_CSS)" >&2
+  exit 1
+fi
 
 # Site is built from a different source path than the app MFEs.
 APPS="authn account profile catalog learning learner-dashboard discussions gradebook communications ora-grading admin-console authoring site"
@@ -49,7 +56,7 @@ for app in $APPS; do
   cid="$(docker create "$src")"
   docker cp "$cid:$dist" "$WORK/$app/dist" >/dev/null
   docker rm "$cid" >/dev/null
-  python3 "$PATCH" "$WORK/$app/dist" --app "$app"
+  python3 "$PATCH" "$WORK/$app/dist" --app "$app" --unity-css "$UNITY_CSS"
   # The patch rewrites compiled JavaScript, so "it ran" is not "it is valid".
   # Every app's bundle is parsed before it is allowed into an image; a one-line
   # brace mistake once shipped a page that rendered nothing.
@@ -92,8 +99,12 @@ if [ -n "$previous" ]; then
   echo "=== rollback tag $rollback"
 fi
 
+# The project name is the deployment's, not the directory's: run without it and
+# compose invents a second project (`local`), leaves the real container on the
+# old image and says it succeeded.
 compose="/home/tutor/.local/share/tutor/env/local"
-docker compose -f "$compose/docker-compose.yml" -f "$compose/docker-compose.prod.yml" \
+COMPOSE_PROJECT_NAME=tutor_local docker compose \
+  -f "$compose/docker-compose.yml" -f "$compose/docker-compose.prod.yml" \
   up -d --force-recreate --no-deps mfe
 
 sleep 5

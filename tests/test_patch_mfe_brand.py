@@ -142,6 +142,19 @@ class OnDisk(unittest.TestCase):
             ',x&&y){const t=()=>{i(!0)};}'.replace("}", "}")))
         self.assertIn(brand.STUDIO_CSS, css)
 
+    def test_the_unity_skin_is_installed_and_linked(self):
+        css_dir = Path(__file__).resolve().parents[1] / "contrib" / "atheniq-theme" / "mfe"
+        code = brand.main([str(self.dir), "--app", "authoring", "--unity-css", str(css_dir)])
+        self.assertEqual(code, 0)
+        skin = (self.dir / "atheniq-unity.css").read_text(encoding="utf-8")
+        dark = (self.dir / "atheniq-unity-dark.css").read_text(encoding="utf-8")
+        self.assertEqual(skin, (css_dir / "unity-light.css").read_text(encoding="utf-8"))
+        self.assertEqual(dark, (css_dir / "unity-dark.css").read_text(encoding="utf-8"))
+        html = (self.dir / "index.html").read_text(encoding="utf-8")
+        self.assertIn('/authoring/atheniq-unity.css', html)
+        self.assertIn('/authoring/atheniq-unity-dark.css', html)
+        self.assertIn("prefers-color-scheme: dark", html)
+
     def test_a_second_run_changes_nothing(self):
         brand.main([str(self.dir), "--app", "authoring"])
         before = {p.name: p.read_text(encoding="utf-8") for p in self.dir.iterdir()}

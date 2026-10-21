@@ -163,6 +163,14 @@ reference) stay valid. Both scripts are pinned to the bundle they were written
 against and fail loudly when an anchor is missing, so an MFE upgrade shows up as
 a failed deploy rather than a page that quietly kept the old brand.
 
+The same deploy installs **Unity** on those pages: `atheniq-unity.css` and
+`atheniq-unity-dark.css` (the canonical copies in `contrib/atheniq-theme/mfe`) go
+beside each bundle and the app shell links both, one per colour scheme. The
+palette is the console's — `--pgn-*` custom properties, so it recolours Paragon
+without rebuilding an MFE bundle. Passing `--unity-css` to the patcher is what
+puts them there; the deploy script does it for every app and refuses to run
+without the skin.
+
 ### One session across Studio, the LMS and the MFEs
 
 Tutor gives each service its own host cookie, so `learn.innotel.us` and

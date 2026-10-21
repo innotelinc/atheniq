@@ -257,6 +257,14 @@ def patch_text(text: str, app: str, counts: Counter) -> str:
     return text
 
 
+#: The MFE shell's <head>. The Unity skin goes in as two stylesheets beside it,
+#: one per colour scheme: Paragon reads its palette from CSS custom properties,
+#: so a stylesheet recolours every page without rebuilding a bundle.
+UNITY_LINK = (
+    '<link rel="stylesheet" href="{root}atheniq-unity.css" media="(prefers-color-scheme: light)">'
+    '<link rel="stylesheet" href="{root}atheniq-unity-dark.css" media="(prefers-color-scheme: dark)">'
+)
+
 #: The plugin already carries a four-action row, inserted into the page banner
 #: slot. On the Studio home the patched header now offers the same four, so the
 #: slot copy is hidden there — one set of actions per page, and the course pages
@@ -309,11 +317,41 @@ def iter_assets(dist: Path):
             yield path
 
 
+
+def install_unity(dist: Path, app: str, css_dir: Path, counts: Counter, write: bool) -> None:
+    """Put the Unity skin beside the bundle and link it from the shell."""
+    for name, target in (("unity-light.css", "atheniq-unity.css"),
+                         ("unity-dark.css", "atheniq-unity-dark.css")):
+        source = css_dir / name
+        if not source.is_file():
+            raise SystemExit(f"patch-mfe-brand: missing {source}")
+        text = source.read_text(encoding="utf-8")
+        destination = dist / target
+        if not destination.is_file() or destination.read_text(encoding="utf-8") != text:
+            counts[f"unity:{target}"] += 1
+            if write:
+                destination.write_text(text, encoding="utf-8")
+
+    shell = dist / "index.html"
+    if not shell.is_file():
+        raise SystemExit(f"patch-mfe-brand: {dist} has no index.html to link the skin from")
+    html = shell.read_text(encoding="utf-8")
+    if "atheniq-unity.css" in html:
+        return
+    links = UNITY_LINK.format(root=f"/{app}/")
+    if "</head>" in html:
+        counts["unity:linked"] += 1
+        if write:
+            shell.write_text(html.replace("</head>", links + "</head>", 1), encoding="utf-8")
+
+
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("dist", type=Path)
     parser.add_argument("--app", default="", help="the app name (enables its app-only rules)")
     parser.add_argument("--report", action="store_true", help="print what changed, write nothing")
+    parser.add_argument("--unity-css", type=Path, default=None,
+                        help="directory holding unity-light.css / unity-dark.css")
     args = parser.parse_args(argv)
 
     if not args.dist.is_dir():
@@ -342,6 +380,9 @@ def main(argv: list[str]) -> int:
             counts["studio-css"] += 1
             if not args.report:
                 sheet.write_text(text + STUDIO_CSS, encoding="utf-8")
+
+    if args.unity_css is not None:
+        install_unity(args.dist, app, args.unity_css, counts, write=not args.report)
 
     for label, number in sorted(counts.items()):
         print(f"  {label:28} {number}")
