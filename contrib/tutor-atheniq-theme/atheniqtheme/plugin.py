@@ -17,9 +17,9 @@ HOW IT LANDS. Two patches and one configuration default:
    footer and `<head>` hook, the header logo, the favicon, the index overlay and
    the Unity skin; and **Studio's** header and skin, which used to be applied by
    hand after a deploy. The two served static directories are copied explicitly
-   (`/openedx/staticfiles/atheniq/` and `/openedx/staticfiles/indigo/atheniq/`),
-   so `/static/atheniq/…` and Studio's `/static/indigo/atheniq/…` resolve even if
-   a collect is run with `--skip-themes`.
+   (`/openedx/staticfiles/atheniq/` and `/openedx/staticfiles/studio/atheniq/`),
+   so `/static/atheniq/…` and Studio's `/static/studio/atheniq/…` resolve even
+   if a collect is run with `--skip-themes`.
 
    Why after `collectstatic` rather than before: the theme directory is copied
    into the image at one point and its static assets are collected at another,
@@ -85,12 +85,14 @@ CMS_THEME_ROOT = "/openedx/themes/indigo/cms"
 
 #: Where a browser actually fetches the two skins from. The LMS theming app
 #: resolves `/theming/asset/atheniq/…` out of the *top-level* collected static
-#: directory, and Studio asks for `/static/indigo/atheniq/…` (the theme's static
-#: namespace). Both are copied explicitly rather than left to `collectstatic`,
-#: which namespaces theme static as `indigo/` only and would leave the LMS's
-#: `/static/atheniq/…` URLs — the ones `head-extra.html` links — unserved.
+#: directory, and Studio asks for `/static/studio/atheniq/…` — the CMS's static
+#: namespace is `studio`, which is what `static.url()` in a Studio template
+#: prefixes (the theme's name is only the directory it is collected *from*).
+#: Both are copied explicitly rather than left to `collectstatic`, which would
+#: leave the LMS's `/static/atheniq/…` URLs — the ones `head-extra.html` links —
+#: unserved.
 LMS_STATIC_ROOT = "/openedx/staticfiles/atheniq"
-CMS_STATIC_ROOT = "/openedx/staticfiles/indigo/atheniq"
+CMS_STATIC_ROOT = "/openedx/staticfiles/studio/atheniq"
 
 #: The Tutor settings patches that carry the Unity skin into the MFEs.
 MFE_SETTINGS_PATCH = "mfe-lms-common-settings"

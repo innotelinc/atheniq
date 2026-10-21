@@ -59,9 +59,10 @@ CMS_THEME_STATIC="${CMS_THEME_STATIC:-${CMS_THEME_ROOT}/static}"
 # The footer and the MFE brand override link /theming/asset/atheniq/…, which the
 # LMS resolves out of the *collected* static files — the theme directory alone is
 # not what a browser gets. The LMS skin is linked as /static/atheniq/… and Studio
-# asks for /static/indigo/atheniq/…, which is the theme's own static namespace.
+# asks for /static/studio/atheniq/… (the CMS's static namespace is `studio`, not
+# the theme's name — `static.url()` in a Studio template prefixes it).
 STATIC_TARGET="${STATIC_TARGET:-/openedx/staticfiles/atheniq}"
-CMS_STATIC_TARGET="${CMS_STATIC_TARGET:-/openedx/staticfiles/indigo/atheniq}"
+CMS_STATIC_TARGET="${CMS_STATIC_TARGET:-/openedx/staticfiles/studio/atheniq}"
 
 restart=1
 bake=1
@@ -125,7 +126,7 @@ done
 #
 # Studio is themed from its own root. The header override is what loads Unity;
 # the stylesheets go to both the theme's static dir (for a rebuilt image) and the
-# collected one (for this running CMS, which serves them as /static/indigo/…).
+# collected one (for this running CMS, which serves them as /static/studio/…).
 
 docker exec "${CMS_CONTAINER}" mkdir -p "${CMS_THEME_TARGET}/widgets"
 docker cp "${THEME_DIR}/cms/templates/widgets/header.html" \

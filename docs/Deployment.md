@@ -161,7 +161,7 @@ recreate); `--no-restart` skips the restart.
 [`contrib/tutor-atheniq-theme`](../contrib/tutor-atheniq-theme) plugin before a
 rebuild: its Dockerfile patch copies the same overlay in — LMS, CMS, the served
 static copies under `/openedx/staticfiles/atheniq/` and
-`/openedx/staticfiles/indigo/atheniq/` — and re-collects the static assets,
+`/openedx/staticfiles/studio/atheniq/` — and re-collects the static assets,
 which is the durable form of this step.
 
 > **The learner MFEs** (catalog, learning, profile) render their own footer from

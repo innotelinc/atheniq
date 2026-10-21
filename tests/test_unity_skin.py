@@ -209,7 +209,8 @@ class Plugin(unittest.TestCase):
     def test_the_static_copies_are_where_the_templates_look(self):
         """`/static/atheniq/…` and `/static/indigo/atheniq/…` are two namespaces."""
         self.assertIn("/openedx/staticfiles/atheniq", self.text)
-        self.assertIn("/openedx/staticfiles/indigo/atheniq", self.text)
+        # Studio's static namespace is `studio`, not the theme's directory name.
+        self.assertIn("/openedx/staticfiles/studio/atheniq", self.text)
         self.assertIn("lms/static/images/", self.text)
 
     def test_it_repoints_only_the_brand_override(self):
