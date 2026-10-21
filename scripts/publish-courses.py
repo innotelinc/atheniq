@@ -763,10 +763,13 @@ print("ATHENIQ_DELETED " + json.dumps({{"deleted": deleted, "failed": failed}}))
         """Write each course's card photograph into its `CourseOverview`.
 
         `course_image_url` is what the catalog API, the learner dashboard and
-        Studio's schedule page all read. The photograph itself is a URL into the
-        LMS's own static files (`/static/atheniq/images/courses/…`) — not an
-        upload per course — so one pool serves every course and a re-publish
-        only rewrites a string.
+        Studio's schedule page all read; `banner_image_url` is the wide image on
+        the course home. Both are set to the same photograph — an imported shell
+        otherwise carries the platform's placeholder asset, so a learner would
+        see the wrong picture on the course page and the right one on its card.
+        The photograph itself is a URL into the LMS's own static files
+        (`/static/atheniq/images/courses/…`) — not an upload per course — so one
+        pool serves every course and a re-publish only rewrites a string.
 
         The overview is cached, and the LMS keeps its own cache namespace, so
         both are cleared: without that, the card can show the old tile until the
@@ -784,7 +787,7 @@ from openedx.core.djangoapps.content.course_overviews.models import CourseOvervi
 plan = json.loads({json.dumps(plan)!r})
 updated, missing = [], []
 for key, url in plan.items():
-    if CourseOverview.objects.filter(id=key).update(course_image_url=url):
+    if CourseOverview.objects.filter(id=key).update(course_image_url=url, banner_image_url=url):
         updated.append(key)
     else:
         missing.append(key)

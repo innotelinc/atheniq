@@ -84,7 +84,7 @@ class Publishing(unittest.TestCase):
     def test_publishing_applies_the_photographs(self):
         """A card image is part of publishing, not an afterthought."""
         source = (ROOT / "scripts" / "publish-courses.py").read_text(encoding="utf-8")
-        self.assertIn("CourseOverview.objects.filter(id=key).update(course_image_url=url)", source)
+        self.assertIn("CourseOverview.objects.filter(id=key).update(course_image_url=url, banner_image_url=url)", source)
         self.assertIn("answer[\"images\"] = self.set_images(entries)", source)
 
     def test_there_is_a_delete_all_for_a_start_from_scratch(self):
