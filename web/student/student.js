@@ -78,6 +78,28 @@ const programCard = (program) => el("button", {
 );
 
 const courseCard = (course) => {
+  // A course that exists only in a program plan: the program carries it from
+  // the moment it is saved, but a spec (and so a classroom) only appears once
+  // one is generated. Listed rather than hidden, and linked to the program that
+  // teaches it, so a new course can be found before it is built.
+  if (course.planned) {
+    return el("div", { class: "course-card planned" },
+      el("div", { class: "slug" }, course.code),
+      el("div", { class: "key" }, course.title || ""),
+      el("div", { class: "tally" }, "planned · not built yet"),
+      course.program
+        ? el("div", { class: "rooms" },
+            el("span", { class: "dot" }),
+            el("a", {
+              href: `#program/${course.program.id}`,
+              onclick: (event) => {
+                event.preventDefault();
+                openProgram(course.program.id);
+              },
+            }, `in ${course.program.name}`))
+        : null,
+    );
+  }
   const rooms = course.classrooms.slice(0, 6).map((room) => el("div", {
     class: `room${room.generated ? " live" : ""}`.trim(),
   },

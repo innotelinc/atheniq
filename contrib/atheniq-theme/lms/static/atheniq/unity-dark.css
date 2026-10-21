@@ -85,6 +85,32 @@ header a[href$="/dashboard"]:hover::after {
   font-size: 12px; line-height: 1.4; letter-spacing: 0.02em;
 }
 
+/* ---------------------------------------------------------- the MFE nav -- */
+
+/* The injected header nav, as a row. Paragon's `.nav-link` is `display:block`,
+ * so an unstyled wrapper stacked its links down the left of the header; the
+ * workspace menu (Courses · Programs · Classrooms · Studio · Platform) belongs
+ * to the console, not to a learner's header, so it goes by destination. The
+ * reasoning is in `unity-light.css`; this file only carries the same rules for
+ * the dark scheme. */
+nav.atheniq-nav {
+  display: flex !important;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  margin-inline-start: auto;
+}
+nav.atheniq-nav a.nav-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.65rem;
+  white-space: nowrap;
+}
+nav.atheniq-nav a.nav-link[href*="ai.lms.innotel.us"],
+nav.atheniq-nav a.nav-link[href*="studio.innotel.us"] {
+  display: none !important;
+}
+
 /* ------------------------------------------------------- the learner home -- */
 
 /* WHAT THIS IS. `/` is the catalog MFE's home page: a banner, the course

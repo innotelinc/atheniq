@@ -94,6 +94,28 @@ class PortalTests(unittest.TestCase):
         self.assertTrue(payload["courses"])
         self.assertIn("classroomsLive", payload)
 
+    def test_courses_of_a_new_program_are_listed_before_they_are_built(self):
+        """A program carries its curriculum from the moment it is saved.
+
+        Without this, a program created today listed its courses inside the
+        program and none of them under Courses — which reads as "the course was
+        not created". They are listed as `planned`, pointing at the program.
+        """
+        status, body = get(self.base, "/api/public/courses")
+        self.assertEqual(status, 200)
+        payload = json.loads(body)
+        planned = [c for c in payload["courses"] if c.get("planned")]
+        self.assertTrue(planned, "a program's unbuilt courses should still be listed")
+        entry = next(c for c in planned if c["code"] == "CJ101")
+        self.assertEqual(entry["program"]["id"], self.doc["id"])
+        self.assertEqual((entry["generated"], entry["total"]), (0, 0))
+        # One card per course: a code with a spec is the spec, not a second
+        # planned entry beside it.
+        codes = [c["code"] for c in payload["courses"] if c.get("code")]
+        self.assertEqual(len(codes), len(set(codes)))
+        self.assertTrue(any(c["slug"] for c in payload["courses"]),
+                        "built specs still carry their slug")
+
     def test_portal_page_is_served(self):
         status, body = get(self.base, "/")
         self.assertEqual(status, 200)

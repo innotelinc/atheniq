@@ -85,6 +85,44 @@ header a[href$="/dashboard"]:hover::after {
   font-size: 12px; line-height: 1.4; letter-spacing: 0.02em;
 }
 
+/* ---------------------------------------------------------- the MFE nav -- */
+
+/* WHAT THIS IS. The header nav `contrib/tutor-atheniq-mfe` injects into the
+ * learner apps: the two places a learner can actually go — their courses and
+ * the catalogue.
+ *
+ * WHY THE LAYOUT LIVES HERE. The slot renders the widget's anchors beside the
+ * MFE's own nav, and Paragon's `.nav-link` is `display:block` — so an injected
+ * <nav> whose wrapper has no geometry laid its links out as a **column pinned
+ * to the left of the header** instead of a row. The component now styles
+ * itself, but an app whose bundle predates that fix still carries the column;
+ * the skin every app loads is the one thing that reaches all of them, so the
+ * row is declared here too.
+ *
+ * THE WORKSPACE MENU IS NOT PART OF A LEARNER'S HEADER. Courses · Programs ·
+ * Classrooms · Studio · Platform are the console's menu, for staff. Bundles
+ * built before the plugin learned that still render the five, and a compiled
+ * bundle is not editable from here — so they are removed by destination, which
+ * survives a rebuild either way.
+ */
+nav.atheniq-nav {
+  display: flex !important;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  margin-inline-start: auto;
+}
+nav.atheniq-nav a.nav-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.65rem;
+  white-space: nowrap;
+}
+nav.atheniq-nav a.nav-link[href*="ai.lms.innotel.us"],
+nav.atheniq-nav a.nav-link[href*="studio.innotel.us"] {
+  display: none !important;
+}
+
 /* ------------------------------------------------------- the learner home -- */
 
 /* WHAT THIS IS. `/` is the catalog MFE's home page: a banner, the course

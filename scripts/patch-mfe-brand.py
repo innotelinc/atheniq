@@ -134,15 +134,20 @@ TOKEN_RULES = (
 #: actions are links to the workspace, which enforces its own permissions, and a
 #: missing program link on a page that is about creating things is the bug.
 #: The learner dashboard gets two links, not the operator's five: a learner wants
-#: their courses and somewhere to find more, and the workspace is an author's tool.
+#: their courses and the catalogue, and the workspace is an author's tool. The
+#: catalogue is the AthenIQ portal rather than the LMS catalog MFE: the portal
+#: reads the program store, so a program or course created in the console is
+#: listed there immediately, while the LMS catalog only ever lists Open edX
+#: courses and therefore cannot show either.
 LEARNER_SECTIONS = (
     ("Courses", "https://apps.learn.innotel.us/"),
-    ("Discover New", "https://apps.learn.innotel.us/catalog/courses"),
+    ("Catalogue", "https://lms.innotel.us/"),
 )
 
-#: The five the env-config component was compiled with, in its order. Pinned as a
-#: literal: if the build changes it, the dashboard keeps the five links and the
-#: deploy says so instead of shipping the page it was meant to fix.
+#: The five the env-config component carried, in its order. Pinned as a literal:
+#: the bundles already built hold this array, and no rebuild is needed to take it
+#: out — every app is patched to the empty list, and the dashboard to the two
+#: learner links above.
 PLATFORM_SECTIONS = (
     ("Courses", "https://ai.lms.innotel.us/courses.html"),
     ("Programs", "https://ai.lms.innotel.us/programs.html"),
@@ -158,6 +163,16 @@ def sections_literal(pairs) -> str:
 
 
 PLATFORM_NAV_ANCHOR = sections_literal(PLATFORM_SECTIONS)
+
+#: The learner array as the dashboard shipped it: "Discover New" opened the LMS
+#: catalog MFE, which lists Open edX courses — so a program or course created in
+#: the console was not there, and could not be enrolled in. The catalogue link
+#: now opens the portal, which reads the program store. Pinned as a literal, so
+#: the bundles already built are repointed without a rebuild.
+LEGACY_LEARNER_ANCHOR = sections_literal((
+    ("Courses", "https://apps.learn.innotel.us/"),
+    ("Discover New", "https://apps.learn.innotel.us/catalog/courses"),
+))
 
 #: The two pushes are replaced one at a time, and neither replacement touches the
 #: braces around them: the stock code is
@@ -271,9 +286,18 @@ def patch_text(text: str, app: str, counts: Counter) -> str:
             counts["edx-links"] += text.count(old)
             text = text.replace(old, new)
 
-    if app == "learner-dashboard" and PLATFORM_NAV_ANCHOR in text:
-        counts["learner-nav"] += text.count(PLATFORM_NAV_ANCHOR)
-        text = text.replace(PLATFORM_NAV_ANCHOR, sections_literal(LEARNER_SECTIONS))
+    if LEGACY_LEARNER_ANCHOR in text:
+        counts["learner-nav-legacy"] += text.count(LEGACY_LEARNER_ANCHOR)
+        text = text.replace(LEGACY_LEARNER_ANCHOR, sections_literal(LEARNER_SECTIONS))
+
+    if PLATFORM_NAV_ANCHOR in text:
+        # The workspace menu is the console's, not a learner's: the dashboard is
+        # given the two learner links, every other app an empty list. Empty
+        # rather than left alone because a bundle built before the plugin learned
+        # this still renders the five, and the list is the thing that renders.
+        sections = LEARNER_SECTIONS if app == "learner-dashboard" else ()
+        counts["learner-nav" if sections else "workspace-nav"] += text.count(PLATFORM_NAV_ANCHOR)
+        text = text.replace(PLATFORM_NAV_ANCHOR, sections_literal(sections))
 
     if app == "authoring" and HOME_ACTIONS_ANCHOR in text:
         counts["home-actions"] += text.count(HOME_ACTIONS_ANCHOR)

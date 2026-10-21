@@ -196,9 +196,55 @@ class Catalogue:
 
     # -- courses ---------------------------------------------------------
 
+    @staticmethod
+    def _course_code(spec: dict) -> str:
+        """The run's course code: `course-v1:InnotelLabs+FAI103+2026_T4` → FAI103.
+
+        A program plan names a course by its code, so this is how a built spec is
+        matched to the plan entry it satisfies.
+        """
+        source = str(spec.get("source_course") or "")
+        parts = source.split("+")
+        return (parts[1] if len(parts) > 1 else source).strip().upper()
+
+    def _planned_courses(self, built: set[str]) -> list[dict]:
+        """Courses that exist only in a program plan.
+
+        A program carries its whole curriculum the moment it is saved, but a
+        course spec — and so a course in this catalogue — is written only when a
+        classroom is generated. So a program created five minutes ago listed its
+        courses inside the program and showed none of them under Courses, which
+        reads as "the course was not created". These are those courses, marked
+        `planned` and pointing at the program that teaches them, so they can be
+        found before anything is built.
+        """
+        out, seen = [], set()
+        for summary in self.store.list_programs():
+            try:
+                doc = self.store.get(summary["id"])
+            except Exception:  # noqa: BLE001 — one unreadable file is not a dead catalogue
+                continue
+            for semester in (doc.get("plan") or {}).get("semesters") or []:
+                for course in semester.get("courses") or []:
+                    code = str(course.get("code") or "").strip().upper()
+                    if not code or code in built or code in seen:
+                        continue
+                    seen.add(code)
+                    out.append({
+                        "slug": None, "code": code,
+                        "title": course.get("title"),
+                        "program": {"id": doc.get("id"), "name": doc.get("name")},
+                        "course": "", "locale": "",
+                        "classrooms": [], "generated": 0, "total": 0,
+                        "planned": True,
+                    })
+        out.sort(key=lambda item: item["code"])
+        return out
+
     def courses(self) -> dict:
         out = []
         classrooms = 0
+        built: set[str] = set()
         for slug, path in self.builder.spec_paths(self.course_root):
             try:
                 doc = self.builder.read_spec(path)
@@ -214,6 +260,7 @@ class Catalogue:
                     "generated": bool(stage),
                     "url": f"{self.config.classroom_host}/classroom/{stage}" if stage else None,
                 })
+            built.add(self._course_code(doc))
             classrooms += sum(1 for room in rooms if room["generated"])
             out.append({
                 "slug": slug,
@@ -224,6 +271,7 @@ class Catalogue:
                 "total": len(rooms),
             })
         out.sort(key=lambda item: item["slug"])
+        out.extend(self._planned_courses(built))
         return {"courses": out, "classroomsLive": classrooms,
                 "classroomHost": self.config.classroom_host}
 

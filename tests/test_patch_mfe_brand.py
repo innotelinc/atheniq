@@ -171,7 +171,7 @@ class OnDisk(unittest.TestCase):
 class LearnerDashboard(unittest.TestCase):
     """The dashboard gets two links, not the operator's five."""
 
-    def test_the_five_workspace_links_become_courses_and_discover(self):
+    def test_the_five_workspace_links_become_courses_and_catalogue(self):
         source = 'p=' + brand.sections_literal(brand.PLATFORM_SECTIONS) + ',b=()=>1'
         result, counts = patch(source, app="learner-dashboard")
         self.assertEqual(counts["learner-nav"], 1)
@@ -179,10 +179,31 @@ class LearnerDashboard(unittest.TestCase):
                          "p=" + brand.sections_literal(brand.LEARNER_SECTIONS) + ",b=()=>1")
         for gone in ("programs.html", "index.html", "studio.innotel.us", "platform.html"):
             self.assertNotIn(gone, result)
+        # The two that remain lead somewhere a learner can go: their courses and
+        # the portal, which is the page that lists console-created programs.
+        self.assertIn("https://apps.learn.innotel.us/", result)
+        self.assertIn("https://lms.innotel.us/", result)
 
-    def test_another_app_keeps_the_workspace_nav(self):
+    def test_every_other_app_loses_the_workspace_nav(self):
         source = 'p=' + brand.sections_literal(brand.PLATFORM_SECTIONS)
         result, counts = patch(source, app="learning")
+        self.assertEqual(result, "p=[]")
+        self.assertEqual(counts.get("workspace-nav", 0), 1)
+        self.assertEqual(counts.get("learner-nav", 0), 0)
+
+    def test_the_shipped_learner_link_to_the_lms_catalog_is_repointed(self):
+        """`Discover New` → the LMS catalog, which cannot list a console program."""
+        source = "p=" + brand.LEGACY_LEARNER_ANCHOR
+        result, counts = patch(source, app="learner-dashboard")
+        self.assertEqual(counts["learner-nav-legacy"], 1)
+        self.assertEqual(result, "p=" + brand.sections_literal(brand.LEARNER_SECTIONS))
+        self.assertIn("https://lms.innotel.us/", result)
+        self.assertNotIn("catalog/courses", result)
+
+    def test_the_two_learner_links_are_already_what_the_dashboard_carries(self):
+        """Idempotent: a second pass over the shipped array is a no-op."""
+        source = 'p=' + brand.sections_literal(brand.LEARNER_SECTIONS)
+        result, counts = patch(source, app="learner-dashboard")
         self.assertEqual(result, source)
         self.assertEqual(counts.get("learner-nav", 0), 0)
 

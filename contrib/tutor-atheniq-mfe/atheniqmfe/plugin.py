@@ -24,12 +24,14 @@ image:
 
 The header is the same mechanism: an env-config runtime definition plus a
 `PLUGIN_SLOTS` entry that adds one nav to the desktop main menu and one to the
-mobile menu. That nav is the platform's own — Courses · Programs · Classrooms ·
-Studio · Platform — so every app in the estate opens the same workspace, on the
-same Authentik session the LMS already uses. The authoring app additionally gets
-a create row (+ New Program · + New Course · + New Classroom · + New Library) in
-its page banner, because creating any of the three is one action in the console,
-not three different apps.
+mobile menu. It carries exactly two links — the learner's own courses and the
+AthenIQ catalogue (`lms.innotel.us`, the page that reads the program store) —
+and only on the dashboard. The workspace menu (Courses · Programs · Classrooms
+· Studio · Platform) is *not* in it: those are staff pages in the console, and
+a learner's header offering five tools they cannot use is what it looked like.
+The authoring app gets a create row (+ New Program · + New Course · + New
+Classroom · + New Library) in its page banner instead, because creating any of
+the three is one action in the console, not three different apps.
 
 The LMS footer itself is replaced by `contrib/atheniq-theme` (no rebuild); this
 plugin is only for the learner MFEs.
@@ -57,25 +59,21 @@ FOOTER_SLOT = "org.openedx.frontend.layout.footer.v1"
 #: URL and any future move of the console cannot drift apart.
 AI_CONSOLE_URL = "https://ai.lms.innotel.us/"
 
-#: The one workspace behind every authoring entry point. Courses, programs and
-#: classrooms are created and maintained there; Studio edits the course those
-#: specs describe. Each label points at the page that does the thing, so the
-#: header is the same everywhere instead of five apps with five menus.
-PLATFORM_SECTIONS = (
-    ("Courses", AI_CONSOLE_URL + "courses.html"),
-    ("Programs", AI_CONSOLE_URL + "programs.html"),
-    ("Classrooms", AI_CONSOLE_URL + "index.html"),
-    ("Studio", "https://studio.innotel.us/"),
-    ("Platform", AI_CONSOLE_URL + "platform.html"),
-)
-
 #: The learner dashboard is a learner's page, not an operator's: it offers the
-#: two places a learner needs — their courses and the catalogue — instead of the
-#: five workspace links, which open tools they cannot use.
+#: two places a learner needs — their courses and the catalogue. The catalogue is
+#: the AthenIQ portal (`lms.innotel.us`), because that is the page that reads the
+#: program store: a program created in the console is there as soon as it is
+#: saved, which the LMS course list (Open edX courses only) can never show.
 LEARNER_SECTIONS = (
     ("Courses", "https://apps.learn.innotel.us/"),
-    ("Discover New", "https://apps.learn.innotel.us/catalog/courses"),
+    ("Catalogue", "https://lms.innotel.us/"),
 )
+
+#: There is no workspace nav. Courses · Programs · Classrooms · Studio ·
+#: Platform is the console's menu — five pages of staff tooling — and putting it
+#: in every MFE header gave a learner five links to tools they cannot use, laid
+#: out as a column against the left edge. Those pages are reachable from the
+#: console itself; the header carries only what the page is for.
 
 #: What the authoring app's create buttons become. The stock page offers one
 #: "+ New Course"; a program, a classroom and a media library are created the
@@ -172,21 +170,24 @@ RenderWidget: AthenIQFooter,
 # renders beside the nav rather than inside its <Nav>, and `nav-link` carries
 # the same styling in both places.
 HEADER_COMPONENT = f"""
-const ATHENIQ_SECTIONS = {[list(pair) for pair in PLATFORM_SECTIONS]!r};
 const ATHENIQ_LEARNER_SECTIONS = {[list(pair) for pair in LEARNER_SECTIONS]!r};
-const AthenIQPlatformNav = () => {{
+const AthenIQLearnerNav = () => {{
   // One env.config.jsx is compiled into every MFE here, so the widget has to
-  // decide for itself where it is: the workspace belongs to the authoring app
-  // (`/authoring`), the two learner links belong to the dashboard, and every
-  // other page gets neither.
+  // decide for itself where it is: the learner links belong to the dashboard,
+  // and every other app — studio above all, which is an author's tool — gets
+  // none of them.
   const path = window.location.pathname;
-  const learner = path.startsWith('/learner-dashboard');
-  if (!learner && !path.startsWith('/authoring')) return null;
-  const sections = learner ? ATHENIQ_LEARNER_SECTIONS : ATHENIQ_SECTIONS;
+  if (!path.startsWith('/learner-dashboard')) return null;
   return (
-  <nav className="atheniq-nav" aria-label={{
-    learner ? 'AthenIQ learner links' : 'AthenIQ Platform Services'}}>
-    {{sections.map(([label, href]) => (
+  <nav className="atheniq-nav atheniq-nav-learner" aria-label="AthenIQ learner links">
+    <style>{{`
+      /* A row, not a column: Paragon's .nav-link is display:block and the slot
+         gives the wrapper no geometry, so an unstyled nav stacked its links
+         down the left of the header. */
+      nav.atheniq-nav {{ display: flex !important; flex-wrap: wrap; align-items: center; gap: 2px; margin-inline-start: auto; }}
+      nav.atheniq-nav a.nav-link {{ display: inline-flex; align-items: center; padding: 0 0.65rem; white-space: nowrap; }}
+    `}}</style>
+    {{ATHENIQ_LEARNER_SECTIONS.map(([label, href]) => (
       <a key={{label}} className="nav-link atheniq-nav-link" href={{href}}>{{label}}</a>
     ))}}
   </nav>
@@ -218,10 +219,10 @@ HEADER_SLOT_CONFIG = """
 {
 op: PLUGIN_OPERATIONS.Insert,
 widget: {
-id: 'atheniq_platform_nav',
+id: 'atheniq_learner_nav',
 type: DIRECT_PLUGIN,
 priority: 30,
-RenderWidget: AthenIQPlatformNav,
+RenderWidget: AthenIQLearnerNav,
 },
 },
 """

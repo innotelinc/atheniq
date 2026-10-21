@@ -182,26 +182,48 @@ class Plugin(unittest.TestCase):
 
 
 class HeaderLinks(unittest.TestCase):
-    """The MFE plugin's nav: the workspace in the studio, two links on the dashboard."""
+    """The MFE plugin's nav: two learner links on the dashboard, nothing elsewhere."""
 
     MFE_PLUGIN = ROOT / "contrib" / "tutor-atheniq-mfe" / "atheniqmfe" / "plugin.py"
 
     def setUp(self):
         self.text = self.MFE_PLUGIN.read_text(encoding="utf-8")
 
-    def test_the_dashboard_gets_two_links_and_the_studio_gets_the_workspace(self):
+    def test_the_dashboard_gets_two_links_and_no_workspace_menu(self):
         self.assertIn("LEARNER_SECTIONS = (", self.text)
         self.assertIn('("Courses", "https://apps.learn.innotel.us/")', self.text)
-        self.assertIn('("Discover New", "https://apps.learn.innotel.us/catalog/courses")', self.text)
-        # The component picks by path; a dashboard that falls through to the
-        # workspace links is the bug this guards.
+        # The catalogue is the portal: it reads the program store, so a program
+        # created in the console is listed there, which the LMS catalog is not.
+        self.assertIn('("Catalogue", "https://lms.innotel.us/")', self.text)
+        self.assertNotIn('("Discover New"', self.text)
+        # Only the dashboard renders it; every other app gets nothing at all.
         self.assertIn("path.startsWith('/learner-dashboard')", self.text)
-        self.assertIn("learner ? ATHENIQ_LEARNER_SECTIONS : ATHENIQ_SECTIONS", self.text)
+        self.assertNotIn("ATHENIQ_SECTIONS", self.text)
 
-    def test_the_workspace_links_are_still_what_the_studio_shows(self):
-        for label in ("Courses", "Programs", "Classrooms", "Studio", "Platform"):
-            self.assertIn(f'("{label}", ', self.text)
-        self.assertIn("if (!learner && !path.startsWith('/authoring')) return null;", self.text)
+    def test_the_workspace_menu_is_gone_from_the_header(self):
+        for label in ("Programs", "Classrooms", "Studio", "Platform"):
+            self.assertNotIn(f'("{label}", ', self.text)
+        self.assertNotIn("PLATFORM_SECTIONS", self.text)
+        self.assertNotIn("path.startsWith('/authoring')", self.text)
+
+    def test_the_nav_lays_itself_out_as_a_row(self):
+        """Paragon's `.nav-link` is display:block; without this the nav is a column."""
+        self.assertIn("nav.atheniq-nav {{ display: flex !important;", self.text)
+        self.assertIn("nav.atheniq-nav a.nav-link {{ display: inline-flex;", self.text)
+
+
+class HeaderNavSkin(unittest.TestCase):
+    """The skins reach every app, including bundles built before the plugin fix."""
+
+    def test_both_skins_row_the_nav_and_drop_the_workspace_links(self):
+        for name in ("unity-light.css", "unity-dark.css"):
+            css = (ROOT / "contrib" / "atheniq-theme" / "mfe" / name).read_text(encoding="utf-8")
+            self.assertIn("nav.atheniq-nav {", css, name)
+            self.assertIn("display: flex !important;", css, name)
+            self.assertIn("display: inline-flex;", css, name)
+            self.assertIn('a.nav-link[href*="ai.lms.innotel.us"]', css, name)
+            self.assertIn('a.nav-link[href*="studio.innotel.us"]', css, name)
+            self.assertIn("display: none !important;", css, name)
 
 
 if __name__ == "__main__":
