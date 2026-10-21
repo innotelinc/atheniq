@@ -1,6 +1,6 @@
 """Unit tests for the LMS publisher.
 
-A programme in the console is a plan; a *course* is what the LMS has. This tool is
+A program in the console is a plan; a *course* is what the LMS has. This tool is
 the seam between them, so what matters is that the thing it publishes is a real,
 valid Open edX course that says what the plan actually says — not invented
 courseware — that its key is stable (a second publish is a no-op, not a second
@@ -33,6 +33,49 @@ SEMESTERS = [{
          "finalExam": "practical", "classrooms": 3},
     ],
 }]
+
+
+LESSONS = [{
+    "id": "scene_1", "title": "What a firm is",
+    "description": "Firms combine inputs into something a customer pays for.",
+    "key_points": ["Inputs", "Value", "Customers"],
+    "classroomId": "stage-test1",
+    "questions": [
+        {"prompt": "What does a firm do?", "kind": "single",
+         "solution": "It combines inputs into value.",
+         "options": [
+             {"value": "A", "label": "Combines inputs into value", "correct": True},
+             {"value": "B", "label": "Prints money", "correct": False},
+         ]},
+        {"prompt": "Which of these are inputs? Select all that apply.", "kind": "multiple",
+         "solution": "Labour and capital are inputs; weather is not.",
+         "options": [
+             {"value": "A", "label": "Labour", "correct": True},
+             {"value": "B", "label": "Capital", "correct": True},
+             {"value": "C", "label": "Weather", "correct": False},
+         ]},
+    ],
+}, {
+    "id": "scene_2", "title": "Why margins matter",
+    "description": "Revenue minus cost is what pays for the next year.",
+    "key_points": ["Revenue", "Cost"], "classroomId": "stage-test1",
+    "questions": [],
+}]
+
+
+class FakeLessons:
+    """A classroom outline and its quizzes, without OpenMAIC behind it."""
+
+    def __init__(self, lessons=None, fail=None):
+        self.calls = []
+        self._lessons = lessons if lessons is not None else LESSONS
+        self.fail = fail
+
+    def lessons(self, stage_id):
+        self.calls.append(stage_id)
+        if self.fail:
+            raise publisher.LmsError(self.fail)
+        return [dict(lesson) for lesson in self._lessons]
 
 
 class FakeLms:
@@ -84,6 +127,16 @@ class FakeLms:
         return {"students": [{"student": students[0], "user": "tester", "missing": False,
                               "enrolled": list(keys), "errors": []}]}
 
+    def grades(self, students, keys):
+        if self.down:
+            raise publisher.LmsError("docker: cannot connect")
+        rows = [{"student": student, "user": "tester", "missing": False,
+                 "courses": [{"course": key, "percent": 82.5 if key.endswith("TST101+2026_T4") else None,
+                              "passed": key.endswith("TST101+2026_T4"), "letter": "B"}
+                             for key in keys]}
+                for student in students]
+        return {"students": rows}
+
 
 def read(path):
     with open(path, encoding="utf-8") as fh:
@@ -96,7 +149,7 @@ class Fixture(unittest.TestCase):
         os.makedirs(os.path.join(self.root, "programs"))
         self.store = manager.ProgramStore(os.path.join(self.root, "programs"))
         self.program = self.store.create(None, {
-            "name": "Test Programme", "credential": "Test Degree",
+            "name": "Test Program", "credential": "Test Degree",
             "startTerm": "Fall 2026", "semesters": SEMESTERS,
         })
         self.lms = FakeLms()
@@ -107,17 +160,17 @@ class Fixture(unittest.TestCase):
 
 
 class KeyTests(unittest.TestCase):
-    def test_term_comes_from_the_programme(self):
+    def test_term_comes_from_the_program(self):
         self.assertEqual(publisher.term_for({"startTerm": "Fall 2026"}), "2026_T4")
         self.assertEqual(publisher.term_for({"startTerm": "Spring 2027"}), "2027_T2")
         self.assertEqual(publisher.term_for({"startTerm": "2026_T1"}), "2026_T1")
         self.assertEqual(publisher.term_for({"startTerm": "Winter 2028"}), "2028_T1")
 
-    def test_term_falls_back_to_when_the_programme_was_created(self):
+    def test_term_falls_back_to_when_the_program_was_created(self):
         self.assertEqual(
             publisher.term_for({"createdAt": "2027-05-04T10:00:00Z"}), "2027_T2")
 
-    def test_the_key_is_the_course_not_the_programme(self):
+    def test_the_key_is_the_course_not_the_program(self):
         self.assertEqual(publisher.course_key("acct201", "2026_T4"),
                          "course-v1:InnotelLabs+ACCT201+2026_T4")
 
@@ -257,12 +310,12 @@ class PublishTests(Fixture):
         self.assertIn("course-v1:InnotelLabs+TST101+2026_T4",
                       json.loads(read(os.path.join(self.root, "lms", "published.json"))))
 
-    def test_a_course_shared_by_two_programmes_is_published_once(self):
+    def test_a_course_shared_by_two_programs_is_published_once(self):
         self.store.create(None, {
-            "name": "Second Programme", "credential": "Second Degree",
+            "name": "Second Program", "credential": "Second Degree",
             "semesters": [{"name": "One", "courses": [
                 {"code": "TST101", "title": "Testing & Things", "credits": 3,
-                 "description": "Same course, second programme.", "prerequisites": [],
+                 "description": "Same course, second program.", "prerequisites": [],
                  "finalExam": "comprehensive", "classrooms": 2}]}],
         })
         answer = self.publisher.publish(execute=True)
@@ -276,7 +329,7 @@ class PublishTests(Fixture):
 
 
 class EnrolTests(Fixture):
-    def test_enrol_puts_the_learner_in_every_course_of_the_programme(self):
+    def test_enrol_puts_the_learner_in_every_course_of_the_program(self):
         self.publisher.publish(execute=True)
         report = self.publisher.enroll(self.program["id"], "tester@example.org")
         self.assertTrue(report["available"])
@@ -285,10 +338,177 @@ class EnrolTests(Fixture):
         self.assertEqual(keys, ["course-v1:InnotelLabs+TST101+2026_T4",
                                 "course-v1:InnotelLabs+TST102+2026_T4"])
 
-    def test_an_unknown_programme_enrols_nobody(self):
+    def test_an_unknown_program_enrols_nobody(self):
         report = self.publisher.enroll("nope", "tester@example.org")
         self.assertFalse(report["available"])
         self.assertEqual(self.lms.enrolled, [])
+
+
+class LessonTests(Fixture):
+    def entry(self, lessons=None):
+        entry = dict(self.entries()[0])
+        entry.update({
+            "classroomId": "stage-test1",
+            "lessons": lessons if lessons is not None else LESSONS,
+            "lessonCount": len(lessons if lessons is not None else LESSONS),
+            "questionCount": sum(len(lesson["questions"])
+                                 for lesson in (lessons if lessons is not None else LESSONS)),
+        })
+        return entry
+
+    def entries(self):
+        return self.publisher.entries(self.program, keys={})
+
+    def shell(self, entry, name="lesson"):
+        return publisher.build_shell(entry, os.path.join(self.root, "lms", "shells", name))
+
+    def test_a_lesson_becomes_a_chapter_with_its_classroom_and_checks(self):
+        olx = self.shell(self.entry())
+        errors, _, _ = validator.validate_course(olx)
+        self.assertEqual(errors, [])
+        block = read(os.path.join(olx, "course", f"{self.entry()['term']}.xml"))
+        self.assertIn('<chapter url_name="l1"/>', block)
+        self.assertIn('<chapter url_name="l2"/>', block)
+        chapter = read(os.path.join(olx, "chapter", "l1.xml"))
+        self.assertIn("Module 1 — What a firm is", chapter)
+        self.assertIn('url_name="l1_study"', chapter)
+        self.assertIn('url_name="l1_check"', chapter)
+        lesson = read(os.path.join(olx, "html", "l1_html.html"))
+        self.assertIn("Firms combine inputs", lesson)
+        self.assertIn("https://classroom.innotel.us/classroom/stage-test1", lesson)
+        # A lesson with no quiz has no check, rather than an empty one.
+        self.assertNotIn('url_name="l2_check"', read(os.path.join(olx, "chapter", "l2.xml")))
+
+    def test_the_final_examination_is_the_generated_questions(self):
+        olx = self.shell(self.entry())
+        exam = read(os.path.join(olx, "sequential", "s5_exam.xml"))
+        self.assertIn('graded="true"', exam)
+        self.assertIn('format="Final Exam"', exam)
+        self.assertIn('url_name="u5_exam"', exam)
+        vertical = read(os.path.join(olx, "vertical", "u5_exam.xml"))
+        self.assertIn('url_name="exam_q1"', vertical)
+        self.assertIn('url_name="exam_q2"', vertical)
+        single = read(os.path.join(olx, "problem", "exam_q1.xml"))
+        self.assertIn("<multiplechoiceresponse>", single)
+        self.assertIn('<choice correct="true">', single)
+        self.assertIn("Combines inputs into value", single)
+        multi = read(os.path.join(olx, "problem", "exam_q2.xml"))
+        self.assertIn("<checkboxgroup>", multi)
+        self.assertIn("<choiceresponse>", multi)
+        plan = read(os.path.join(olx, "html", "l3_plan.html"))
+        self.assertIn("What a firm is", plan)
+        self.assertIn("2 lessons", plan)
+        syllabus = read(os.path.join(olx, "html", "l2_syllabus.html"))
+        self.assertIn("2 questions", syllabus)
+
+    def test_a_shell_without_lessons_has_no_exam_paper(self):
+        entry = dict(self.entries()[0])
+        olx = self.shell(entry, "empty")
+        self.assertFalse(os.path.exists(os.path.join(olx, "sequential", "s5_exam.xml")))
+        self.assertFalse(os.path.exists(os.path.join(olx, "problem")))
+        self.assertIn("program office", read(os.path.join(olx, "html", "l2_syllabus.html")))
+
+    def test_quiz_scenes_are_normalised(self):
+        scene = {"outlineId": "scene_1", "content": {"type": "quiz", "questions": [
+            {"type": "single", "question": "Pick B", "analysis": "Because B.",
+             "answer": ["B"], "options": [{"label": "A", "value": "A"},
+                                         {"label": "B", "value": "B"}]},
+            {"type": "multiple", "question": "Pick both", "answer": ["A", "B"],
+             "options": [{"label": "A", "value": "A"}, {"label": "B", "value": "B"},
+                         {"label": "C", "value": "C"}]},
+            {"type": "single", "question": "No answer", "answer": [],
+             "options": [{"label": "A", "value": "A"}, {"label": "B", "value": "B"}]},
+        ]}}
+        questions = publisher._questions(scene)
+        self.assertEqual(len(questions), 2)
+        self.assertEqual(questions[0]["kind"], "single")
+        self.assertEqual(questions[1]["kind"], "multiple")
+        self.assertEqual([option["correct"] for option in questions[1]["options"]],
+                         [True, True, False])
+
+    def test_attach_rewrites_one_course_and_records_its_lessons(self):
+        self.publisher.lessons = FakeLessons()
+        self.publisher.publish(execute=True)
+        answer = self.publisher.attach(self.program["id"], "TST101", "stage-test1")
+        self.assertTrue(answer["attached"], answer)
+        self.assertEqual((answer["lessons"], answer["questions"]), (2, 2))
+        self.assertEqual(self.lms.imports[-1][1], "TST101-2026_T4")
+        self.assertTrue(answer["graded"])
+        record = json.loads(read(os.path.join(self.root, "lms", "published.json")))
+        self.assertEqual(record["course-v1:InnotelLabs+TST101+2026_T4"]["lessons"], 2)
+        self.assertEqual(record["course-v1:InnotelLabs+TST101+2026_T4"]["questions"], 2)
+
+    def test_attach_needs_a_classroom_and_a_published_course(self):
+        missing = self.publisher.attach(self.program["id"], "TST101")
+        self.assertFalse(missing["attached"])
+        self.assertIn("no generated classroom", missing["error"])
+        unpublished = self.publisher.attach(self.program["id"], "TST101", "stage-test1")
+        self.assertFalse(unpublished["attached"])
+        self.assertIn("not in the LMS", unpublished["error"])
+
+    def test_attach_reports_an_unreadable_classroom(self):
+        self.publisher.lessons = FakeLessons(fail="no such stage")
+        self.publisher.publish(execute=True)
+        answer = self.publisher.attach(self.program["id"], "TST101", "stage-test1")
+        self.assertFalse(answer["attached"])
+        self.assertIn("no such stage", answer["error"])
+
+
+class OpenmaicLessonTests(unittest.TestCase):
+    class Reader(publisher.OpenmaicLessons):
+        def __init__(self, outline, scenes):
+            super().__init__()
+            self.outline = outline
+            self.scenes = scenes
+
+        def _query(self, sql):
+            return self.outline if "document_outlines" in sql else self.scenes
+
+    def test_outline_and_quizzes_become_lessons(self):
+        outline = json.dumps({"outlines": [
+            {"id": "scene_1", "title": "What is addition?", "description": "Combining",
+             "keyPoints": ["Combining groups"]},
+            {"id": "scene_2", "title": "Quick check"},
+        ]})
+        scenes = "\n".join([
+            json.dumps({"outlineId": "scene_1", "content": {"type": "slide"}}),
+            json.dumps({"outlineId": "scene_2", "content": {"type": "quiz", "questions": [
+                {"type": "single", "question": "1 + 1?", "answer": ["B"],
+                 "options": [{"label": "1", "value": "A"}, {"label": "2", "value": "B"}]}]}}),
+        ])
+        lessons = self.Reader(outline, scenes).lessons("stage-abc")
+        self.assertEqual([lesson["title"] for lesson in lessons],
+                         ["What is addition?", "Quick check"])
+        self.assertEqual(lessons[0]["key_points"], ["Combining groups"])
+        self.assertEqual(lessons[0]["questions"], [])
+        self.assertEqual(len(lessons[1]["questions"]), 1)
+        self.assertEqual(lessons[1]["questions"][0]["options"][1]["correct"], True)
+        self.assertEqual(lessons[0]["classroomId"], "stage-abc")
+
+    def test_a_stage_id_cannot_smuggle_sql(self):
+        with self.assertRaises(publisher.LmsError):
+            publisher.OpenmaicLessons._stage("stage-1'; drop table document_scenes; --")
+
+
+class GradeTests(Fixture):
+    def test_grades_are_read_per_learner_and_course(self):
+        self.publisher.publish(execute=True)
+        self.store.enroll(self.program["id"], "tester@example.org")
+        report = self.publisher.grades(self.program["id"])
+        self.assertTrue(report["available"])
+        self.assertEqual(report["courses"], 2)
+        rows = {(row["student"], row["course"]): row for row in report["rows"]}
+        self.assertEqual(rows[("tester@example.org", "TST101")]["percent"], 82.5)
+        self.assertTrue(rows[("tester@example.org", "TST101")]["passed"])
+        self.assertIsNone(rows[("tester@example.org", "TST102")]["percent"])
+        self.assertFalse(rows[("tester@example.org", "TST102")]["passed"])
+
+    def test_an_unreachable_lms_is_reported_not_raised(self):
+        self.publisher.publish(execute=True)
+        self.lms.down = True
+        report = self.publisher.grades(self.program["id"], ["tester@example.org"])
+        self.assertFalse(report["available"])
+        self.assertIn("docker", report["error"])
 
 
 class ConsoleTests(Fixture):
@@ -296,6 +516,7 @@ class ConsoleTests(Fixture):
         def __init__(self, inner):
             self.inner = inner
             self.enrolled = []
+            self.attached = []
 
         def publish(self, program_ids=None, codes=None, execute=False):
             return self.inner.publish(program_ids, codes, execute)
@@ -309,6 +530,22 @@ class ConsoleTests(Fixture):
                     "students": [{"student": student, "user": "tester", "missing": False,
                                   "enrolled": ["course-v1:InnotelLabs+TST101+2026_T4"],
                                   "errors": []}]}
+
+        def attach(self, program_id, code, classroom_id=None):
+            self.attached.append((program_id, code, classroom_id))
+            return {"available": True, "attached": True, "key": f"course-v1:InnotelLabs+{code}+2026_T4",
+                    "code": code, "classroomId": classroom_id or "stage-x",
+                    "lessons": 2, "questions": 3, "graded": True}
+
+        def grades(self, program_id, students=None):
+            return {"available": True, "students": ["tester@example.org"], "courses": 2,
+                    "rows": [
+                        {"student": "tester@example.org", "course": "TST101",
+                         "key": "course-v1:InnotelLabs+TST101+2026_T4", "percent": 88.0,
+                         "passed": True, "letter": "B", "error": ""},
+                        {"student": "tester@example.org", "course": "TST102",
+                         "key": "course-v1:InnotelLabs+TST102+2026_T4", "percent": None,
+                         "passed": False, "letter": "", "error": ""}]}
 
     def console(self, publisher=None, publish_courses=False):
         # The console loads program-manager.py as its own module (by path), so its
@@ -350,13 +587,13 @@ class ConsoleTests(Fixture):
             api.program_publish(self.program["id"])
         self.assertEqual(caught.exception.status, 503)
 
-    def test_publish_of_an_unknown_programme_is_a_404(self):
+    def test_publish_of_an_unknown_program_is_a_404(self):
         api = self.console(self.FakePublisher(self.publisher))
         with self.assertRaises(console.Bad) as caught:
             api.program_publish("no-such-program")
         self.assertEqual(caught.exception.status, 404)
 
-    def test_creating_a_programme_publishes_it(self):
+    def test_creating_a_program_publishes_it(self):
         fake = self.FakePublisher(self.publisher)
         api = self.console(fake)
         created = api.program_create(None, {"name": "Second", "credential": "Second Degree",
@@ -368,11 +605,70 @@ class ConsoleTests(Fixture):
             __import__("time").sleep(0.01)
         self.assertEqual(run["published"], 2)
 
-    def test_creating_a_programme_without_a_publisher_still_creates_it(self):
+    def test_creating_a_program_without_a_publisher_still_creates_it(self):
         api = self.console()
         created = api.program_create(None, {"name": "Third", "credential": "Third Degree",
                                             "semesters": SEMESTERS})
         self.assertEqual(created["name"], "Third")
+
+    def test_pulling_lms_grades_records_completion_with_its_source(self):
+        api = self.console(self.FakePublisher(self.publisher))
+        answer = api.program_grades(self.program["id"])
+        self.assertEqual([row["course"] for row in answer["recorded"]], ["TST101"])
+        self.assertEqual(len(answer["skipped"]), 1)  # TST102 has no grade yet
+        progress = api.program_progress(self.program["id"], "tester@example.org")
+        completed = {row["code"]: row for row in progress["completed"]}
+        self.assertEqual(completed["TST101"]["score"], 88.0)
+        self.assertEqual(completed["TST101"]["source"], "lms")
+        self.assertNotIn("TST102", completed)
+
+    def test_pulling_grades_needs_the_publisher(self):
+        api = self.console()
+        with self.assertRaises(console.Bad) as caught:
+            api.program_grades(self.program["id"])
+        self.assertEqual(caught.exception.status, 503)
+
+    def test_building_lessons_writes_each_recorded_classroom_into_its_course(self):
+        path = os.path.join(self.root, "programs", f"{self.program['id']}.json")
+        with open(path, encoding="utf-8") as fh:
+            doc = json.load(fh)
+        doc["semesters"][0]["courses"][0]["classroomIds"] = ["stage-test1"]
+        with open(path, "w", encoding="utf-8") as fh:
+            json.dump(doc, fh)
+        fake = self.FakePublisher(self.publisher)
+        api = self.console(fake)
+        started = api.program_lessons(self.program["id"])
+        self.assertTrue(started["running"])
+        for _ in range(200):
+            run = api.program_get(self.program["id"])["lessonsRun"]
+            if run and not run["running"]:
+                break
+            __import__("time").sleep(0.01)
+        self.assertEqual(run["lessons"], 2)
+        self.assertEqual(fake.attached,
+                         [(self.program["id"], "TST101", "stage-test1")])
+        plan = api.program_get(self.program["id"])["plan"]
+        course = plan["semesters"][0]["courses"][0]
+        self.assertEqual(course["lessons"]["count"], 2)
+        self.assertEqual(course["lessons"]["questions"], 3)
+
+    def test_building_lessons_twice_leaves_a_built_course_alone(self):
+        path = os.path.join(self.root, "programs", f"{self.program['id']}.json")
+        with open(path, encoding="utf-8") as fh:
+            doc = json.load(fh)
+        doc["semesters"][0]["courses"][0]["classroomIds"] = ["stage-test1"]
+        with open(path, "w", encoding="utf-8") as fh:
+            json.dump(doc, fh)
+        fake = self.FakePublisher(self.publisher)
+        api = self.console(fake)
+        for _ in range(2):
+            api.program_lessons(self.program["id"])
+            for _ in range(200):
+                run = api.program_get(self.program["id"])["lessonsRun"]
+                if run and not run["running"]:
+                    break
+                __import__("time").sleep(0.01)
+        self.assertEqual(len(fake.attached), 1)
 
     def test_enrolling_a_learner_also_enrols_them_in_the_lms(self):
         fake = self.FakePublisher(self.publisher)

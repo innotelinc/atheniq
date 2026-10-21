@@ -1,34 +1,43 @@
 #!/usr/bin/env python3
-"""AthenIQ — publish a programme's courses into the LMS as real courses.
+"""AthenIQ — publish a program's courses into the LMS as real courses.
 
-A programme in the console is a plan: semesters, course codes, credits,
+A program in the console is a plan: semesters, course codes, credits,
 prerequisites, final examinations. Until this tool existed those codes were only
-that — a line in a JSON file. A learner could read the programme, but the course
+that — a line in a JSON file. A learner could read the program, but the course
 was not in the LMS: it was not in *Explore courses*, it could not be enrolled in,
 and so it could never appear in *My courses*.
 
-This tool closes that gap. For every course in a programme it writes a real OLX
+This tool closes that gap. For every course in a program it writes a real OLX
 course package and imports it into the running CMS, so the course exists in the
 LMS exactly like the hand-authored ones under `courses/`:
 
     course-v1:InnotelLabs+ACCT201+2026_T1
 
 The package is a *course shell*, not invented courseware. It carries what the
-plan actually says — the description, credits, prerequisites, the programme and
+plan actually says — the description, credits, prerequisites, the program and
 semester it belongs to, how many classroom modules it runs, and the final
 examination blueprint with its weights and pass mark — plus the orientation and
-syllabus pages every learner needs on day one. Lessons are not fabricated: when
-the course's classrooms are generated they are added to the same course key (see
-`build-classrooms.py --publish`), which is why the key is derived from the code
-and never re-derived once the course exists.
+syllabus pages every learner needs on day one.
+
+A shell becomes a course when its classroom is generated. `attach()` reads that
+classroom's outline (the lessons the teacher-agent actually planned: a title,
+key points, a description) and its quizzes (questions with the answers), writes
+one chapter per lesson plus a graded final examination assembled from those
+questions, and imports the course again under the same key. The LMS then holds
+real lessons and a real exam, so a learner's course grade is computed there
+rather than typed in by an office — see `grades()`.
 
 Publishing is idempotent. A course already in the LMS is left alone, so running
-this on every boot is safe; a course that is missing is added.
+this on every boot is safe; a course that is missing is added. Attaching lessons
+rebuilds one course in place, with stable component ids, so importing again
+updates it without orphaning a learner's grades.
 
     python3 scripts/publish-courses.py                      # plan, touches nothing
     python3 scripts/publish-courses.py --execute            # publish what is missing
     python3 scripts/publish-courses.py --program <id> --execute
     python3 scripts/publish-courses.py --course ACCT201 --execute
+    python3 scripts/publish-courses.py --attach <program> --course BUS101 --classroom <id>
+    python3 scripts/publish-courses.py --program <id> --grades
     python3 scripts/publish-courses.py --program <id> --enroll learner@x.edu
     python3 scripts/publish-courses.py --json
 
@@ -108,8 +117,8 @@ class LmsError(RuntimeError):
 def term_for(program: dict, clock=time.time) -> str:
     """The run a new course is created under, e.g. `2026_T4`.
 
-    A programme names its first term ("Fall 2026", "2027_T2"); when it does not,
-    the term the programme was created in is the next best answer, and the current
+    A program names its first term ("Fall 2026", "2027_T2"); when it does not,
+    the term the program was created in is the next best answer, and the current
     quarter when even that is missing. The run is part of the course key, so it is
     derived once and then left alone — publishing again must not mint a second run
     of the same course.
@@ -160,7 +169,7 @@ def key_index(keys) -> dict[str, str]:
     """Map a course code to the run the LMS already holds for it.
 
     A course may already exist under a hand-picked run (`DATA101`'s `2026_T1`)
-    rather than the term a programme would derive. The code, not the run, is what
+    rather than the term a program would derive. The code, not the run, is what
     identifies a course for a learner, so an existing key always wins.
     """
     index = {}
@@ -223,6 +232,10 @@ def entry_for(course: dict, program: dict, semester: dict, term: str,
         "key": key or course_key(code, term),
         "published": bool(published),
         "slug": f"{code}-{term}",
+        #: The generated classroom that teaches this course, once there is one,
+        #: and the lessons read out of it by `attach()`.
+        "classroomId": next(iter(course.get("classroomIds") or []), None),
+        "lessons": list(course.get("lessons") if isinstance(course.get("lessons"), list) else []),
     }
 
 
@@ -247,7 +260,7 @@ def _syllabus_html(entry: dict) -> str:
     prereq = ", ".join(entry["prerequisites"]) or "None — this is an entry course."
     return "".join([
         "<h2>Syllabus</h2>\n",
-        "<h3>Credits and place in the programme</h3>\n",
+        "<h3>Credits and place in the program</h3>\n",
         f"<p>{entry['credits']} credits, semester {entry['semester']} of "
         f"{html.escape(entry['program'])} — {html.escape(entry['credential'])}.</p>\n",
         "<h3>Prerequisites</h3>\n",
@@ -260,13 +273,33 @@ def _syllabus_html(entry: dict) -> str:
         f"<p>{html.escape(blueprint['label'])} — {blueprint['weight']}% of the course "
         f"mark ({html.escape(blueprint['duration'])}). The course is passed at "
         f"{programs_module().course_pass_mark(entry):.0f}%.</p>\n",
-        "<p>Grades are recorded by the programme office and shown in your progress "
-        "on the learner portal.</p>\n",
+        (f"<p>{len(questions)} question{'s' if len(questions) != 1 else ''} from the "
+         "course's generated lessons form the examination in this course; the LMS "
+         "grades it and reports the mark here and in the program office.</p>\n"
+         if (questions := [q for lesson in (entry.get("lessons") or [])
+                           for q in (lesson.get("questions") or [])])
+         else "<p>Grades are recorded by the program office and shown in your progress "
+              "on the learner portal.</p>\n"),
     ])
 
 
 def _plan_html(entry: dict) -> str:
+    lessons = entry.get("lessons") or []
     seats = entry["classrooms"]
+    if lessons:
+        items = "".join(
+            f"<li>{html.escape(lesson['title'])}"
+            f"{' — ' + str(len(lesson['questions'])) + ' check' + ('s' if len(lesson['questions']) != 1 else '') if lesson['questions'] else ''}</li>\n"
+            for lesson in lessons)
+        return "".join([
+            "<h2>Course plan</h2>\n",
+            f"<p>{html.escape(entry['title'])} is taught in {len(lessons)} "
+            f"lesson{'s' if len(lessons) != 1 else ''}, in this order:</p>\n",
+            f"<ol>\n{items}</ol>\n",
+            "<p>Each lesson is a chapter of the course's generated classroom: the "
+            "live multi-agent session, followed by the checks it produced. The "
+            "final examination is assembled from those checks.</p>\n",
+        ])
     items = "".join(f"<li>Classroom module {number}</li>\n" for number in range(1, seats + 1))
     return "".join([
         "<h2>Course plan</h2>\n",
@@ -298,12 +331,75 @@ def _assessment_html(entry: dict) -> str:
     ])
 
 
+def _classroom_url(stage_id: str) -> str:
+    host = os.environ.get("CLASSROOM_HOST", "https://classroom.innotel.us").rstrip("/")
+    return f"{host}/classroom/{stage_id}"
+
+
+def _lesson_html(entry: dict, lesson: dict, index: int) -> str:
+    """One generated lesson: what it teaches, then the live classroom itself."""
+    points = lesson.get("key_points") or []
+    parts = [
+        f"<h2>Module {index} — {html.escape(lesson.get('title') or 'Lesson')}</h2>\n",
+        f"<p>{html.escape(lesson['description'])}</p>\n" if lesson.get("description") else "",
+        "<h3>What this lesson covers</h3>\n",
+        "<ul>\n" + "".join(f"<li>{html.escape(point)}</li>\n" for point in points) + "</ul>\n"
+        if points else "",
+    ]
+    stage = entry.get("classroomId") or lesson.get("classroomId")
+    if stage:
+        url = _classroom_url(stage)
+        title = html.escape(lesson.get("title") or "classroom")
+        parts.append(
+            '<div class="openmaic-classroom">\n'
+            f'<h4>Live classroom: {title}</h4>\n'
+            "<p>Run this lesson as a multi-agent classroom: an AI teacher, AI "
+            "classmates, and the scenario from the lesson — with you in the room.</p>\n"
+            f'<p><a href="{url}" target="_blank" rel="noopener">Open “{title}” at '
+            'classroom.innotel.us</a></p>\n'
+            f'<iframe src="{url}" title="{title} — OpenMAIC classroom" width="100%"\n'
+            '  height="680" loading="lazy" allow="microphone; camera; fullscreen"\n'
+            '  allowfullscreen\n'
+            '  style="border:1px solid #22323d;border-radius:12px;background:#0a1118"></iframe>\n'
+            "<p><small>If the classroom does not load in the page, open it in a new "
+            "tab and sign in with your AthenIQ account.</small></p>\n"
+            "</div>\n")
+    return "".join(parts)
+
+
+def _problem_xml(question: dict, display_name: str) -> str:
+    """One generated quiz question as a graded Open edX problem."""
+    prompt = html.escape(str(question.get("prompt") or ""), quote=False)
+    options = question.get("options") or []
+    choices = "".join(
+        f'<choice correct="{"true" if option.get("correct") else "false"}">'
+        f'<div>{html.escape(str(option.get("label") or option.get("value") or ""))}</div>'
+        '</choice>\n' for option in options)
+    if question.get("kind") == "multiple":
+        body = ("<choiceresponse>\n"
+                f"<p>{prompt}</p>\n"
+                "<checkboxgroup>\n" + choices + "</checkboxgroup>\n")
+    else:
+        body = ("<multiplechoiceresponse>\n"
+                f"<p>{prompt}</p>\n"
+                '<choicegroup type="MultipleChoice">\n' + choices + "</choicegroup>\n")
+    if question.get("solution"):
+        body += ('<solution>\n<div class="detailed-solution">\n'
+                 f"<p>{html.escape(str(question['solution']))}</p>\n"
+                 "</div>\n</solution>\n")
+    body += "</multiplechoiceresponse>" if question.get("kind") != "multiple" else "</choiceresponse>"
+    return (f'<problem display_name="{_xml(display_name)}" max_attempts="3" '
+            f'showanswer="finished" weight="1.0">\n{body}\n</problem>')
+
+
 def build_shell(entry: dict, dest: str) -> str:
     """Write one course's OLX package under `dest`, returning its `olx/` path.
 
     The layout is the one the Studio importer and `check-course-olx.py` expect:
     chapter -> sequential -> vertical -> component, with policies, about pages and
-    the run's dates. Content is only what the programme plan supports.
+    the run's dates. Content is only what the program plan supports — plus, once
+    the classroom exists, the lessons that classroom actually generated and the
+    final examination assembled from their questions.
     """
     if os.path.isdir(dest):
         shutil.rmtree(dest)
@@ -312,20 +408,24 @@ def build_shell(entry: dict, dest: str) -> str:
     term = entry["term"]
     dates = _dates(term)
     name = f"{entry['code']} — {entry['title']}"
+    lessons = list(entry.get("lessons") or [])
+    exam = [(index, question)
+            for index, lesson in enumerate(lessons, 1)
+            for question in (lesson.get("questions") or [])]
     chapters = [("c1_start", "Start here", [
         ("s1_welcome", "Welcome", "u1_welcome", "l1_welcome", "Welcome"),
         ("s2_syllabus", "Syllabus", "u2_syllabus", "l2_syllabus", "Syllabus"),
     ]), ("c2_plan", "Course plan", [
         ("s3_plan", "Course plan", "u3_plan", "l3_plan", "Course plan"),
-    ]), ("c3_assessment", "Assessment", [
-        ("s4_assessment", blueprint_label(entry), "u4_assessment", "l4_assessment",
-         "Final examination"),
     ])]
 
     _write(os.path.join(olx, "course.xml"),
            f'<course url_name="{_xml(term)}" org="{_xml(DEFAULTS["ORG"])}" '
            f'course="{_xml(entry["code"])}"/>')
-    course_children = "".join(f'<chapter url_name="{ref}"/>\n' for ref, _, _ in chapters)
+    children = ([ref for ref, _, _ in chapters]
+                + [f"l{index}" for index in range(1, len(lessons) + 1)]
+                + ["c3_assessment"])
+    course_children = "".join(f'<chapter url_name="{ref}"/>\n' for ref in children)
     _write(os.path.join(olx, "course", f"{term}.xml"), (
         f'<course display_name="{_xml(name)}" language="en" '
         f'start="{dates["start"]}" enrollment_start="{dates["enrollment_start"]}" '
@@ -339,16 +439,84 @@ def build_shell(entry: dict, dest: str) -> str:
         kids = "".join(f'<sequential url_name="{seq}"/>\n' for seq, _, _, _, _ in sequentials)
         _write(os.path.join(olx, "chapter", f"{chapter_ref}.xml"),
                f'<chapter display_name="{_xml(chapter_name)}">\n{kids}</chapter>')
-        for seq, seq_name, unit, lesson, lesson_name in sequentials:
+        for seq, seq_name, unit, lesson_ref, lesson_name in sequentials:
             _write(os.path.join(olx, "sequential", f"{seq}.xml"), (
                 f'<sequential display_name="{_xml(seq_name)}" graded="false" '
                 f'show_correctness="always">\n'
                 f'<vertical url_name="{unit}"/>\n</sequential>'))
             _write(os.path.join(olx, "vertical", f"{unit}.xml"),
                    f'<vertical display_name="{_xml(seq_name)}">\n'
-                   f'<html url_name="{lesson}"/>\n</vertical>')
-            _write(os.path.join(olx, "html", f"{lesson}.xml"),
-                   f'<html filename="{lesson}" display_name="{_xml(lesson_name)}"/>')
+                   f'<html url_name="{lesson_ref}"/>\n</vertical>')
+            _write(os.path.join(olx, "html", f"{lesson_ref}.xml"),
+                   f'<html filename="{lesson_ref}" display_name="{_xml(lesson_name)}"/>')
+
+    # One chapter per generated lesson. The lesson page is the classroom; the
+    # questions the classroom produced sit beside it as a check, so a learner can
+    # see where they stand before the final.
+    for index, lesson in enumerate(lessons, 1):
+        ref = f"l{index}"
+        title = lesson.get("title") or "Lesson"
+        chapter_name = f"Module {index} — {title}"
+        questions = lesson.get("questions") or []
+        kids = f'<sequential url_name="{ref}_study"/>\n'
+        if questions:
+            kids += f'<sequential url_name="{ref}_check"/>\n'
+        _write(os.path.join(olx, "chapter", f"{ref}.xml"), (
+            f'<chapter display_name="{_xml(chapter_name)}">\n'
+            f'{kids}</chapter>'))
+        _write(os.path.join(olx, "sequential", f"{ref}_study.xml"), (
+            f'<sequential display_name="{_xml(title)}" '
+            f'graded="false" show_correctness="always">\n'
+            f'<vertical url_name="{ref}_study"/>\n</sequential>'))
+        _write(os.path.join(olx, "vertical", f"{ref}_study.xml"), (
+            f'<vertical display_name="{_xml(title)}">\n'
+            f'<html url_name="{ref}_html"/>\n</vertical>'))
+        _write(os.path.join(olx, "html", f"{ref}_html.xml"),
+               f'<html filename="{ref}_html" display_name="{_xml(title)}"/>')
+        _write(os.path.join(olx, "html", f"{ref}_html.html"),
+               _lesson_html(entry, lesson, index))
+        if not questions:
+            continue
+        problems = "".join(f'<problem url_name="{ref}_q{number}"/>\n'
+                           for number in range(1, len(questions) + 1))
+        _write(os.path.join(olx, "sequential", f"{ref}_check.xml"), (
+            '<sequential display_name="Check your understanding" graded="false" '
+            'show_correctness="always">\n'
+            f'<vertical url_name="{ref}_check"/>\n</sequential>'))
+        _write(os.path.join(olx, "vertical", f"{ref}_check.xml"), (
+            '<vertical display_name="Check your understanding">\n'
+            f'{problems}</vertical>'))
+        for number, question in enumerate(questions, 1):
+            _write(os.path.join(olx, "problem", f"{ref}_q{number}.xml"),
+                   _problem_xml(question, f"Module {index} check {number}"))
+
+    # The assessment chapter: what the final asks for, and — once the lessons
+    # exist — the graded examination itself, built from their questions.
+    label = blueprint_label(entry)
+    kids = '<sequential url_name="s4_assessment"/>\n'
+    if exam:
+        kids += '<sequential url_name="s5_exam"/>\n'
+    _write(os.path.join(olx, "chapter", "c3_assessment.xml"),
+           f'<chapter display_name="Assessment">\n{kids}</chapter>')
+    _write(os.path.join(olx, "sequential", "s4_assessment.xml"), (
+        f'<sequential display_name="{_xml(label)}" graded="false" '
+        f'show_correctness="always">\n<vertical url_name="u4_assessment"/>\n</sequential>'))
+    _write(os.path.join(olx, "vertical", "u4_assessment.xml"),
+           f'<vertical display_name="{_xml(label)}">\n<html url_name="l4_assessment"/>\n</vertical>')
+    _write(os.path.join(olx, "html", "l4_assessment.xml"),
+           '<html filename="l4_assessment" display_name="Final examination"/>')
+    if exam:
+        problems = "".join(f'<problem url_name="exam_q{number}"/>\n'
+                           for number in range(1, len(exam) + 1))
+        _write(os.path.join(olx, "sequential", "s5_exam.xml"), (
+            f'<sequential display_name="Final examination" format="Final Exam" '
+            f'graded="true" show_correctness="always">\n'
+            '<vertical url_name="u5_exam"/>\n</sequential>'))
+        _write(os.path.join(olx, "vertical", "u5_exam.xml"), (
+            f'<vertical display_name="Final examination">\n{problems}</vertical>'))
+        for number, (lesson_index, question) in enumerate(exam, 1):
+            _write(os.path.join(olx, "problem", f"exam_q{number}.xml"),
+                   _problem_xml(question, f"Final examination — question {number}"))
 
     _write(os.path.join(olx, "html", "l1_welcome.html"), _welcome_html(entry))
     _write(os.path.join(olx, "html", "l2_syllabus.html"), _syllabus_html(entry))
@@ -398,7 +566,7 @@ def build_shell(entry: dict, dest: str) -> str:
     _write(os.path.join(olx, "policies", term, "policy.json"),
            json.dumps(policy, indent=2, sort_keys=True))
     # The shell ships no graded assessment yet, so the policy only has to be
-    # valid: the mark comes from the programme office until the classroom's
+    # valid: the mark comes from the program office until the classroom's
     # problems are imported into this same course key.
     _write(os.path.join(olx, "policies", term, "grading_policy.json"), json.dumps({
         "GRADER": [{"type": "Final Exam", "min_count": 1, "drop_count": 0,
@@ -475,7 +643,7 @@ class DockerLms:
 
         `manage.py cms import` takes a data directory and any number of course
         directories, and each invocation pays a full Django start-up (tens of
-        seconds). A programme is thirty or forty courses, so they are staged with
+        seconds). A program is thirty or forty courses, so they are staged with
         one copy and imported by one command instead of one process each.
 
         The archive holds `{name}/course.xml` for every course, which is exactly
@@ -506,7 +674,7 @@ class DockerLms:
         return (result.stdout or "").strip().splitlines()[-1] if result.stdout else ""
 
     def enroll(self, students, keys) -> dict:
-        """Enrol learners in courses, creating the honor mode when the course has none.
+        """Enroll learners in courses, creating the honor mode when the course has none.
 
         This is what puts a course in *My courses*: the dashboard lists a learner's
         enrollments, so a course that nobody is enrolled in is invisible there however
@@ -555,12 +723,185 @@ print("ATHENIQ_ENROLL " + json.dumps(out))
                 return {"students": json.loads(line[len("ATHENIQ_ENROLL "):])}
         raise LmsError("the LMS answered without an enrolment report")
 
+    def grades(self, students, keys) -> dict:
+        """Each learner's current course grade, computed by the LMS itself.
+
+        The grade comes from the graded problems in the course — which, for a
+        published program course, are the final examination's questions — so a
+        completion recorded from this is a fact about work the learner did in the
+        LMS, not a number typed into an office.
+        """
+        students = [str(s).strip() for s in students if str(s).strip()]
+        keys = [str(k).strip() for k in keys if str(k).strip()]
+        if not students or not keys:
+            return {"students": []}
+        plan = json.dumps({"students": students, "courses": keys})
+        script = f"""
+import json
+from django.contrib.auth import get_user_model
+from opaque_keys.edx.keys import CourseKey
+from lms.djangoapps.grades.course_grade_factory import CourseGradeFactory
+
+plan = json.loads({plan!r})
+User = get_user_model()
+factory = CourseGradeFactory()
+out = []
+for ident in plan["students"]:
+    user = (User.objects.filter(email__iexact=ident).first()
+            or User.objects.filter(username__iexact=ident).first())
+    if user is None:
+        out.append({{"student": ident, "missing": True, "courses": []}})
+        continue
+    rows = []
+    for key in plan["courses"]:
+        try:
+            course_key = CourseKey.from_string(key)
+            # The stored grade is written when a problem is submitted, so a
+            # learner who has not done the work has no grade at all. `read` (not
+            # `update`) is what preserves that distinction: recomputing would
+            # hand every course a 0% and look like forty failures.
+            grade = factory.read(user, course_key=course_key)
+            attempted = bool(getattr(grade, "attempted", False))
+            percent = grade.percent if attempted else None
+            rows.append({{"course": key,
+                         "percent": None if percent is None else round(float(percent) * 100, 2),
+                         "passed": bool(attempted and grade.passed),
+                         "letter": (grade.letter_grade or "") if attempted else ""}})
+        except Exception as err:
+            rows.append({{"course": key, "percent": None, "passed": False,
+                         "error": str(err)[:200]}})
+    out.append({{"student": ident, "user": user.username,
+                 "missing": False, "courses": rows}})
+print("ATHENIQ_GRADES " + json.dumps(out))
+"""
+        result = self._exec(self.lms, ["sh", "-c",
+                                       f"cd {self.platform} && {self.python} ./manage.py lms shell"],
+                            stdin_text=script)
+        for line in reversed((result.stdout or "").splitlines()):
+            if line.startswith("ATHENIQ_GRADES "):
+                return {"students": json.loads(line[len("ATHENIQ_GRADES "):])}
+        raise LmsError("the LMS answered without a grade report")
+
+
+# -- the generated classroom -------------------------------------------------
+
+
+class OpenmaicLessons:
+    """The lessons and checks inside a generated classroom, read from OpenMAIC.
+
+    OpenMAIC stores a classroom as an outline (one entry per chapter: title, key
+    points, description) plus one scene per chapter, and a quiz scene carries the
+    questions with their answers. That is the courseware a program shell has been
+    waiting for, so it is read here and written into the course by `attach()`.
+    Nothing is invented: a course with no classroom has no lessons.
+    """
+
+    def __init__(self, container=None, database="openmaic", user="openmaic",
+                 run=None, timeout=90):
+        self.container = container or os.environ.get("OPENMAIC_PG_CONTAINER",
+                                                     "openmaic-postgres-1")
+        self.database = database
+        self.user = user
+        self._run = run or subprocess.run
+        self.timeout = timeout
+
+    def _query(self, sql: str) -> str:
+        result = self._run(
+            ["docker", "exec", self.container, "psql", "-U", self.user,
+             "-d", self.database, "-Atc", sql],
+            capture_output=True, text=True, timeout=self.timeout)
+        if result.returncode != 0:
+            tail = ((result.stderr or "") + (result.stdout or "")).strip().splitlines()[-3:]
+            raise LmsError("reading the classroom failed ("
+                           + str(result.returncode) + "): " + " / ".join(tail))
+        return result.stdout or ""
+
+    @staticmethod
+    def _stage(stage_id: str) -> str:
+        stage = str(stage_id or "").strip()
+        if not re.match(r"^[A-Za-z0-9_-]{1,80}$", stage):
+            raise LmsError(f"that is not a classroom id: {stage_id!r}")
+        return stage
+
+    def lessons(self, stage_id: str) -> list[dict]:
+        """One entry per outline chapter, with that chapter's questions."""
+        stage = self._stage(stage_id)
+        outline_row = self._query(
+            f"select data::text from document_outlines where stage_id='{stage}'").strip()
+        try:
+            outline = (json.loads(outline_row).get("outlines") or []) if outline_row else []
+        except ValueError as err:
+            raise LmsError(f"the classroom outline is not readable: {err}") from err
+        scene_rows = self._query(
+            "select data::text from document_scenes "
+            f"where stage_id='{stage}' order by scene_order").splitlines()
+        quizzes: dict[str, list[dict]] = {}
+        for row in scene_rows:
+            row = row.strip()
+            if not row:
+                continue
+            try:
+                scene = json.loads(row)
+            except ValueError:
+                continue
+            questions = _questions(scene)
+            if questions:
+                quizzes[str(scene.get("outlineId") or "")] = questions
+        lessons = []
+        for index, item in enumerate(outline, 1):
+            if not isinstance(item, dict):
+                continue
+            lessons.append({
+                "id": str(item.get("id") or f"scene_{index}"),
+                "title": str(item.get("title") or f"Lesson {index}"),
+                "description": str(item.get("description") or ""),
+                "key_points": [str(point) for point in (item.get("keyPoints") or [])],
+                "questions": quizzes.get(str(item.get("id") or ""), []),
+                "classroomId": stage,
+            })
+        return lessons
+
+
+def _questions(scene: dict) -> list[dict]:
+    """The graded questions in one quiz scene, normalised for OLX."""
+    content = scene.get("content") if isinstance(scene, dict) else None
+    if not isinstance(content, dict) or content.get("type") != "quiz":
+        return []
+    out = []
+    for question in content.get("questions") or []:
+        if not isinstance(question, dict):
+            continue
+        options = []
+        for option in question.get("options") or []:
+            if not isinstance(option, dict):
+                continue
+            value = str(option.get("value") or option.get("label") or "").strip()
+            label = str(option.get("label") or value).strip()
+            if value and label:
+                options.append({"value": value, "label": label})
+        answers = {str(answer) for answer in (question.get("answer") or [])}
+        prompt = str(question.get("question") or "").strip()
+        if len(options) < 2 or not answers or not prompt:
+            continue
+        for option in options:
+            option["correct"] = option["value"] in answers
+        if not any(option["correct"] for option in options):
+            continue
+        kind = "multiple" if str(question.get("type") or "single") == "multiple" else "single"
+        out.append({
+            "prompt": prompt,
+            "kind": kind,
+            "options": options,
+            "solution": str(question.get("analysis") or ""),
+        })
+    return out
+
 
 # -- the publisher ------------------------------------------------------------
 
 
 class Publisher:
-    """Programme courses -> real LMS courses, and learners into them.
+    """Program courses -> real LMS courses, and learners into them.
 
     The publisher owns no HTTP and no page: the console calls it, and so does the
     CLI. Its only state on disk is the generated OLX under `work_dir` and a record
@@ -568,18 +909,21 @@ class Publisher:
     """
 
     def __init__(self, root: str, work_dir: str | None = None, lms=None,
-                 clock=time.time, org: str = DEFAULTS["ORG"]):
+                 clock=time.time, org: str = DEFAULTS["ORG"], lessons=None):
         self.root = root
         self.work_dir = work_dir or os.path.join(root, "lms")
         self.lms = lms or DockerLms(work_dir=self.work_dir)
         self.clock = clock
         self.org = org
+        #: Where the generated classroom's lessons are read from. A real
+        #: publisher reads OpenMAIC through docker; tests pass a stand-in.
+        self.lessons = lessons if lessons is not None else OpenmaicLessons()
         self._keys: dict[str, str] | None = None
         self._keys_at = 0.0
         #: Seconds between a failed reindex and its one retry.
         self.retry_delay = 5
 
-    # -- programmes -------------------------------------------------------
+    # -- programs -------------------------------------------------------
 
     def _programs_dir(self) -> str:
         local = os.path.join(self.root, "programs")
@@ -639,11 +983,11 @@ class Publisher:
         return out
 
     def plan(self, program_ids=None, codes=None) -> list[dict]:
-        """Every selected course, once: two programmes may share a course code.
+        """Every selected course, once: two programs may share a course code.
 
-        The LMS key is the course, not the programme, so a code taught by two
-        programmes is one course — publishing it twice would import the same shell
-        over itself. The first programme's entry wins, which is also the one the
+        The LMS key is the course, not the program, so a code taught by two
+        programs is one course — publishing it twice would import the same shell
+        over itself. The first program's entry wins, which is also the one the
         report should name.
         """
         wanted = set(program_ids or [])
@@ -673,6 +1017,8 @@ class Publisher:
             record[entry["key"]] = {
                 "code": entry["code"], "title": entry["title"],
                 "program": entry["programId"], "at": stamp,
+                "lessons": int(entry.get("lessonCount") or 0),
+                "questions": int(entry.get("questionCount") or 0),
             }
         os.makedirs(self.work_dir, exist_ok=True)
         with open(path, "w", encoding="utf-8") as fh:
@@ -716,7 +1062,7 @@ class Publisher:
                     batch(packages)
                 imported = [name for _, name in packages]
             except LmsError as err:
-                # One bad course must not cost a programme the other thirty-nine:
+                # One bad course must not cost a program the other thirty-nine:
                 # fall back to importing them one at a time, which says which one
                 # failed and why.
                 imported = []
@@ -752,10 +1098,118 @@ class Publisher:
             self._keys = None  # the LMS changed; ask again next time
         return answer
 
-    # -- enrol ------------------------------------------------------------
+    # -- lessons ----------------------------------------------------------
+
+    def attach(self, program_id: str, code: str, classroom_id: str | None = None) -> dict:
+        """Write a generated classroom's lessons into its course, then reimport it.
+
+        The shell is rebuilt from the program plan plus the classroom's own
+        outline and quizzes, so the course in the LMS gains one chapter per
+        lesson and a graded final examination — the same course key, the same
+        enrollment, and stable component ids so no learner's grade is orphaned.
+        """
+        try:
+            program = self.program(program_id)
+        except KeyError:
+            return {"available": False, "attached": False,
+                    "error": f"no program {program_id!r}"}
+        try:
+            entries = self.entries(program, self.published(refresh=True), [code])
+        except LmsError as err:
+            return {"available": False, "attached": False, "error": str(err)}
+        entry = entries[0] if entries else None
+        if entry is None:
+            return {"available": True, "attached": False,
+                    "error": f"no course {code!r} in {program_id}"}
+        stage = str(classroom_id or entry.get("classroomId") or "").strip()
+        if not stage:
+            return {"available": True, "attached": False,
+                    "error": f"{code} has no generated classroom yet"}
+        if not entry["published"]:
+            return {"available": True, "attached": False,
+                    "error": f"{code} is not in the LMS yet — publish it first"}
+        try:
+            lessons = self.lessons.lessons(stage)
+        except LmsError as err:
+            return {"available": False, "attached": False, "error": str(err)}
+        entry.update({
+            "classroomId": stage,
+            "lessons": lessons,
+            "lessonCount": len(lessons),
+            "questionCount": sum(len(lesson.get("questions") or []) for lesson in lessons),
+        })
+        dest = os.path.join(self.work_dir, "shells", entry["slug"])
+        try:
+            olx = build_shell(entry, dest)
+            self.lms.import_olx(olx, entry["slug"])
+        except (OSError, ValueError, LmsError) as err:
+            return {"available": True, "attached": False, "key": entry["key"],
+                    "error": str(err)}
+        answer = {
+            "available": True,
+            "attached": True,
+            "key": entry["key"],
+            "code": entry["code"],
+            "classroomId": stage,
+            "lessons": len(lessons),
+            "questions": entry["questionCount"],
+            "graded": bool(entry["questionCount"]),
+            "olx": olx,
+        }
+        for attempt in range(2):
+            try:
+                self.lms.reindex()
+                answer["reindexed"] = True
+                break
+            except LmsError as err:
+                answer["reindexed"] = False
+                answer["reindexError"] = str(err)
+                if attempt == 0 and self.retry_delay:
+                    time.sleep(self.retry_delay)
+        self._record([entry])
+        self._keys = None
+        return answer
+
+    def grades(self, program_id: str, students=None) -> dict:
+        """Every learner on a program, against every course of it, graded by the LMS."""
+        try:
+            program = self.program(program_id)
+            entries = self.entries(program, self.published(refresh=True))
+        except KeyError:
+            return {"available": False, "error": f"no program {program_id!r}", "rows": []}
+        except LmsError as err:
+            return {"available": False, "error": str(err), "rows": []}
+        learners = [str(s).strip()
+                    for s in (students if students is not None
+                              else list((program.get("enrollments") or {}).keys()))
+                    if str(s).strip()]
+        keys = [entry["key"] for entry in entries]
+        if not learners or not keys:
+            return {"available": True, "students": learners,
+                    "courses": len(keys), "rows": []}
+        try:
+            report = self.lms.grades(learners, keys)
+        except LmsError as err:
+            return {"available": False, "error": str(err), "rows": []}
+        rows = []
+        for student in report.get("students") or []:
+            if student.get("missing"):
+                continue
+            for row in student.get("courses") or []:
+                rows.append({"student": student["student"],
+                             "course": str(row.get("course") or "").split("+")[1].upper(),
+                             "key": row.get("course"),
+                             "percent": row.get("percent"),
+                             "passed": bool(row.get("passed")),
+                             "letter": row.get("letter") or "",
+                             "error": row.get("error") or ""})
+        return {"available": True, "students": learners,
+                "courses": len(keys), "rows": rows}
+
+    # -- enroll ------------------------------------------------------------
 
     def enroll(self, program_id: str, student: str) -> dict:
-        """Put one learner into every course of a programme, in the LMS."""
+        """Put one learner into every course of a program, in the LMS."""
         try:
             program = self.program(program_id)
         except KeyError:
@@ -771,7 +1225,7 @@ class Publisher:
     # -- status -----------------------------------------------------------
 
     def status(self, program_id: str) -> dict:
-        """How much of this programme is real in the LMS, for the console page."""
+        """How much of this program is real in the LMS, for the console page."""
         try:
             program = self.program(program_id)
             # Cached: this answers a page load, and the course list from the CMS
@@ -810,11 +1264,47 @@ def main():
     ap.add_argument("--course", action="append", help="course code (repeatable)")
     ap.add_argument("--execute", action="store_true",
                     help="import the missing courses (operator action)")
-    ap.add_argument("--enroll", help="a learner identity to enrol in the selected programs")
+    ap.add_argument("--attach", metavar="PROGRAM",
+                    help="write a generated classroom's lessons into one of the program's courses")
+    ap.add_argument("--classroom", help="the classroom id to attach (default: the one on the plan)")
+    ap.add_argument("--grades", action="store_true",
+                    help="read each enrolled learner's course grades from the LMS")
+    ap.add_argument("--enroll", help="a learner identity to enroll in the selected programs")
     ap.add_argument("--json", action="store_true", help="machine-readable output")
     args = ap.parse_args()
 
     publisher = Publisher(args.root, work_dir=args.work_dir)
+    if args.attach:
+        if not args.course or len(args.course) != 1:
+            raise SystemExit("--attach needs exactly one --course")
+        answer = publisher.attach(args.attach, args.course[0], args.classroom)
+        if args.json:
+            print(json.dumps(answer, indent=2, sort_keys=True))
+        elif not answer.get("attached"):
+            print(f"error: {answer.get('error')}", file=sys.stderr)
+        else:
+            print(f"{answer['key']}: {answer['lessons']} lesson(s), "
+                  f"{answer['questions']} graded question(s)")
+        sys.exit(0 if answer.get("attached") else 1)
+
+    if args.grades:
+        if not args.program:
+            raise SystemExit("--grades needs --program (one or more)")
+        reports = [publisher.grades(program_id) for program_id in args.program]
+        if args.json:
+            print(json.dumps(reports, indent=2, sort_keys=True))
+        else:
+            for report in reports:
+                if not report.get("available"):
+                    print(f"error: {report.get('error')}", file=sys.stderr)
+                    continue
+                for row in report.get("rows") or []:
+                    mark = "—" if row["percent"] is None else f"{row['percent']:.0f}%"
+                    print(f"  {row['student']:<32} {row['course']:<10} {mark:>6} "
+                          f"{'passed' if row['passed'] else 'not passed'}"
+                          + (f"  ({row['error']})" if row.get("error") else ""))
+        sys.exit(0 if all(report.get("available") for report in reports) else 1)
+
     if args.enroll:
         if not args.program:
             raise SystemExit("--enroll needs --program (one or more)")
@@ -859,7 +1349,7 @@ def _enroll_line(report: dict) -> str:
         lines.append(f"{row['student']} ({row['user']}): {len(row['enrolled'])}/{len(report['courses'])} courses")
         for error in row.get("errors") or []:
             lines.append(f"  {error}")
-    return "\n".join(lines) or "nothing to enrol"
+    return "\n".join(lines) or "nothing to enroll"
 
 
 if __name__ == "__main__":

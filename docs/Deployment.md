@@ -527,10 +527,12 @@ POST   /api/programs                     create from a template or a course list
 GET    /api/programs/<id>                the program with its semester plan and finals
 GET    /api/programs/<id>/progress?student=…
 POST   /api/programs/<id>/generate       one classroom run per course (semester/course filters)
-POST   /api/programs/<id>/sync           record finished runs into the plan
-POST   /api/programs/<id>/publish        create the programme's courses in the LMS
-POST   /api/programs/<id>/enroll         enrol a learner (programme and LMS)
-POST   /api/programs/<id>/complete       record a grade and final result
+POST   /api/programs/<id>/sync           record finished runs into the plan (and start their lessons)
+POST   /api/programs/<id>/lessons        write generated lessons + graded exams into the courses
+POST   /api/programs/<id>/grades         read each learner's course grade from the LMS
+POST   /api/programs/<id>/publish        create the program's courses in the LMS
+POST   /api/programs/<id>/enroll         enroll a learner (program and LMS)
+POST   /api/programs/<id>/complete       record a grade and final result by hand
 POST   /api/programs/<id>/confer         confer the credential and sign it
 ```
 
@@ -542,17 +544,17 @@ rendered by `scripts/cert-bridge.py` and pushed through Signara using the same
 signer as course certificates. Because the service runs as `tutor`, the unit
 creates `programs/` and `conferrals/` owned by that user.
 
-#### Programmes are courses in the LMS
+#### Programs are courses in the LMS
 
 A plan is not a course. Until the LMS has the course, it cannot be enrolled in,
 so it never appears in *My courses*, and the catalogue that *Explore courses*
 reads from does not know it exists. `scripts/publish-courses.py` closes that gap:
-for every course in a programme it writes a real OLX package and imports it into
+for every course in a program it writes a real OLX package and imports it into
 the CMS, under a key derived from the course code
 (`course-v1:InnotelLabs+ACCT201+2026_T4`), then reindexes catalog search.
 
-- The unit sets `GENERATION_PUBLISH=1`, so a programme created in the console
-  publishes in the background; the programme page also has **Publish to LMS** and
+- The unit sets `GENERATION_PUBLISH=1`, so a program created in the console
+  publishes in the background; the program page also has **Publish to LMS** and
   reports `LMS: 12/40 courses`. Publishing is idempotent — a course already in
   the LMS is skipped — so the button is also the repair.
 - `POST /api/programs/<id>/enroll` enrols the learner in the LMS as well (honor
@@ -562,17 +564,32 @@ the CMS, under a key derived from the course code
 - The generated packages live under `GENERATION_LMS_DIR`
   (`/home/tutor/atheniq-generation/lms`, owned by `tutor`; create it once with
   `install -d -o tutor -g tutor -m 750 /home/tutor/atheniq-generation/lms`), not
-  in this repo: they are derived from the plan, not authored. Each is a **course shell** — overview,
-  syllabus, course plan, assessment — from what the plan actually says, with no
-  invented lessons. Classrooms generated later are imported into the same course
-  key by `build-classrooms.py --publish`.
+  in this repo: they are derived from the plan, not authored. Each starts as a
+  **course shell** — overview, syllabus, course plan, assessment — from what the
+  plan actually says.
+- Once a course's classroom has been generated, **Sync runs** records it and
+  then **Build lessons** writes the classroom's own outline and quizzes into that
+  same course key: one chapter per generated lesson, the classroom embedded in
+  each, and a graded final examination assembled from the lesson questions. The
+  course is imported again in place with stable component ids, so a learner's
+  gradebook survives the rewrite. `publish-courses.py --attach` is the same step
+  from the CLI.
+- **Pull LMS grades** reads every enrolled learner's current course grade from
+  the LMS gradebook (`CourseGradeFactory`) and records it as the program
+  completion with `source: lms`, so completion is a fact about graded work. A
+  course with no grade yet is skipped, and a pass that would break a
+  prerequisite is reported rather than written. `program_complete` remains for an
+  office making a correction by hand.
 - The publisher needs `docker` for the unit's user (`tutor` is in the `docker`
   group on this host) and the containers named in `publish-courses.py`
-  (`tutor_local-cms-1`, `tutor_local-lms-1`).
+  (`tutor_local-cms-1`, `tutor_local-lms-1`) plus `openmaic-postgres-1` for the
+  lessons.
 
 ```bash
 sudo -u tutor python3 scripts/publish-courses.py                    # plan, touches nothing
 sudo -u tutor python3 scripts/publish-courses.py --execute          # publish what is missing
+sudo -u tutor python3 scripts/publish-courses.py --attach <id> --course BUS101 --classroom <stage>
+sudo -u tutor python3 scripts/publish-courses.py --program <id> --grades
 sudo -u tutor python3 scripts/publish-courses.py --program <id> --enroll learner@example.org
 ```
 

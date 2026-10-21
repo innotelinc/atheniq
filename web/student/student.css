@@ -82,7 +82,7 @@ section { padding-top: 34px; }
 
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
 
-/* -- programme card -------------------------------------------------------- */
+/* -- program card -------------------------------------------------------- */
 .program-card {
   display: flex; flex-direction: column; gap: 6px; text-align: left; cursor: pointer;
   background: var(--bg-elevated); border: 1px solid var(--border);
@@ -118,7 +118,7 @@ section { padding-top: 34px; }
 .room a:hover { color: var(--accent); }
 .room.live .dot { background: var(--accent); }
 
-/* -- programme detail ------------------------------------------------------ */
+/* -- program detail ------------------------------------------------------ */
 #program-view { padding-top: 30px; }
 .detail-head { display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
 .back {

@@ -15,7 +15,7 @@ it with a foreign key.</p>
 </multiplechoiceresponse>
 
 <multiplechoiceresponse>
-<p>A learner can enrol in many courses, and a course has many learners. This is
+<p>A learner can enroll in many courses, and a course has many learners. This is
 modelled as:</p>
 <choicegroup type="MultipleChoice">
 <choice correct="true"><div>A many-to-many relationship, via a join table holding both keys.</div></choice>

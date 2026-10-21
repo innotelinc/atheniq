@@ -1,7 +1,7 @@
 // AthenIQ learner portal.
 //
 // Two reads and no writes. The page fetches the public catalogue once, renders
-// programmes and courses from it, and fetches one programme when it is opened.
+// programs and courses from it, and fetches one program when it is opened.
 // Text goes through `el()` (textContent), never innerHTML: a course title is a
 // course title even if it contains angle brackets.
 
@@ -140,7 +140,7 @@ const renderCatalogue = () => {
   for (const course of state.courses) courses.append(courseCard(course));
 };
 
-// -- one programme -----------------------------------------------------------
+// -- one program -----------------------------------------------------------
 
 const courseRow = (course) => el("div", { class: "course-row" },
   el("div", { class: "course-title" },
@@ -220,11 +220,11 @@ const renderDetail = () => {
       el("a", {
         class: "btn btn-primary",
         href: "https://apps.learn.innotel.us/catalog/",
-      }, "Enrol in the LMS"),
+      }, "Enroll in the LMS"),
       el("a", {
         class: "btn btn-secondary",
         href: "https://ai.lms.innotel.us/programs.html",
-      }, "Open programme workspace"),
+      }, "Open program workspace"),
     ),
     ...doc.semesters.map(semesterBlock),
   ));

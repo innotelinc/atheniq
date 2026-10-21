@@ -189,6 +189,8 @@ class ProgramStore:
         semesters = doc.get("semesters") or []
         courses = [course for semester in semesters for course in semester.get("courses", [])]
         generated = sum(1 for course in courses if course.get("classroomIds"))
+        built = sum(1 for course in courses
+                    if (course.get("lessons") or {}).get("count"))
         enrolled = len(doc.get("enrollments") or {})
         return {
             "id": doc.get("id"),
@@ -201,6 +203,7 @@ class ProgramStore:
             "semesters": len(semesters),
             "courses": len(courses),
             "generated": generated,
+            "built": built,
             "enrolled": enrolled,
             "createdAt": doc.get("createdAt"),
             "createdBy": doc.get("createdBy"),
@@ -541,6 +544,30 @@ class ProgramStore:
         return {"program": doc["id"], "recorded": changed,
                 "summary": self._summary(doc)}
 
+    def set_lessons(self, program_id: str, code: str, summary: dict) -> dict:
+        """Record what one course's generated classroom put into the LMS.
+
+        The counts are what the page reports ("4 lessons · 6 graded questions");
+        they live in the plan so a course that has been built is distinguishable
+        from one that is only promised, without asking the LMS on every render.
+        """
+        code = str(code or "").strip().upper()
+        doc = self._read(program_id)
+        course = self._course_map(doc).get(code)
+        if course is None:
+            raise ProgramError(404, f"no course {code!r} in {doc['name']}")
+        course["lessons"] = {
+            "count": int(summary.get("lessons") or 0),
+            "questions": int(summary.get("questions") or 0),
+            "classroomId": summary.get("classroomId") or None,
+            "at": _now_iso(self.clock),
+        }
+        if summary.get("classroomId") and summary["classroomId"] not in (course.get("classroomIds") or []):
+            course.setdefault("classroomIds", []).append(summary["classroomId"])
+        with self._lock:
+            self._write(doc)
+        return {"program": doc["id"], "course": code, "lessons": course["lessons"]}
+
     # -- learners --------------------------------------------------------
 
     def update(self, program_id: str, body: dict) -> dict:
@@ -631,12 +658,17 @@ class ProgramStore:
                 "progress": self.progress(doc, student)}
 
     def record_completion(self, program_id: str, student: str, code: str,
-                          score: float, final_passed: bool | None = None) -> dict:
+                          score: float, final_passed: bool | None = None,
+                          source: str = "office") -> dict:
         """Record a grade, and (for examined courses) the final's outcome.
 
         A course counts as complete only when the score passes *and* the final
         assessment was passed. Recording a failing score un-completes it, so a
         correction is a correction rather than a second version of history.
+
+        `source` says where the mark came from: `lms` when it was read out of the
+        course's graded examination, `office` when a person recorded it. The
+        progress view reports it so a number is never shown without its origin.
         """
         student = str(student or "").strip()
         code = str(code or "").strip().upper()
@@ -664,6 +696,7 @@ class ProgramStore:
             student, {"enrolledAt": _now_iso(self.clock), "grades": {},
                       "finals": {}, "certificates": [], "conferred": None})
         record.setdefault("grades", {})[code] = round(score, 2)
+        record.setdefault("gradeSources", {})[code] = str(source or "office")
         needs_final = course.get("finalExam") not in (None, "", "none")
         if needs_final:
             record.setdefault("finals", {})[code] = bool(
@@ -707,6 +740,7 @@ class ProgramStore:
         record = (doc.get("enrollments") or {}).get(student) or {}
         grades = record.get("grades") or {}
         finals = record.get("finals") or {}
+        sources = record.get("gradeSources") or {}
 
         earned = 0
         points = 0.0
@@ -722,6 +756,7 @@ class ProgramStore:
                     completed.append({
                         "code": code, "title": course["title"],
                         "credits": course["credits"], "score": score,
+                        "source": sources.get(code) or "office",
                         "gradePoints": grade_points(score),
                         "semester": semester["number"],
                     })
@@ -730,7 +765,7 @@ class ProgramStore:
                 else:
                     row = {"code": code, "title": course["title"],
                            "credits": course["credits"], "score": score,
-                           "semester": semester["number"]}
+                           "source": sources.get(code), "semester": semester["number"]}
                     if score is not None:
                         failed.append(row)
                     remaining.append(row)
@@ -745,7 +780,7 @@ class ProgramStore:
                         "weight": blueprint["weight"], "semester": semester["number"],
                         "scheduled": course.get("semester") or semester["number"],
                         "passed": bool(finals.get(code)),
-                        "score": score,
+                        "score": score, "source": sources.get(code),
                     })
 
         gpa = round(points / earned, 2) if earned else 0.0

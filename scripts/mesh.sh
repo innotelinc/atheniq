@@ -15,7 +15,7 @@
 #             components (roster repos + stack extensions) interactively, then
 #             lay out the workspace, clone them, fill each one's .env with
 #             generated credentials (printed once, optionally pushed to Vault)
-#             and, with --join/--up, enrol or start them there
+#             and, with --join/--up, enroll or start them there
 #
 # Plus the two read-only conveniences:
 #

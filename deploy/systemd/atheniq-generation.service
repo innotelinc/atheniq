@@ -31,8 +31,10 @@ Environment=CLASSROOM_HOST=https://classroom.innotel.us
 Environment=GENERATION_AUTORECORD_SECONDS=20
 # The run -> spec map, so a restart does not forget a classroom that finished.
 Environment=GENERATION_STATE=/var/lib/atheniq-generation/runs.json
-# Every course a programme creates is also published into the LMS, so it lists in
+# Every course a program creates is also published into the LMS, so it lists in
 # Explore courses and a learner can be enrolled (which is what fills My courses).
+# Generated classrooms are then written into those courses as lessons and a
+# graded final examination, and the LMS grade is read back as the completion.
 # This needs `docker` for the unit's user and the directory below, owned by it.
 Environment=GENERATION_PUBLISH=1
 Environment=GENERATION_LMS_DIR=/home/tutor/atheniq-generation/lms

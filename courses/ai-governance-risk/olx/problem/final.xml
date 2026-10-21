@@ -59,7 +59,7 @@ other.</p>
 </multiplechoiceresponse>
 
 <choiceresponse>
-<p>Which practices make a governance programme real? Select all that apply.</p>
+<p>Which practices make a governance program real? Select all that apply.</p>
 <checkboxgroup>
 <choice correct="true"><div>A risk register with named owners and review dates.</div></choice>
 <choice correct="true"><div>Testing identified harms and recording the evidence.</div></choice>

@@ -97,7 +97,8 @@ const programCard = (program) => el("button", {
   el("span", { class: "program-meta" },
     `${program.semesters} semesters · ${program.courses} courses · ${program.totalCredits} credits`),
   el("span", { class: "program-meta" },
-    `${program.generated}/${program.courses} classrooms generated · ${program.enrolled} enrolled`),
+    `${program.generated}/${program.courses} classrooms generated · `
+    + `${program.built || 0} with lessons · ${program.enrolled} enrolled`),
   el("span", { class: "program-cta" }, "Open program →"),
 );
 
@@ -159,6 +160,8 @@ const courseRow = (course, semester) => {
     ? el("span", { class: "prereq" }, `prerequisite: ${course.prerequisites.join(", ")}`)
     : el("span", { class: "prereq" }, "no prerequisite");
   const finalType = course.final && course.final.type ? course.final.type : course.finalExam;
+  const lessons = course.lessons && typeof course.lessons === "object" ? course.lessons : null;
+  const standing = progressRow(course.code);
   return el("div", { class: "course-row" },
     el("div", { class: "course-main" },
       el("div", { class: "course-title" },
@@ -173,8 +176,28 @@ const courseRow = (course, semester) => {
       course.classroomIds && course.classroomIds.length
         ? el("span", { class: "course-sub" }, `${course.classroomIds.length} classroom${course.classroomIds.length === 1 ? "" : "s"}`)
         : el("span", { class: "course-sub" }, "not generated"),
+      lessons
+        ? el("span", { class: "course-sub" },
+            `${lessons.count} lesson${lessons.count === 1 ? "" : "s"} · `
+            + `${lessons.questions} graded question${lessons.questions === 1 ? "" : "s"}`)
+        : el("span", { class: "course-sub" }, "no lessons in the LMS yet"),
+      standing
+        ? el("span", { class: "course-sub" },
+            `${standing.score === null || standing.score === undefined ? "—" : standing.score + "%"}`
+            + ` · ${standing.source === "lms" ? "LMS grade" : "office grade"}`)
+        : null,
     ),
   );
+};
+
+// The learner's standing in one course, with where the mark came from.
+const progressRow = (code) => {
+  const progress = state.progress;
+  if (!progress) return null;
+  return (progress.completed || []).find((row) => row.code === code)
+    || (progress.failed || []).find((row) => row.code === code)
+    || (progress.remaining || []).find((row) => row.code === code && row.score !== null)
+    || null;
 };
 
 const gradeControl = (course) => {
@@ -265,8 +288,8 @@ const semesterBlock = (semester) => {
     body);
 };
 
-// The LMS holds the courses a learner can actually enrol in, so "is this
-// programme real there" is a fact the page states rather than implies.
+// The LMS holds the courses a learner can actually enroll in, so "is this
+// program real there" is a fact the page states rather than implies.
 const lmsBadge = (doc) => {
   const lms = doc.lms || {};
   if (!lms.available) return badge("LMS: publishing off", "locked");
@@ -275,13 +298,26 @@ const lmsBadge = (doc) => {
   return badge(`LMS: ${done}/${total} courses`, done === total ? "ok" : "ready");
 };
 
+// How much of the curriculum is real courseware — lessons written into the LMS,
+// not just a classroom id in a JSON file.
+const lessonsBadge = (doc) => {
+  const courses = (doc.plan && doc.plan.semesters || [])
+    .flatMap((semester) => semester.courses || []);
+  const built = courses.filter((course) => (course.lessons || {}).count).length;
+  const questions = courses.reduce((total, course) =>
+    total + ((course.lessons || {}).questions || 0), 0);
+  if (!built) return badge("lessons: none in the LMS", "locked");
+  return badge(`${built} course${built === 1 ? "" : "s"} with lessons · ${questions} graded questions`,
+               built === courses.length ? "ok" : "ready");
+};
+
 const publishProgram = async (doc, button) => {
   button.disabled = true;
   button.textContent = "publishing…";
   try {
     const answer = await api(`/api/programs/${doc.id}/publish`, { method: "POST", body: "{}" });
     toast(answer.alreadyRunning
-      ? "A publish run is already working through this programme"
+      ? "A publish run is already working through this program"
       : "Creating the missing courses in the LMS…");
     // Each course is a CMS import, so this finishes in minutes, not milliseconds.
     for (let attempt = 0; attempt < 150; attempt += 1) {
@@ -299,12 +335,66 @@ const publishProgram = async (doc, button) => {
         return;
       }
     }
-    toast("Still publishing — reopen the programme to see where it got to", "bad");
+    toast("Still publishing — reopen the program to see where it got to", "bad");
   } catch (error) {
     toast(error.message, "bad");
   } finally {
     button.disabled = false;
     button.textContent = "Publish to LMS";
+  }
+};
+
+// Lessons are written into the LMS course by course, so the page starts the job
+// and watches the program until every course with a classroom has been built.
+const buildLessons = async (doc, button) => {
+  button.disabled = true;
+  button.textContent = "building…";
+  try {
+    await api(`/api/programs/${doc.id}/lessons`, { method: "POST", body: "{}" });
+    toast("Writing each generated classroom's lessons into its course…");
+    for (let attempt = 0; attempt < 150; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const fresh = await api(`/api/programs/${encodeURIComponent(doc.id)}`);
+      state.current = fresh;
+      renderDetail();
+      const run = fresh.lessonsRun;
+      if (run && !run.running) {
+        const failed = run.failed || [];
+        toast(failed.length
+          ? `${run.lessons} lesson(s) built · ${failed.length} course(s) failed — ${failed[0].code}: ${failed[0].error}`
+          : `${run.lessons} lesson(s) and ${run.questions} graded question(s) are in the LMS`,
+          failed.length ? "bad" : "ok");
+        return;
+      }
+    }
+    toast("Still building lessons — reopen the program to see where it got to", "bad");
+  } catch (error) {
+    toast(error.message, "bad");
+  } finally {
+    button.disabled = false;
+    button.textContent = "Build lessons";
+  }
+};
+
+// Completion is a fact about graded work, so it is pulled from the LMS's own
+// gradebook rather than typed in. An office can still record a grade by hand.
+const pullGrades = async (doc, button) => {
+  button.disabled = true;
+  button.textContent = "pulling…";
+  try {
+    const answer = await api(`/api/programs/${doc.id}/grades`, { method: "POST", body: "{}" });
+    const skipped = (answer.skipped || []).length;
+    toast(answer.recorded.length
+      ? `${answer.recorded.length} course grade(s) read from the LMS`
+        + (skipped ? ` · ${skipped} without a grade yet` : "")
+      : `No grades in the LMS yet${skipped ? ` (${skipped} course(s) awaiting work)` : ""}`,
+      answer.recorded.length ? "ok" : "bad");
+    await refreshDetail();
+  } catch (error) {
+    toast(error.message, "bad");
+  } finally {
+    button.disabled = false;
+    button.textContent = "Pull LMS grades";
   }
 };
 
@@ -316,7 +406,7 @@ const stat = (label, value, note) => el("div", { class: "stat" },
 const progressPanel = () => {
   const progress = state.progress;
   if (!progress) {
-    return el("p", { class: "empty" }, "Enrol below to see credits, GPA, finals, and what you can take next.");
+    return el("p", { class: "empty" }, "Enroll below to see credits, GPA, finals, and what you can take next.");
   }
   const confer = isStaff() ? el("button", {
     class: "btn btn-primary", type: "button", disabled: progress.conferred ? true : !progress.eligible,
@@ -421,6 +511,7 @@ const renderDetail = () => {
         doc.startTerm ? badge(doc.startTerm) : null,
         doc.credentialKind === "certificate" ? badge("certificate", "ok") : badge("degree", "ok"),
         lmsBadge(doc),
+        lessonsBadge(doc),
       ),
       el("p", { class: "sub" }, doc.description),
       (doc.certificates || []).length
@@ -435,7 +526,7 @@ const renderDetail = () => {
         class: "btn btn-primary", type: "button",
         disabled: !(doc.lms || {}).available,
         title: (doc.lms || {}).available
-          ? "Create every missing course in the LMS so learners can enrol and it lists in Explore courses"
+          ? "Create every missing course in the LMS so learners can enroll and it lists in Explore courses"
           : "Publishing to the LMS is off on this console",
         onclick: (event) => publishProgram(doc, event.currentTarget),
       }, "Publish to LMS"),
@@ -481,6 +572,18 @@ const renderDetail = () => {
           }
         },
       }, "Sync runs"),
+      el("button", {
+        class: "btn btn-secondary", type: "button",
+        disabled: !(doc.lms || {}).available,
+        title: "Write each generated classroom's lessons and graded final examination into its LMS course",
+        onclick: (event) => buildLessons(doc, event.currentTarget),
+      }, "Build lessons"),
+      el("button", {
+        class: "btn btn-secondary", type: "button",
+        disabled: !(doc.lms || {}).available,
+        title: "Read every learner's course grade from the LMS and record it as the completion",
+        onclick: (event) => pullGrades(doc, event.currentTarget),
+      }, "Pull LMS grades"),
       el("button", {
         class: "btn btn-secondary", type: "button",
         onclick: async (event) => {
@@ -559,7 +662,7 @@ const renderDetail = () => {
   host.append(el("div", { class: "panel-sub" },
     el("h3", {}, "Curriculum"),
     el("p", { class: "sub" }, isStaff()
-      ? "Generate a semester to create its classrooms, then record each learner's grade and final. The credential is conferred here only when every requirement is met."
+      ? "Generate a semester to create its classrooms, then Sync runs and Build lessons to put each lesson and a graded final examination into its LMS course. Pull LMS grades records completion from work the learner actually did; the credential is conferred here only when every requirement is met."
       : "Every course in sequence, with its prerequisites and final assessment."),
     ...plan.semesters.map(semesterBlock),
   ));
@@ -682,7 +785,7 @@ const boot = async () => {
       // the case where the learner has no LMS account yet.
       const lms = answer.lms;
       const row = lms && lms.students && lms.students[0];
-      if (row && row.missing) toast(`Enrolled ${student} on the programme — no LMS account yet`);
+      if (row && row.missing) toast(`Enrolled ${student} on the program — no LMS account yet`);
       else if (row) toast(`Enrolled ${student} — ${row.enrolled.length} courses in the LMS`);
       else toast(`Enrolled ${student}`);
     } catch (error) {
