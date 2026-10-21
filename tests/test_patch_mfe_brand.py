@@ -85,6 +85,18 @@ class StudioHome(unittest.TestCase):
         self.assertNotIn("addNewCourseBtnText", result)
         self.assertNotIn("addNewLibraryBtnText", result)
 
+    def test_the_rewrite_keeps_the_program_shape(self):
+        # The first version of this patch replaced the course and library pushes
+        # together and swallowed the `){` between them: the bundle stopped
+        # parsing and the page rendered nothing. Delimiters are the invariant.
+        source = "if(a&&f()," + self.ANCHOR + ",b&&!c||c&&d){const t=()=>{i(!0)};" \
+                 + brand.HOME_LIBRARY_ANCHOR + "}"
+        result, counts = patch(source)
+        self.assertEqual(brand.imbalance(result), brand.imbalance(source))
+        self.assertEqual(counts["home-library-button"], 1)
+        self.assertIn("const t=()=>{i(!0)};", result)
+        self.assertNotIn("addNewLibraryBtnText", result)
+
     def test_a_patched_bundle_is_not_patched_twice(self):
         once, _ = patch("x;" + self.ANCHOR)
         twice, counts = patch(once)

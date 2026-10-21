@@ -50,6 +50,16 @@ for app in $APPS; do
   docker cp "$cid:$dist" "$WORK/$app/dist" >/dev/null
   docker rm "$cid" >/dev/null
   python3 "$PATCH" "$WORK/$app/dist" --app "$app"
+  # The patch rewrites compiled JavaScript, so "it ran" is not "it is valid".
+  # Every app's bundle is parsed before it is allowed into an image; a one-line
+  # brace mistake once shipped a page that rendered nothing.
+  if command -v node >/dev/null 2>&1; then
+    for bundle in "$WORK/$app/dist"/app.*.js; do
+      node --check "$bundle" || { echo "$app: $bundle does not parse" >&2; exit 1; }
+    done
+  else
+    echo "    (no node here: syntax not re-checked)" >&2
+  fi
   printf 'FROM %s\nCOPY dist %s\n' "$src" "$dist" | \
     docker build -q -t "atheniq/openedx-mfe:$app-$DST_SUFFIX" -f - "$WORK/$app" >/dev/null
 done

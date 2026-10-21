@@ -129,12 +129,20 @@ TOKEN_RULES = (
 #: the v1 and v2 library flows. Those gates are dropped on purpose: the four
 #: actions are links to the workspace, which enforces its own permissions, and a
 #: missing program link on a page that is about creating things is the bug.
+#: The two pushes are replaced one at a time, and neither replacement touches the
+#: braces around them: the stock code is
+#: `if(email, roles, p && push(new course), library flag) { const t = …; push(new
+#: library) }`, so a replacement that swallowed the `){` would leave the file
+#: unparsable. `p &&` still gates the new row on the permission to create.
 HOME_ACTIONS_ANCHOR = (
     'p&&r.push((0,yi.jsx)(gt.Ay,{variant:"outline-primary",iconBefore:kt.A,size:"sm",'
-    'disabled:d,onClick:()=>f(!0),children:e.formatMessage(KM.addNewCourseBtnText)})),'
-    'C&&!j||j&&D){const t=()=>{i(j?"/library/create":"/libraries-v1/create")};'
+    'disabled:d,onClick:()=>f(!0),children:e.formatMessage(KM.addNewCourseBtnText)}))'
+)
+
+#: The stock library button; its whole block body stays, minus the push.
+HOME_LIBRARY_ANCHOR = (
     'r.push((0,yi.jsx)(gt.Ay,{variant:"outline-primary",iconBefore:kt.A,size:"sm",'
-    'onClick:t,children:e.formatMessage(KM.addNewLibraryBtnText)}))}'
+    'onClick:t,children:e.formatMessage(KM.addNewLibraryBtnText)}))'
 )
 
 #: The replacement keeps the enclosing `(e||[])` shape: `r` is the actions
@@ -236,6 +244,11 @@ def patch_text(text: str, app: str, counts: Counter) -> str:
     if app == "authoring" and HOME_ACTIONS_ANCHOR in text:
         counts["home-actions"] += text.count(HOME_ACTIONS_ANCHOR)
         text = text.replace(HOME_ACTIONS_ANCHOR, _home_actions_js())
+        # The stock library button is one of the four now; its push goes, its
+        # enclosing block (and the callback it defines) stays.
+        if HOME_LIBRARY_ANCHOR in text:
+            counts["home-library-button"] += text.count(HOME_LIBRARY_ANCHOR)
+            text = text.replace(HOME_LIBRARY_ANCHOR, "")
 
     return text
 
@@ -250,6 +263,39 @@ STUDIO_CSS = (
     "copy there. */\n"
     "body:has(.studio-home-sub-header) .atheniq-studio-actions{display:none}\n"
 )
+
+
+#: A rewrite must not change the shape of the program. The structural rule swaps
+#: one expression for another, so every delimiter it consumes has to come back:
+#: the first version of this patch took the course and library buttons out in one
+#: go and ate the `){` between them, which left a bundle a browser cannot parse.
+#: The check is on the snippets, not the whole file: a token rewrite legitimately
+#: changes text inside string literals (ICU placeholders live in braces), so a
+#: whole-file count would fire on correct output.
+DELIMITERS = "{}()[]"
+
+
+def delimiters(text: str) -> dict[str, int]:
+    return {char: text.count(char) for char in DELIMITERS}
+
+
+def imbalance(text: str) -> tuple[int, int, int]:
+    """How many braces, parentheses and brackets the snippet leaves open."""
+    return (text.count("{") - text.count("}"),
+            text.count("(") - text.count(")"),
+            text.count("[") - text.count("]"))
+
+
+def _assert_shape() -> None:
+    stock = HOME_ACTIONS_ANCHOR + HOME_LIBRARY_ANCHOR
+    replacement = _home_actions_js()
+    if imbalance(stock) != imbalance(replacement):
+        raise SystemExit(
+            "patch-mfe-brand: the replacement does not close what the stock buttons "
+            f"open — {imbalance(stock)} vs {imbalance(replacement)}")
+
+
+_assert_shape()
 
 
 def iter_assets(dist: Path):
@@ -279,6 +325,8 @@ def main(argv: list[str]) -> int:
         except UnicodeDecodeError:
             continue
         new = patch_text(text, app, counts)
+        if new != text:
+            return 1
         if new != text:
             edited += 1
             if not args.report:
