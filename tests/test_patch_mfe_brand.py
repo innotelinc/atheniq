@@ -148,8 +148,12 @@ class OnDisk(unittest.TestCase):
         self.assertEqual(code, 0)
         skin = (self.dir / "atheniq-unity.css").read_text(encoding="utf-8")
         dark = (self.dir / "atheniq-unity-dark.css").read_text(encoding="utf-8")
-        self.assertEqual(skin, (css_dir / "unity-light.css").read_text(encoding="utf-8"))
-        self.assertEqual(dark, (css_dir / "unity-dark.css").read_text(encoding="utf-8"))
+        canonical = (css_dir / "unity-light.css").read_text(encoding="utf-8")
+        # The installed copy is the canonical skin plus importance on its tokens:
+        # Paragon mounts its own stylesheet after ours, so a tie loses.
+        self.assertEqual(skin, brand.harden(canonical))
+        self.assertIn("--pgn-color-primary-base: #5f3fe6 !important;", skin)
+        self.assertEqual(dark, brand.harden((css_dir / "unity-dark.css").read_text(encoding="utf-8")))
         html = (self.dir / "index.html").read_text(encoding="utf-8")
         self.assertIn('/authoring/atheniq-unity.css', html)
         self.assertIn('/authoring/atheniq-unity-dark.css', html)

@@ -318,6 +318,27 @@ def iter_assets(dist: Path):
 
 
 
+#: A custom-property declaration, e.g. `--pgn-color-primary-base: #5f3fe6;`.
+CUSTOM_PROPERTY_RE = re.compile(r"(--[a-z0-9-]+:[^;{}]+);")
+
+
+def harden(css: str) -> str:
+    """Make the skin win against the theme stylesheet the MFE loads later.
+
+    Paragon injects its own theme `<link>` when React mounts — after the static
+    links in the shell — so on a tie the platform's palette would win. The
+    tokens are the whole skin, so they are declared important; `!important` is
+    valid on a custom property and only affects this one variable.
+    """
+    def declare(match: re.Match[str]) -> str:
+        declaration = match.group(1)
+        if "!important" in declaration:  # already hardened: leave it alone
+            return match.group(0)
+        return declaration + " !important;"
+
+    return CUSTOM_PROPERTY_RE.sub(declare, css)
+
+
 def install_unity(dist: Path, app: str, css_dir: Path, counts: Counter, write: bool) -> None:
     """Put the Unity skin beside the bundle and link it from the shell."""
     for name, target in (("unity-light.css", "atheniq-unity.css"),
@@ -325,7 +346,7 @@ def install_unity(dist: Path, app: str, css_dir: Path, counts: Counter, write: b
         source = css_dir / name
         if not source.is_file():
             raise SystemExit(f"patch-mfe-brand: missing {source}")
-        text = source.read_text(encoding="utf-8")
+        text = harden(source.read_text(encoding="utf-8"))
         destination = dist / target
         if not destination.is_file() or destination.read_text(encoding="utf-8") != text:
             counts[f"unity:{target}"] += 1
