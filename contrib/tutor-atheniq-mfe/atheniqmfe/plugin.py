@@ -69,6 +69,14 @@ PLATFORM_SECTIONS = (
     ("Platform", AI_CONSOLE_URL + "platform.html"),
 )
 
+#: The learner dashboard is a learner's page, not an operator's: it offers the
+#: two places a learner needs — their courses and the catalogue — instead of the
+#: five workspace links, which open tools they cannot use.
+LEARNER_SECTIONS = (
+    ("Courses", "https://apps.learn.innotel.us/"),
+    ("Discover New", "https://apps.learn.innotel.us/catalog/courses"),
+)
+
 #: What the authoring app's create buttons become. The stock page offers one
 #: "+ New Course"; a program, a classroom and a media library are created the
 #: same way, in the workspace, and land in the same catalogue.
@@ -165,16 +173,20 @@ RenderWidget: AthenIQFooter,
 # the same styling in both places.
 HEADER_COMPONENT = f"""
 const ATHENIQ_SECTIONS = {[list(pair) for pair in PLATFORM_SECTIONS]!r};
+const ATHENIQ_LEARNER_SECTIONS = {[list(pair) for pair in LEARNER_SECTIONS]!r};
 const AthenIQPlatformNav = () => {{
-  // Studio only. One env.config.jsx is compiled into every MFE here, so the
-  // widget has to decide for itself which app it is in: authoring is served
-  // under /authoring, and the learner apps (course page, dashboard, profile)
-  // are not. A learner has no use for the workspace, an instructor writing a
-  // course does.
-  if (!window.location.pathname.startsWith('/authoring')) return null;
+  // One env.config.jsx is compiled into every MFE here, so the widget has to
+  // decide for itself where it is: the workspace belongs to the authoring app
+  // (`/authoring`), the two learner links belong to the dashboard, and every
+  // other page gets neither.
+  const path = window.location.pathname;
+  const learner = path.startsWith('/learner-dashboard');
+  if (!learner && !path.startsWith('/authoring')) return null;
+  const sections = learner ? ATHENIQ_LEARNER_SECTIONS : ATHENIQ_SECTIONS;
   return (
-  <nav className="atheniq-nav" aria-label="AthenIQ Platform Services">
-    {{ATHENIQ_SECTIONS.map(([label, href]) => (
+  <nav className="atheniq-nav" aria-label={{
+    learner ? 'AthenIQ learner links' : 'AthenIQ Platform Services'}}>
+    {{sections.map(([label, href]) => (
       <a key={{label}} className="nav-link atheniq-nav-link" href={{href}}>{{label}}</a>
     ))}}
   </nav>

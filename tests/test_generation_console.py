@@ -642,6 +642,22 @@ class HttpSurface(GatewayCase):
         self.assertEqual(status, 409)
         self.assertIn("kept", body["error"])
 
+    def test_a_bug_in_a_delete_answers_500_instead_of_dropping_the_socket(self):
+        """The proxy turns a dropped connection into 502 Bad Gateway.
+
+        Deleting a program once did exactly that: the handler raised
+        AttributeError on a store that predated the method, the socket closed,
+        and the page showed oauth2-proxy's error page with no clue in it. A 500
+        with the message is the same bug reported usefully.
+        """
+        def explode(_program_id):
+            raise AttributeError("'ProgramStore' object has no attribute 'archive'")
+
+        self.console.program_archive = explode
+        status, body, _ = self.mutate("/api/programs/whatever", method="DELETE")
+        self.assertEqual(status, 500)
+        self.assertIn("archive", body["error"])
+
     def test_healthz_answers_without_an_identity(self):
         status, body, _ = self.call("/healthz")
         self.assertEqual(status, 200)

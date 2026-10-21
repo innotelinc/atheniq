@@ -133,6 +133,32 @@ TOKEN_RULES = (
 #: the v1 and v2 library flows. Those gates are dropped on purpose: the four
 #: actions are links to the workspace, which enforces its own permissions, and a
 #: missing program link on a page that is about creating things is the bug.
+#: The learner dashboard gets two links, not the operator's five: a learner wants
+#: their courses and somewhere to find more, and the workspace is an author's tool.
+LEARNER_SECTIONS = (
+    ("Courses", "https://apps.learn.innotel.us/"),
+    ("Discover New", "https://apps.learn.innotel.us/catalog/courses"),
+)
+
+#: The five the env-config component was compiled with, in its order. Pinned as a
+#: literal: if the build changes it, the dashboard keeps the five links and the
+#: deploy says so instead of shipping the page it was meant to fix.
+PLATFORM_SECTIONS = (
+    ("Courses", "https://ai.lms.innotel.us/courses.html"),
+    ("Programs", "https://ai.lms.innotel.us/programs.html"),
+    ("Classrooms", "https://ai.lms.innotel.us/index.html"),
+    ("Studio", "https://studio.innotel.us/"),
+    ("Platform", "https://ai.lms.innotel.us/platform.html"),
+)
+
+
+def sections_literal(pairs) -> str:
+    """The array literal the bundle holds for a list of (label, href)."""
+    return "[" + ",".join(f'["{label}","{href}"]' for label, href in pairs) + "]"
+
+
+PLATFORM_NAV_ANCHOR = sections_literal(PLATFORM_SECTIONS)
+
 #: The two pushes are replaced one at a time, and neither replacement touches the
 #: braces around them: the stock code is
 #: `if(email, roles, p && push(new course), library flag) { const t = …; push(new
@@ -244,6 +270,10 @@ def patch_text(text: str, app: str, counts: Counter) -> str:
         if old in text:
             counts["edx-links"] += text.count(old)
             text = text.replace(old, new)
+
+    if app == "learner-dashboard" and PLATFORM_NAV_ANCHOR in text:
+        counts["learner-nav"] += text.count(PLATFORM_NAV_ANCHOR)
+        text = text.replace(PLATFORM_NAV_ANCHOR, sections_literal(LEARNER_SECTIONS))
 
     if app == "authoring" and HOME_ACTIONS_ANCHOR in text:
         counts["home-actions"] += text.count(HOME_ACTIONS_ANCHOR)
@@ -412,6 +442,13 @@ def main(argv: list[str]) -> int:
     # The Studio home's four actions are the reason this script exists for the
     # authoring app; a build that did not place them has silently kept the page
     # it was meant to fix.
+    if app == "learner-dashboard" and not counts.get("learner-nav") \
+            and not any("Discover New" in a.read_text(encoding="utf-8", errors="ignore")
+                        for a in iter_assets(args.dist)):
+        print("patch-mfe-brand: the dashboard's platform nav was not found — it still "
+              "carries the five workspace links", file=sys.stderr)
+        return 1
+
     if app == "authoring" and not counts.get("home-actions") \
             and not any(HOME_MARKER in a.read_text(encoding="utf-8", errors="ignore")
                         for a in iter_assets(args.dist)):

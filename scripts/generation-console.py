@@ -1805,6 +1805,12 @@ class Handler(BaseHTTPRequestHandler):
             return self._error(err.status, str(err))
         except Unavailable as err:
             return self._error(502, str(err))
+        except Exception as err:  # a handler answers; an uncaught bug drops the socket
+            # This is how a delete answered with a proxy's 502 instead of a
+            # message: an AttributeError escaped here and the connection closed
+            # with nothing to read. A 500 says what happened.
+            traceback.print_exc()
+            return self._error(500, f"the console failed while handling this request: {err}")
 
     def do_PATCH(self):
         """Edit metadata in place: a program's name, credential, term or GPAs."""
@@ -1823,6 +1829,9 @@ class Handler(BaseHTTPRequestHandler):
             return self._error(err.status, str(err))
         except Unavailable as err:
             return self._error(502, str(err))
+        except Exception as err:  # a handler answers; an uncaught bug drops the socket
+            traceback.print_exc()
+            return self._error(500, f"the console failed while handling this request: {err}")
 
     def _api_get(self, path):
         ident = self._identity()

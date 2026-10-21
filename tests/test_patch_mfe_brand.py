@@ -168,6 +168,25 @@ class OnDisk(unittest.TestCase):
         self.assertEqual(before, after)
 
 
+class LearnerDashboard(unittest.TestCase):
+    """The dashboard gets two links, not the operator's five."""
+
+    def test_the_five_workspace_links_become_courses_and_discover(self):
+        source = 'p=' + brand.sections_literal(brand.PLATFORM_SECTIONS) + ',b=()=>1'
+        result, counts = patch(source, app="learner-dashboard")
+        self.assertEqual(counts["learner-nav"], 1)
+        self.assertEqual(result,
+                         "p=" + brand.sections_literal(brand.LEARNER_SECTIONS) + ",b=()=>1")
+        for gone in ("programs.html", "index.html", "studio.innotel.us", "platform.html"):
+            self.assertNotIn(gone, result)
+
+    def test_another_app_keeps_the_workspace_nav(self):
+        source = 'p=' + brand.sections_literal(brand.PLATFORM_SECTIONS)
+        result, counts = patch(source, app="learning")
+        self.assertEqual(result, source)
+        self.assertEqual(counts.get("learner-nav", 0), 0)
+
+
 class Rewrite(unittest.TestCase):
     def test_tokens_are_replaced_in_order(self):
         self.assertEqual(brand.rewrite_value("Open edX (legacy)"), "AthenIQ (legacy)")

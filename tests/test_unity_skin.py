@@ -181,5 +181,28 @@ class Plugin(unittest.TestCase):
         self.assertIn('"tutor.plugin.v0"', pyproject)
 
 
+class HeaderLinks(unittest.TestCase):
+    """The MFE plugin's nav: the workspace in the studio, two links on the dashboard."""
+
+    MFE_PLUGIN = ROOT / "contrib" / "tutor-atheniq-mfe" / "atheniqmfe" / "plugin.py"
+
+    def setUp(self):
+        self.text = self.MFE_PLUGIN.read_text(encoding="utf-8")
+
+    def test_the_dashboard_gets_two_links_and_the_studio_gets_the_workspace(self):
+        self.assertIn("LEARNER_SECTIONS = (", self.text)
+        self.assertIn('("Courses", "https://apps.learn.innotel.us/")', self.text)
+        self.assertIn('("Discover New", "https://apps.learn.innotel.us/catalog/courses")', self.text)
+        # The component picks by path; a dashboard that falls through to the
+        # workspace links is the bug this guards.
+        self.assertIn("path.startsWith('/learner-dashboard')", self.text)
+        self.assertIn("learner ? ATHENIQ_LEARNER_SECTIONS : ATHENIQ_SECTIONS", self.text)
+
+    def test_the_workspace_links_are_still_what_the_studio_shows(self):
+        for label in ("Courses", "Programs", "Classrooms", "Studio", "Platform"):
+            self.assertIn(f'("{label}", ', self.text)
+        self.assertIn("if (!learner && !path.startsWith('/authoring')) return null;", self.text)
+
+
 if __name__ == "__main__":
     unittest.main()
