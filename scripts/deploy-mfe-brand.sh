@@ -65,7 +65,11 @@ for app in $APPS; do
 done
 
 echo "=== assembling $TARGET"
-printf 'FROM %s\n' "$BASE" > "$WORK/Dockerfile"
+# `rm -rf /openedx/dist` first: the base image carries an older build of every
+# app, and a plain COPY over it leaves the previous hashed bundles behind —
+# still served, still wearing the old brand. Only the app dirs live there, and
+# every one of them is copied back below.
+printf 'FROM %s\nRUN rm -rf /openedx/dist\n' "$BASE" > "$WORK/Dockerfile"
 for app in $APPS; do
   printf 'COPY --from=atheniq/openedx-mfe:%s-%s %s /openedx/dist/%s\n' \
     "$app" "$DST_SUFFIX" "$(dist_path "$app")" "$app" >> "$WORK/Dockerfile"

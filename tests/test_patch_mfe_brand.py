@@ -110,6 +110,47 @@ class StudioHome(unittest.TestCase):
         self.assertEqual(counts.get("home-actions", 0), 0)
 
 
+class OnDisk(unittest.TestCase):
+    """The filesystem path: the rules above are only worth anything if written.
+
+    A stray early return once made the script exit 1 without touching a single
+    file, which no test of `patch_text` could have caught.
+    """
+
+    def setUp(self):
+        import tempfile
+        self.dir = Path(tempfile.mkdtemp()) / "authoring"
+        self.dir.mkdir()
+        (self.dir / "index.html").write_text(
+            "<html><head><title>Course Authoring |</title></head></html>", encoding="utf-8")
+        (self.dir / "app.deadbeef.js").write_text(
+            '"header.user.menu.studio":"Studio Home",' + brand.HOME_ACTIONS_ANCHOR
+            + ",x&&y){const t=()=>{i(!0)};" + brand.HOME_LIBRARY_ANCHOR + "}",
+            encoding="utf-8")
+        (self.dir / "app.deadbeef.css").write_text(".btn{color:red}", encoding="utf-8")
+
+    def test_it_writes_every_rule_to_disk(self):
+        code = brand.main([str(self.dir), "--app", "authoring"])
+        self.assertEqual(code, 0)
+        html = (self.dir / "index.html").read_text(encoding="utf-8")
+        js = (self.dir / "app.deadbeef.js").read_text(encoding="utf-8")
+        css = (self.dir / "app.deadbeef.css").read_text(encoding="utf-8")
+        self.assertIn("<title>AthenIQ Studio</title>", html)
+        self.assertIn('"header.user.menu.studio":"AthenIQ Studio"', js)
+        self.assertIn(brand.HOME_MARKER, js)
+        self.assertEqual(brand.imbalance(js), brand.imbalance(
+            ',x&&y){const t=()=>{i(!0)};}'.replace("}", "}")))
+        self.assertIn(brand.STUDIO_CSS, css)
+
+    def test_a_second_run_changes_nothing(self):
+        brand.main([str(self.dir), "--app", "authoring"])
+        before = {p.name: p.read_text(encoding="utf-8") for p in self.dir.iterdir()}
+        self.assertEqual(brand.main([str(self.dir), "--app", "authoring"]), 0)
+        after = {p.name: p.read_text(encoding="utf-8") for p in self.dir.iterdir()}
+        # The css marker is the one thing appending twice would duplicate.
+        self.assertEqual(before, after)
+
+
 class Rewrite(unittest.TestCase):
     def test_tokens_are_replaced_in_order(self):
         self.assertEqual(brand.rewrite_value("Open edX (legacy)"), "AthenIQ (legacy)")

@@ -78,6 +78,10 @@ SENTENCE_RULES = (
 #: exact string, so none of them can touch an identifier like `movedXBlockParams`.
 STRING_RULES = (
     ('title:"Open edX"', 'title:"AthenIQ"'),
+    # The app shell's <title>. It is the one piece of copy a tab shows, and it
+    # still named the stock product.
+    ("Course Authoring |", "AthenIQ Studio"),
+    ("Course Authoring", "AthenIQ Studio"),
     ('alt:"Open edX"', 'alt:"AthenIQ"'),
     ("Building and Running an Open edX Course", "Authoring an AthenIQ Course"),
     ("Open edX Developer\\'s Guide", "AthenIQ Developer Guide"),
@@ -300,8 +304,8 @@ _assert_shape()
 
 def iter_assets(dist: Path):
     """The files a browser can be served: js bundles and their sourcemaps."""
-    for path in sorted(dist.glob("**/*.js*")):
-        if path.suffix in (".js", ".map"):
+    for path in sorted(dist.glob("**/*")):
+        if path.suffix in (".js", ".map", ".html"):
             yield path
 
 
@@ -325,8 +329,6 @@ def main(argv: list[str]) -> int:
         except UnicodeDecodeError:
             continue
         new = patch_text(text, app, counts)
-        if new != text:
-            return 1
         if new != text:
             edited += 1
             if not args.report:
