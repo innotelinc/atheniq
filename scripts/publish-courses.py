@@ -218,18 +218,29 @@ def key_index(keys) -> dict[str, str]:
 # -- the OLX shell ------------------------------------------------------------
 
 
-def _dates(term: str, early_start: str | None = None) -> dict[str, str]:
+def _dates(term: str, early_start: str | None = None,
+           first_day: str | None = None) -> dict[str, str]:
     """The run's dates: it opens two months early and stays open for two years.
 
     `early_start` is an ISO date the course actually opens on, when the cohort
     wants learners to begin before the term's first day. The advertised start
     stays the term's, so the catalogue still says which semester the run belongs
     to; the linked material is open from the earlier date.
+
+    `first_day` is the cohort's real first day, when the calendar and the
+    quarter disagree: Spring 2027 opens on 11 January, not on the 1st, and the
+    catalogue reads the advertised start — a course that says 1 January in a
+    cohort that begins on the 11th is wrong to every applicant who reads it.
     """
     match = re.match(r"^(\d{4})_T([1-4])$", term)
     year = int(match.group(1)) if match else dt.date.today().year
     quarter = int(match.group(2)) if match else _quarter(dt.date.today())
     start = dt.datetime(year, 3 * (quarter - 1) + 1, 1, tzinfo=dt.timezone.utc)
+    if first_day:
+        try:
+            start = dt.datetime.fromisoformat(str(first_day)).replace(tzinfo=dt.timezone.utc)
+        except ValueError:
+            pass
     opens = start
     if early_start:
         try:
@@ -273,6 +284,7 @@ def entry_for(course: dict, program: dict, semester: dict, term: str,
         "program": program.get("name") or "",
         "programId": program.get("id") or "",
         "earlyStart": program.get("earlyAccessStart") or None,
+        "firstDay": program.get("firstDay") or None,
         "credential": program.get("credential") or "",
         "credentialKind": program.get("credentialKind") or "degree",
         "totalCredits": program.get("totalCredits"),
@@ -454,7 +466,7 @@ def build_shell(entry: dict, dest: str) -> str:
     olx = os.path.join(dest, "olx")
     os.makedirs(olx)
     term = entry["term"]
-    dates = _dates(term, entry.get("earlyStart"))
+    dates = _dates(term, entry.get("earlyStart"), entry.get("firstDay"))
     name = f"{entry['code']} — {entry['title']}"
     lessons = list(entry.get("lessons") or [])
     exam = [(index, question)
@@ -684,6 +696,31 @@ class DockerLms:
 
     # -- writes -----------------------------------------------------------
 
+    def course_list(self) -> list[tuple[str, str]]:
+        """Every course the LMS holds, as `(key, display name)`.
+
+        `course_ids()` answers "what exists" for the publisher's key index; this
+        answers "what is *visible*" for the photographs, and a course can be the
+        second without being the first: `DATA101` runs under an older key than
+        any current program produces, and the catalog still lists it.
+        """
+        script = """
+from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
+
+for key, name in CourseOverview.objects.values_list("id", "display_name"):
+    print("ATHENIQ_COURSE\\t" + str(key) + "\\t" + str(name or ""))
+"""
+        result = self._exec(self.cms, ["sh", "-c",
+                                       f"cd {self.platform} && {self.python} ./manage.py cms shell"],
+                            stdin_text=script)
+        rows = []
+        for line in (result.stdout or "").splitlines():
+            if not line.startswith("ATHENIQ_COURSE\t"):
+                continue
+            _, key, name = line.split("\t", 2)
+            rows.append((key.strip(), name.strip()))
+        return rows
+
     def import_olx(self, olx_dir: str, name: str) -> str:
         """Bundle one course's OLX and import it into the CMS."""
         return self.import_batch([(olx_dir, name)])[0]
@@ -838,6 +875,64 @@ print("ATHENIQ_IMAGES " + json.dumps({{"updated": updated, "missing": missing}})
             raise LmsError("the CMS did not report which course images were written")
         # The LMS caches overviews under its own key prefix; a clear on the CMS
         # side does not reach them.
+        self._exec(self.lms, ["sh", "-c",
+                              f"cd {self.platform} && {self.python} ./manage.py lms shell"],
+                   stdin_text="from django.core.cache import cache\ncache.clear()\n")
+        return report
+
+    def set_course_dates(self, mapping) -> dict:
+        """Write each course's cohort dates into the course itself.
+
+        The catalogue's "Starts" line and the course page's schedule both read
+        the run's own `start` and `advertised_start`; neither is a display
+        preference, so a cohort that opens on 11 January has to be written into
+        every existing run, not just the one published next.
+
+        `advertised_start` is what the catalogue shows, `start` is when the
+        material opens — the cohort's early-access date when there is one — so a
+        learner can begin now while the card still says when the class begins.
+        """
+        plan = {str(key).strip(): value for key, value in (mapping or {}).items()
+                if key and value}
+        if not plan:
+            return {"updated": [], "missing": []}
+        script = f"""
+import datetime
+import json
+from django.core.cache import cache
+from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
+from opaque_keys.edx.keys import CourseKey
+from xmodule.modulestore import ModuleStoreEnum
+from xmodule.modulestore.django import modulestore
+
+plan = json.loads({json.dumps(plan)!r})
+updated, missing = [], []
+for key, dates in plan.items():
+    course_key = CourseKey.from_string(key)
+    course = modulestore().get_course(course_key)
+    if course is None:
+        missing.append(key)
+        continue
+    opens = datetime.datetime.fromisoformat(dates["start"]).replace(tzinfo=datetime.timezone.utc)
+    course.start = opens
+    course.advertised_start = dates["advertisedStart"]
+    modulestore().update_item(course, ModuleStoreEnum.UserID.mgmt_command)
+    updated.append(key)
+if updated:
+    CourseOverview.update_select_courses(
+        [CourseKey.from_string(key) for key in updated], force_update=True)
+cache.clear()
+print("ATHENIQ_DATES " + json.dumps({{"updated": updated, "missing": missing}}))
+"""
+        result = self._exec(self.cms, ["sh", "-c",
+                                       f"cd {self.platform} && {self.python} ./manage.py cms shell"],
+                            stdin_text=script)
+        report = None
+        for line in (result.stdout or "").splitlines():
+            if line.startswith("ATHENIQ_DATES "):
+                report = json.loads(line[len("ATHENIQ_DATES "):])
+        if report is None:
+            raise LmsError("the CMS did not report which course dates were written")
         self._exec(self.lms, ["sh", "-c",
                               f"cd {self.platform} && {self.python} ./manage.py lms shell"],
                    stdin_text="from django.core.cache import cache\ncache.clear()\n")
@@ -1491,8 +1586,42 @@ class Publisher:
 
     # -- photographs ------------------------------------------------------
 
+    def visible_courses(self) -> list[tuple[str, str]]:
+        """Every course the catalog shows, as `(key, display name)`.
+
+        A plan is what the publisher *creates*; the catalog shows what the LMS
+        *holds*, and those are not the same set. `DATA101` runs under an older
+        key than any current program produces, and it stays listed — with
+        whatever picture it was published with, which after a redesign is the
+        previous one. So the photographs are applied to the catalog, not to the
+        plan.
+        """
+        lister = getattr(self.lms, "course_list", None)
+        if lister is None:
+            return []
+        try:
+            return list(lister())
+        except LmsError:
+            return []
+
+    @staticmethod
+    def _code_of(key: str) -> str:
+        """`course-v1:ORG+CODE+RUN` -> `CODE`."""
+        parts = str(key).split("+")
+        return parts[1].strip().upper() if len(parts) == 3 else str(key)
+
+    def _outside_plan(self, covered) -> dict[str, str]:
+        """The photographs for courses no current plan names, key -> URL."""
+        return {key: course_image_url(self._code_of(key), name)
+                for key, name in self.visible_courses() if key not in covered}
+
     def set_images(self, entries=None) -> dict:
-        """Give every planned course its Unity-pool card photograph."""
+        """Give every course in the catalog its Unity-pool card photograph.
+
+        Both images a learner can see — the card and the course page's banner —
+        are written, and this covers courses no plan names, because those stay
+        in the catalog after the plan that made them is replaced.
+        """
         if entries is None:
             try:
                 entries = self.plan()
@@ -1503,13 +1632,67 @@ class Publisher:
                                            entry.get("description") or "")
             for entry in entries
         }
+        outside = self._outside_plan(mapping)
+        mapping.update(outside)
         if not mapping:
             return {"available": True, "updated": [], "missing": []}
         try:
             report = self.lms.set_course_images(mapping)
         except LmsError as err:
             return {"available": False, "error": str(err), "planned": len(mapping)}
-        return {"available": True, **report, "planned": len(mapping)}
+        return {"available": True, **report, "planned": len(mapping),
+                "outsidePlan": len(outside)}
+
+    # -- dates --------------------------------------------------------------
+
+    def cohort_first_day(self) -> str | None:
+        """The day the cohort's classes begin, as its programs state it."""
+        days = [str(program.get("firstDay") or "").strip() for program in self.programs()]
+        days = [day for day in days if day]
+        return min(days) if days else None
+
+    def set_dates(self, first_day=None) -> dict:
+        """Put the cohort's first day on every course in the catalog.
+
+        The marketing calendar says Spring 2027 begins on 11 January; a course
+        that advertises the term's quarter start (1 January) contradicts the
+        page a learner applied from. The date lives on the run, so it is written
+        into every run the catalog holds — planned or not — and the index is
+        rebuilt, because "Starts" is read out of the search index, not the
+        database.
+        """
+        first_day = str(first_day or self.cohort_first_day() or "").strip()
+        if not first_day:
+            return {"available": False,
+                    "error": "no cohort first day: set `firstDay` on a program or pass --first-day"}
+        try:
+            planned = {entry["key"]: entry for entry in self.plan()}
+        except LmsError as err:
+            return {"available": False, "error": str(err)}
+        keys = list(planned)
+        for key, _name in self.visible_courses():
+            if key not in planned:
+                keys.append(key)
+        mapping = {}
+        for key in keys:
+            parts = str(key).split("+")
+            term = parts[2] if len(parts) == 3 else ""
+            entry = planned.get(key) or {}
+            dates = _dates(term, entry.get("earlyStart"), first_day)
+            mapping[key] = {"start": dates["start"],
+                            "advertisedStart": dates["advertised_start"]}
+        try:
+            report = self.lms.set_course_dates(mapping)
+        except LmsError as err:
+            return {"available": False, "error": str(err), "planned": len(mapping)}
+        answer = {"available": True, **report, "planned": len(mapping),
+                  "firstDay": first_day, "reindexed": False}
+        try:
+            self.lms.reindex()
+            answer["reindexed"] = True
+        except LmsError as err:
+            answer["reindexError"] = str(err)
+        return answer
 
     def render_cards(self, entries=None) -> dict:
         """Render one catalog card per course, from the program plans.
@@ -1545,15 +1728,19 @@ class Publisher:
         return {"available": True, **report}
 
     def apply_cards(self, entries=None, reindex: bool = True) -> dict:
-        """Put each course's own rendered card on its catalog card.
+        """Put each course's card on its catalog card.
 
         Two records have to agree for a card to show: the course *asset* the
         search index links to, and the `CourseOverview` image the course-about
         page reads. This writes both, then reindexes so the catalog stops
         serving the URLs the shells were imported with.
 
-        Cards are rendered by `scripts/course-cards.py`; this uploads whatever
-        it finds in the theme's `images/courses/<CODE>.jpg`.
+        Cards are rendered by `scripts/course-cards.py`; a planned course
+        uploads whatever it finds in the theme's `images/courses/<CODE>.jpg`.
+        A course outside every plan — a standalone course, or a run from an
+        earlier cohort — has no rendered card, so its subject photograph from
+        the pool is uploaded instead: it is still in the catalog, so it still
+        needs a picture that belongs to this design.
         """
         if entries is None:
             try:
@@ -1561,13 +1748,23 @@ class Publisher:
             except LmsError as err:
                 return {"available": False, "error": str(err)}
         photo_dir = photos_module().PHOTO_DIR
+        # Everything the catalog can show, by key: the courses this run plans,
+        # and the ones the LMS already holds that no plan names. `resolve()`
+        # prefers a rendered card and falls back to the subject photograph, so
+        # one pass gives every course a picture from this design.
+        known = {entry["key"]: (str(entry.get("code") or "").upper(),
+                               entry.get("title") or "")
+                 for entry in entries}
+        for key, name in self.visible_courses():
+            known.setdefault(key, (self._code_of(key), name))
         plan, missing = {}, []
-        for entry in entries:
-            path = os.path.join(photo_dir, f"{str(entry.get('code')).upper()}.jpg")
+        for key, (code, title) in known.items():
+            photo = photos_module().resolve(code, title)
+            path = os.path.join(photo_dir, photo["file"])
             if os.path.isfile(path):
-                plan[entry["key"]] = path
+                plan[key] = path
             else:
-                missing.append(entry.get("code"))
+                missing.append(code)
         if not plan:
             return {"available": True, "planned": 0, "uploaded": [], "missing": missing,
                     "failed": [], "reindexed": False}
@@ -1859,9 +2056,13 @@ def main():
     ap.add_argument("--delete-all", action="store_true",
                     help="delete every course in the LMS, then reindex (a start from scratch)")
     ap.add_argument("--images", action="store_true",
-                    help="(re)apply the course-card photographs to every planned course")
+                    help="(re)apply the course photographs to every course in the catalog")
     ap.add_argument("--cards", action="store_true",
                     help="upload each course's rendered card (scripts/course-cards.py) as its catalog card")
+    ap.add_argument("--dates", action="store_true",
+                    help="write the cohort's first day onto every course in the catalog, then reindex")
+    ap.add_argument("--first-day", metavar="YYYY-MM-DD",
+                    help="the cohort's first day (default: the earliest `firstDay` on a program)")
     ap.add_argument("--check-cards", action="store_true",
                     help="fail if any published course's card asset is not served")
     ap.add_argument("--json", action="store_true", help="machine-readable output")
@@ -1915,6 +2116,21 @@ def main():
         if answer.get("missing"):
             print("  no rendered card for: " + ", ".join(answer["missing"]), file=sys.stderr)
         sys.exit(1 if answer.get("failed") else 0)
+
+    if args.dates:
+        answer = publisher.set_dates(args.first_day)
+        if args.json:
+            print(json.dumps(answer, indent=2, sort_keys=True))
+            sys.exit(0 if answer.get("available") else 1)
+        if not answer.get("available"):
+            print(f"error: {answer.get('error')}", file=sys.stderr)
+            sys.exit(1)
+        print(f"cohort start: {answer.get('firstDay')} on "
+              f"{len(answer.get('updated') or [])} of {answer.get('planned') or 0} course(s)"
+              + (" and the catalog reindexed" if answer.get("reindexed") else ""))
+        for key in answer.get("missing") or []:
+            print(f"  {key:<52} not in the CMS", file=sys.stderr)
+        sys.exit(0)
 
     if args.images:
         answer = publisher.set_images()

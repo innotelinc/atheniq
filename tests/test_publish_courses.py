@@ -81,7 +81,7 @@ class FakeLessons:
 class FakeLms:
     """A stand-in for the Tutor stack that remembers what it was told."""
 
-    def __init__(self, keys=(), fail_imports=()):
+    def __init__(self, keys=(), fail_imports=(), stray=()):
         self.keys = list(keys)
         self.imports = []
         self.batches = 0
@@ -91,12 +91,34 @@ class FakeLms:
         self.fail_reindex_times = 0
         self.down = False
         self.images = {}
+        self.cards = {}
+        self.dates_written = {}
         self.deleted = []
+        #: `(key, display name)` for courses no current plan names, e.g. a run
+        #: from an earlier cohort that the catalog still lists.
+        self.stray = list(stray)
 
     def course_ids(self):
         if self.down:
             raise publisher.LmsError("docker: cannot connect")
         return list(self.keys)
+
+    def course_list(self):
+        if self.down:
+            raise publisher.LmsError("docker: cannot connect")
+        return list(self.stray)
+
+    def apply_course_cards(self, plan):
+        if self.down:
+            raise publisher.LmsError("docker: cannot connect")
+        self.cards.update(plan)
+        return {"uploaded": sorted(plan), "failed": []}
+
+    def set_course_dates(self, mapping):
+        if self.down:
+            raise publisher.LmsError("docker: cannot connect")
+        self.dates_written.update(mapping)
+        return {"updated": sorted(mapping), "missing": []}
 
     def _import(self, olx_dir, name):
         if self.down:
@@ -552,6 +574,74 @@ class GradeTests(Fixture):
         report = self.publisher.grades(self.program["id"], ["tester@example.org"])
         self.assertFalse(report["available"])
         self.assertIn("docker", report["error"])
+
+
+class PhotographTests(Fixture):
+    """The plan creates courses; the catalog shows the ones that exist.
+
+    `DATA101` is the case that exposed this: it runs under an earlier cohort's
+    key, no current program plan names it, and it kept the card it was imported
+    with — a picture from a retired design — while every planned course got the
+    new one.
+    """
+
+    STRAY = ("course-v1:InnotelLabs+DATA101+2026_T1", "DATA101 — Data Foundations")
+
+    def setUp(self):
+        super().setUp()
+        self.lms.stray = [self.STRAY]
+
+    def test_a_course_outside_every_plan_gets_a_photograph(self):
+        report = self.publisher.set_images()
+        self.assertEqual(report["outsidePlan"], 1)
+        self.assertEqual(
+            self.lms.images[self.STRAY[0]],
+            publisher.course_image_url("DATA101", "DATA101 — Data Foundations"))
+
+    def test_and_its_own_photograph_is_what_gets_uploaded(self):
+        self.publisher.apply_cards([], reindex=False)
+        photo = publisher.photos_module().resolve("DATA101", "Data Foundations")
+        self.assertTrue(self.lms.cards[self.STRAY[0]].endswith(photo["file"]),
+                        self.lms.cards[self.STRAY[0]])
+
+    def test_every_planned_course_uploads_its_resolved_photograph(self):
+        """A rendered card when there is one, the subject pool when there is not."""
+        entries = self.publisher.entries(self.program, keys={})
+        self.publisher.apply_cards(entries, reindex=False)
+        for entry in entries:
+            photo = publisher.photos_module().resolve(entry["code"], entry["title"])
+            self.assertTrue(self.lms.cards[entry["key"]].endswith(photo["file"]),
+                            f"{entry['code']} -> {self.lms.cards[entry['key']]}")
+
+
+class CohortDateTests(Fixture):
+    """The marketing calendar and the catalog have to say the same day."""
+
+    def test_the_cohort_first_day_beats_the_quarters_first(self):
+        dates = publisher._dates("2027_T1", None, "2027-01-11")
+        self.assertEqual(dates["advertised_start"], "2027-01-11T00:00:00Z")
+        self.assertEqual(dates["start"], "2027-01-11T00:00:00Z")
+
+    def test_early_access_still_opens_the_run_before_that_day(self):
+        dates = publisher._dates("2027_T1", "2026-10-21", "2027-01-11")
+        self.assertEqual(dates["start"], "2026-10-21T00:00:00Z")
+        self.assertEqual(dates["advertised_start"], "2027-01-11T00:00:00Z")
+        self.assertLess(dates["enrollment_start"], dates["start"])
+
+    def test_every_catalog_course_is_written_and_the_index_rebuilt(self):
+        self.lms.stray = [("course-v1:InnotelLabs+DATA101+2026_T1", "DATA101 — Data Foundations")]
+        answer = self.publisher.set_dates("2027-01-11")
+        self.assertTrue(answer["available"], answer)
+        self.assertIn("course-v1:InnotelLabs+DATA101+2026_T1", self.lms.dates_written)
+        self.assertEqual(self.lms.dates_written["course-v1:InnotelLabs+DATA101+2026_T1"]
+                         ["advertisedStart"], "2027-01-11T00:00:00Z")
+        self.assertTrue(answer["reindexed"])
+        self.assertEqual(self.lms.reindexes, 1)
+
+    def test_without_a_first_day_it_says_so_instead_of_guessing(self):
+        answer = self.publisher.set_dates()
+        self.assertFalse(answer["available"])
+        self.assertIn("first day", answer["error"])
 
 
 class ConsoleTests(Fixture):
