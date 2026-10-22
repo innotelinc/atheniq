@@ -21,6 +21,11 @@ template. A subject pool plus a hash of the course key gives every course a
 stable, distinct choice within its subject, and one subject's photographs can be
 replaced without touching the course records.
 
+THE POOL IS THE FALLBACK. `scripts/course-cards.py` renders a card per course
+from its program plan (`<CODE>.jpg` in this same directory, carrying the title,
+program, semester and code). When that file exists, `resolve()` returns it and
+the pool is used only for a course that has not been rendered yet.
+
     python3 scripts/course-photos.py --fetch     # download the pool
     python3 scripts/course-photos.py --check     # files present, 1200x675, mapping complete
     python3 scripts/course-photos.py --list      # how each course in the tree maps
@@ -99,6 +104,14 @@ def resolve(code, title, description="", manifest=None):
     subjects = manifest.get("subjects") or {}
     overrides = manifest.get("courses") or {}
     subject_name = subject_for(title, code, description, manifest)
+
+    # A card rendered for exactly this course (`scripts/course-cards.py`) wins
+    # over the shared subject pool: it carries the course's own title, code and
+    # program, so the catalog never shows two courses with the same picture.
+    per_course = f"{str(code).upper()}.jpg"
+    if os.path.isfile(os.path.join(PHOTO_DIR, per_course)):
+        return {"subject": subject_name, "photo": None,
+                "file": per_course, "url": f"{URL_PREFIX}/{per_course}"}
 
     override = overrides.get(str(code).upper())
     if override and "/" in str(override):

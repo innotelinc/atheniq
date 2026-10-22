@@ -103,8 +103,10 @@ for file in logo.png logo-white.png favicon.ico; do
   copy "${THEME_DIR}/lms/static/images/${file}" "${IMAGES_TARGET}" "${LMS_CONTAINER}"
 done
 
-# The course photographs. One directory, served from /static/atheniq/images/
-# courses/<file> — the URL `publish-courses.py` writes into every course.
+# The course cards and photographs. One directory, served from
+# /static/atheniq/images/courses/<file> — the URL `publish-courses.py` writes
+# into every course (`<CODE>.jpg` is that course's rendered card; the subject
+# pool `<subject>-<n>.jpg` is the fallback).
 if [ -d "${THEME_DIR}/lms/static/images/courses" ]; then
   docker exec "${LMS_CONTAINER}" mkdir -p "${STATIC_TARGET}/images/courses"
   docker cp "${THEME_DIR}/lms/static/images/courses/." \

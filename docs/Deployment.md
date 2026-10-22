@@ -127,9 +127,10 @@ footer and an edX trademark paragraph, ships the upstream header logo and
 favicon, and comes with its own compiled palette.
 [`contrib/atheniq-theme`](../contrib/atheniq-theme) holds the replacement: the
 LMS footer and `<head>` hook, Studio's header, the generated
-`logo.png` / `logo-white.png` / `favicon.ico` (`make images`) and the course
-photographs (`make course-photos`), all painted from **Unity**, the Innotel
-Platform Stack's one theme.
+`logo.png` / `logo-white.png` / `favicon.ico` (`make images`), the course
+photographs (`make course-photos`) and the per-course catalog cards (`make
+course-cards`), all painted from **Unity**, the Innotel Platform Stack's one
+theme.
 
 Unity is vendored byte-for-byte as `unity-theme.css` + `unity-theme.js` in both
 `lms/static/atheniq/` and `cms/static/atheniq/`. The LMS runs in the `desk`
@@ -664,16 +665,22 @@ the CMS, under a key derived from the course code
   course with no grade yet is skipped, and a pass that would break a
   prerequisite is reported rather than written. `program_complete` remains for an
   office making a correction by hand.
-- **Every published course gets a card photograph.** `config/course-photos.json`
-  is a pool of high-resolution photographs, one set per subject; a course routes
-  to a subject by its title and to a photograph in that pool by a hash of its
-  code, so the choice is stable and varied within a program. `make
-  course-photos` fetches the pool into
-  `contrib/atheniq-theme/lms/static/images/courses/`, `make theme` installs it,
-  and publishing writes `/static/atheniq/images/courses/<file>` into the
-  course's `CourseOverview.course_image_url` — the field the catalog API, the
-  learner dashboard and Studio all read. `--images` re-applies the mapping to
-  every course without importing anything (after a pool change).
+- **Every published course gets its own card.** `make course-cards` renders
+  `contrib/atheniq-theme/lms/static/images/courses/<CODE>.jpg` from the program
+  plans (`scripts/course-cards.py`, Pillow): the course's title, program,
+  semester, code, credits and term over a subject photograph, so no two cards
+  read the same. `make theme` installs the directory and bakes it into the
+  image; `publish-courses.py --cards` then uploads each card as the course's
+  `images_course_image.jpg` asset (the URL the catalog grid reads through the
+  search index) and writes `/static/atheniq/images/courses/<CODE>.jpg` into
+  `CourseOverview.course_image_url` (the course-about page and dashboard).
+  Reindexing follows and prunes documents of deleted courses, which otherwise
+  linger in *Explore courses* as cards that open nothing.
+
+  Without a rendered card — a newly created course, before the first render — a
+  course falls back to the subject pool in `config/course-photos.json`
+  (`make course-photos`): one photograph per subject, chosen by a hash of the
+  code. `--images` re-applies that mapping without importing anything.
 - The publisher needs `docker` for the unit's user (`tutor` is in the `docker`
   group on this host) and the containers named in `publish-courses.py`
   (`tutor_local-cms-1`, `tutor_local-lms-1`) plus `openmaic-postgres-1` for the
@@ -682,7 +689,8 @@ the CMS, under a key derived from the course code
 ```bash
 sudo -u tutor python3 scripts/publish-courses.py                    # plan, touches nothing
 sudo -u tutor python3 scripts/publish-courses.py --execute          # publish what is missing
-sudo -u tutor python3 scripts/publish-courses.py --images            # (re)apply card photographs
+sudo -u tutor python3 scripts/publish-courses.py --images            # (re)apply pool photographs
+sudo -u tutor python3 scripts/publish-courses.py --cards             # upload each course's rendered card
 sudo -u tutor python3 scripts/publish-courses.py --delete-all        # remove every course, reindex
 sudo -u tutor python3 scripts/publish-courses.py --attach <id> --course BUS101 --classroom <stage>
 sudo -u tutor python3 scripts/publish-courses.py --program <id> --grades

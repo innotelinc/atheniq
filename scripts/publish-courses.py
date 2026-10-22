@@ -40,11 +40,20 @@ updates it without orphaning a learner's grades.
     python3 scripts/publish-courses.py --program <id> --grades
     python3 scripts/publish-courses.py --program <id> --enroll learner@x.edu
     python3 scripts/publish-courses.py --images             # (re)apply card photographs
+    python3 scripts/publish-courses.py --cards              # upload each course's rendered card
     python3 scripts/publish-courses.py --delete-all         # remove every course, reindex
     python3 scripts/publish-courses.py --json
 
 After the imports the CMS is reindexed so the new courses appear in the catalog
-search the learner dashboard and *Explore courses* read from.
+search the learner dashboard and *Explore courses* read from. Reindexing also
+prunes search documents whose course no longer exists, so a deleted program
+cannot leave orphan cards in the catalog.
+
+`--cards` is the catalog's picture half: `scripts/course-cards.py` renders one
+card per course from the program plans (title, program, semester, code), and
+this uploads each as the course's card asset and points `CourseOverview` at the
+matching `/static/atheniq/images/courses/<CODE>.jpg`. The MFE grid reads the
+asset through the search index, so both records have to agree.
 
 Exit codes: 0 ok, 1 a course failed to publish (or the LMS could not be reached).
 
@@ -810,12 +819,135 @@ print("ATHENIQ_IMAGES " + json.dumps({{"updated": updated, "missing": missing}})
                    stdin_text="from django.core.cache import cache\ncache.clear()\n")
         return report
 
+    def apply_course_cards(self, plan) -> dict:
+        """Upload each course's rendered card as its own card asset.
+
+        The learner catalog does not read `CourseOverview.course_image_url` for
+        its grid: it reads `image_url` from the search index, and the index
+        takes that from the course's *card asset*. A course whose asset is
+        missing therefore shows the platform's graduation-cap placeholder no
+        matter how correct its overview is. So the rendered card is uploaded as
+        `images_course_image.jpg` — the name the shells' course block already
+        carries — and the block is pointed at it explicitly.
+
+        `plan` maps course key -> rendered JPEG path.
+        """
+        plan = {str(key).strip(): str(path) for key, path in (plan or {}).items()
+                if key and path and os.path.isfile(path)}
+        if not plan:
+            return {"uploaded": [], "failed": []}
+
+        stage = os.path.join(self.work_dir, "cards")
+        shutil.rmtree(stage, ignore_errors=True)
+        os.makedirs(stage)
+        names = {}
+        for index, (key, path) in enumerate(sorted(plan.items())):
+            name = f"{index:03d}.jpg"
+            shutil.copyfile(path, os.path.join(stage, name))
+            names[name] = key
+        with open(os.path.join(stage, "plan.json"), "w", encoding="utf-8") as fh:
+            json.dump(names, fh)
+
+        archive = os.path.join(self.work_dir, "cards.tar.gz")
+        with tarfile.open(archive, "w:gz") as tar:
+            tar.add(stage, arcname="atheniq-cards")
+        # The CMS runs as `app`; an archive docker-cp'd as root cannot be
+        # removed by it, and failing to clean a /tmp file must not abort the
+        # upload. Stale copies are overwritten by the extraction below.
+        self._exec(self.cms, ["sh", "-c",
+                              "rm -rf /tmp/atheniq-cards /tmp/atheniq-cards.tar.gz || true"])
+        self._docker(["cp", archive, f"{self.cms}:/tmp/atheniq-cards.tar.gz"])
+        self._exec(self.cms, ["sh", "-c", "cd /tmp && tar xzf atheniq-cards.tar.gz"])
+
+        script = """
+import json
+from django.core.cache import cache
+from django.core.files.uploadedfile import SimpleUploadedFile
+from cms.djangoapps.contentstore.views.assets import update_course_run_asset
+from opaque_keys.edx.keys import CourseKey
+from xmodule.modulestore import ModuleStoreEnum
+from xmodule.modulestore.django import modulestore
+
+with open("/tmp/atheniq-cards/plan.json", encoding="utf-8") as fh:
+    plan = json.load(fh)
+
+uploaded, failed = [], []
+for name, key in sorted(plan.items()):
+    try:
+        course_key = CourseKey.from_string(key)
+        with open("/tmp/atheniq-cards/" + name, "rb") as fh:
+            data = fh.read()
+        upload = SimpleUploadedFile("images_course_image.jpg", data, content_type="image/jpeg")
+        update_course_run_asset(course_key, upload)
+        course = modulestore().get_course(course_key)
+        if course is not None and course.course_image != "images_course_image.jpg":
+            course.course_image = "images_course_image.jpg"
+            modulestore().update_item(course, ModuleStoreEnum.UserID.mgmt_command)
+        uploaded.append(key)
+    except Exception as err:  # noqa: BLE001 - one bad card must not stop the rest
+        failed.append({"key": key, "error": str(err)[:300]})
+cache.clear()
+print("ATHENIQ_CARDS " + json.dumps({"uploaded": uploaded, "failed": failed}))
+"""
+        result = self._exec(self.cms, ["sh", "-c",
+                                       f"cd {self.platform} && {self.python} ./manage.py cms shell"],
+                            stdin_text=script)
+        report = None
+        for line in (result.stdout or "").splitlines():
+            if line.startswith("ATHENIQ_CARDS "):
+                report = json.loads(line[len("ATHENIQ_CARDS "):])
+        if report is None:
+            raise LmsError("the CMS did not report which course cards were uploaded")
+        return report
+
     def reindex(self) -> str:
-        """Rebuild the catalog search index the MFE catalog reads."""
+        """Rebuild the catalog search index the MFE catalog reads.
+
+        Reindexing updates the documents of courses that still exist, but it
+        does not remove the documents of courses that were deleted: a deleted
+        course kept appearing in *Explore courses* with a card and no way to
+        open it. So the stale documents are pruned here too, against the
+        overviews the LMS actually holds.
+        """
         result = self._exec(self.cms, ["sh", "-c",
                                        f"cd {self.platform} && {self.python} ./manage.py cms "
                                        f"reindex_course --all --setup"])
+        try:
+            self._prune_catalog()
+        except LmsError:
+            pass  # a running catalog is better than a failed publish
         return (result.stdout or "").strip().splitlines()[-1] if result.stdout else ""
+
+    def _prune_catalog(self) -> dict:
+        """Delete search documents whose course the LMS no longer has."""
+        script = """
+import json
+import requests
+from django.conf import settings
+from openedx.core.djangoapps.content.course_overviews.models import CourseOverview
+
+base = settings.MEILISEARCH_URL.rstrip("/")
+key = settings.MEILISEARCH_MASTER_KEY
+index = f"{settings.MEILISEARCH_INDEX_PREFIX}course_info"
+headers = {"Authorization": f"Bearer {key}"}
+# Meilisearch deletes by *primary key*, which for course_info is `_pk`,
+# not the course id; sending ids alone silently deletes nothing.
+docs = requests.get(f"{base}/indexes/{index}/documents",
+                    headers=headers, params={"limit": 10000, "fields": "id,_pk"}, timeout=60).json()
+keep = {str(course.id) for course in CourseOverview.objects.all()}
+stale = [doc for doc in docs.get("results", []) if doc.get("id") not in keep]
+if stale:
+    requests.post(f"{base}/indexes/{index}/documents/delete-batch",
+                  headers=headers, json=[doc["_pk"] for doc in stale], timeout=120)
+print("ATHENIQ_PRUNE " + json.dumps({"stale": [doc["id"] for doc in stale]}))
+"""
+        result = self._exec(self.cms, ["sh", "-c",
+                                       f"cd {self.platform} && {self.python} ./manage.py cms shell"],
+                            stdin_text=script)
+        for line in (result.stdout or "").splitlines():
+            if line.startswith("ATHENIQ_PRUNE "):
+                return json.loads(line[len("ATHENIQ_PRUNE "):])
+        raise LmsError("the catalog prune returned no report")
 
     def enroll(self, students, keys) -> dict:
         """Enroll learners in courses, creating the honor mode when the course has none.
@@ -1304,6 +1436,49 @@ class Publisher:
             return {"available": False, "error": str(err), "planned": len(mapping)}
         return {"available": True, **report, "planned": len(mapping)}
 
+    def apply_cards(self, entries=None) -> dict:
+        """Put each course's own rendered card on its catalog card.
+
+        Two records have to agree for a card to show: the course *asset* the
+        search index links to, and the `CourseOverview` image the course-about
+        page reads. This writes both, then reindexes so the catalog stops
+        serving the URLs the shells were imported with.
+
+        Cards are rendered by `scripts/course-cards.py`; this uploads whatever
+        it finds in the theme's `images/courses/<CODE>.jpg`.
+        """
+        if entries is None:
+            try:
+                entries = self.plan()
+            except LmsError as err:
+                return {"available": False, "error": str(err)}
+        photo_dir = photos_module().PHOTO_DIR
+        plan, missing = {}, []
+        for entry in entries:
+            path = os.path.join(photo_dir, f"{str(entry.get('code')).upper()}.jpg")
+            if os.path.isfile(path):
+                plan[entry["key"]] = path
+            else:
+                missing.append(entry.get("code"))
+        if not plan:
+            return {"available": True, "planned": 0, "uploaded": [], "missing": missing,
+                    "failed": [], "reindexed": False}
+        try:
+            report = self.lms.apply_course_cards(plan)
+        except LmsError as err:
+            return {"available": False, "error": str(err), "planned": len(plan),
+                    "uploaded": [], "missing": missing, "failed": []}
+        images = self.set_images(entries)
+        answer = {"available": True, "planned": len(plan), "uploaded": report.get("uploaded", []),
+                  "failed": report.get("failed", []), "missing": missing, "images": images,
+                  "reindexed": False}
+        try:
+            self.lms.reindex()
+            answer["reindexed"] = True
+        except LmsError as err:
+            answer["reindexError"] = str(err)
+        return answer
+
     # -- deleting ---------------------------------------------------------
 
     def delete_all(self) -> dict:
@@ -1576,6 +1751,8 @@ def main():
                     help="delete every course in the LMS, then reindex (a start from scratch)")
     ap.add_argument("--images", action="store_true",
                     help="(re)apply the course-card photographs to every planned course")
+    ap.add_argument("--cards", action="store_true",
+                    help="upload each course's rendered card (scripts/course-cards.py) as its catalog card")
     ap.add_argument("--json", action="store_true", help="machine-readable output")
     args = ap.parse_args()
 
@@ -1594,6 +1771,23 @@ def main():
         print(f"{len(answer['deleted'])} course(s) deleted from the LMS"
               + (" and the catalog reindexed" if answer.get("reindexed") else ""))
         sys.exit(1 if answer["failed"] else 0)
+
+    if args.cards:
+        answer = publisher.apply_cards()
+        if args.json:
+            print(json.dumps(answer, indent=2, sort_keys=True))
+            sys.exit(0 if answer.get("available") and not answer.get("failed") else 1)
+        if not answer.get("available"):
+            print(f"error: {answer.get('error')}", file=sys.stderr)
+            sys.exit(1)
+        print(f"course cards: {len(answer.get('uploaded') or [])} of "
+              f"{answer.get('planned') or 0} course(s) uploaded"
+              + (" and the catalog reindexed" if answer.get("reindexed") else ""))
+        for failure in answer.get("failed") or []:
+            print(f"  {failure['key']:<52} FAILED: {failure['error']}", file=sys.stderr)
+        if answer.get("missing"):
+            print("  no rendered card for: " + ", ".join(answer["missing"]), file=sys.stderr)
+        sys.exit(1 if answer.get("failed") else 0)
 
     if args.images:
         answer = publisher.set_images()

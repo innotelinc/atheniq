@@ -10,9 +10,13 @@ SHELL := /bin/bash
         openmaic-up openmaic-down convex-up convex-down convex-key generation-console \
         onyx-check onyx-buckets onyx-selftest magnate-probe \
         paid-status entitlement-status entitlement-sync \
-        check-commits check-compose check-tracks check-courses check-classrooms check-catalog check-syllabus check-images check-brand check-course-photos cert-check \
-        catalog syllabus images course-photos course-bundle course-import test tutor-quickstart \
+        check-commits check-compose check-tracks check-courses check-classrooms check-catalog check-syllabus check-images check-brand check-course-photos check-course-cards cert-check \
+        catalog syllabus images course-photos course-cards course-bundle course-import test tutor-quickstart \
         theme gating check-gating gating-apply track-credential-status
+
+# Where the generated program plans live; the deployed host keeps them under
+# the generation root (`GENERATION_ROOT/programs`).
+PROGRAMS ?= programs
 
 help: ## Show this help message
 	@echo "AthenIQ — operator workflow"
@@ -129,6 +133,12 @@ course-photos: ## Fetch the course-card photographs (one pool per subject)
 
 check-course-photos: ## Fail if a course photograph is missing, mis-sized or unmapped
 	python3 scripts/course-photos.py --check
+
+course-cards: ## Render one catalog card per course from the program plans (needs Pillow)
+	python3 scripts/course-cards.py --programs $(PROGRAMS) --out contrib/atheniq-theme/lms/static/images/courses
+
+check-course-cards: ## Fail if a program course has no rendered catalog card
+	python3 scripts/course-cards.py --programs $(PROGRAMS) --out contrib/atheniq-theme/lms/static/images/courses --check
 
 course-bundle: ## Bundle each OLX course into dist/courses/*.tar.gz
 	python3 scripts/import-courses.py --bundle
