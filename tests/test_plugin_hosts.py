@@ -38,8 +38,9 @@ class LearnerApps(unittest.TestCase):
         self.assertIn('DASHBOARD_TO = "learner-dashboard"', self.text)
         # The suffix is carried over, so a deep link keeps its route. The
         # doubled braces are the f-string's escape for Caddy's `{uri}`.
-        self.assertIn("uri strip_prefix /{DASHBOARD_FROM}", self.text)
-        self.assertIn("redir * /{DASHBOARD_TO}{{uri}} 302", self.text)
+        self.assertIn("@atheniq_dashboard path_regexp ^/{DASHBOARD_FROM}(/.*)?$", self.text)
+        self.assertIn("redir @atheniq_dashboard /{DASHBOARD_TO}{{re.atheniq_dashboard.1}} 302",
+                      self.text)
 
     def test_the_handles_proxy_to_the_mfe_container(self):
         self.assertIn("reverse_proxy mfe:8002", self.text)

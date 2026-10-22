@@ -194,10 +194,12 @@ hooks.Filters.ENV_PATCHES.add_item(
         "caddyfile-lms",
         "# AthenIQ: /dashboard is the URL the platform links to; the app is served\n"
         f"# at /{DASHBOARD_TO} in the mfe container.\n"
-        f"handle /{DASHBOARD_FROM} /{DASHBOARD_FROM}/* {{\n"
-        f"    uri strip_prefix /{DASHBOARD_FROM}\n"
-        f"    redir * /{DASHBOARD_TO}{{uri}} 302\n"
-        "}",
+        # A capture group rather than `uri strip_prefix`: a `redir` reads
+        # `{uri}` as the request arrived, so stripping first would still emit
+        # `/learner-dashboard/dashboard`.
+        f"@atheniq_dashboard path_regexp ^/{DASHBOARD_FROM}(/.*)?$\n"
+        "redir @atheniq_dashboard "
+        f"/{DASHBOARD_TO}{{re.atheniq_dashboard.1}} 302",
     )
 )
 
