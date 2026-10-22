@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en" data-scheme="desk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Innotel Labs — Applied AI, learning platforms, and the systems behind them</title>
+  <meta name="description" content="Innotel Labs designs and operates applied-AI products, learning platforms and the infrastructure that carries them. We build AthenIQ University, ONYX and the services our partners run on.">
+  <meta property="og:title" content="Innotel Labs">
+  <meta property="og:description" content="Applied AI, learning platforms, and the systems behind them.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://innotel.us/">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="assets/unity-theme.css">
+  <script>
+    // Paint the stored mode before first paint.
+    (function () {
+      try {
+        var mode = localStorage.getItem('ontrak.mode');
+        if (mode === 'light' || mode === 'dark') document.documentElement.dataset.mode = mode;
+      } catch (e) {}
+      document.documentElement.dataset.scheme = 'desk';
+    })();
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: var(--canvas); color: var(--ink); font-family: var(--font-sans); line-height: 1.62; -webkit-font-smoothing: antialiased; }
+    h1, h2, h3, h4 { line-height: 1.1; letter-spacing: -0.025em; margin: 0; }
+    h1 { font-size: clamp(2.7rem, 6.4vw, 4.6rem); font-weight: 780; }
+    h2 { font-size: clamp(1.8rem, 3.6vw, 2.7rem); font-weight: 730; }
+    h3 { font-size: 1.12rem; font-weight: 690; }
+    p { margin: 0; }
+    a { color: var(--brand); text-underline-offset: 3px; }
+    .wrap { max-width: 1160px; margin: 0 auto; padding: 0 24px; }
+    .skip { position: absolute; left: -999px; top: 8px; background: var(--surface); color: var(--ink); padding: 10px 16px; border-radius: var(--radius); z-index: 60; }
+    .skip:focus { left: 16px; }
+    .eyebrow { display: inline-flex; align-items: center; gap: 9px; font-size: 12.5px; font-weight: 680; letter-spacing: 0.14em; text-transform: uppercase; color: var(--brand); margin-bottom: 14px; }
+    .eyebrow::before { content: ""; width: 22px; height: 2px; background: var(--brand); border-radius: 2px; }
+    .muted { color: var(--ink-soft); }
+    .small { font-size: 14px; }
+
+    .masthead { position: sticky; top: 0; z-index: 40; background: color-mix(in srgb, var(--surface) 86%, transparent); backdrop-filter: blur(16px); border-bottom: 1px solid var(--line); }
+    .masthead .wrap { display: flex; align-items: center; gap: 22px; min-height: 70px; }
+    .brand { display: inline-flex; align-items: center; gap: 11px; color: var(--ink); text-decoration: none; }
+    .brand svg { width: 34px; height: 34px; flex: none; }
+    .brand strong { font-size: 16.5px; letter-spacing: 0.005em; display: block; }
+    .brand small { display: block; font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-faint); font-weight: 650; }
+    .nav { margin-left: auto; display: flex; align-items: center; gap: 2px; }
+    .nav a { color: var(--ink-soft); font-size: 14.5px; padding: 8px 12px; border-radius: var(--radius-sm); text-decoration: none; }
+    .nav a:hover { background: var(--surface-muted); color: var(--ink); }
+    .theme { border: 1px solid var(--line); background: var(--surface); color: var(--ink-soft); border-radius: 999px; width: 36px; height: 36px; display: grid; place-items: center; cursor: pointer; margin-left: 8px; }
+    .theme:hover { color: var(--ink); border-color: var(--brand); }
+    .theme svg { width: 17px; height: 17px; }
+
+    .hero { position: relative; overflow: hidden; border-bottom: 1px solid var(--line); }
+    .hero::before { content: ""; position: absolute; inset: -30% -10% auto auto; width: 760px; height: 760px; background: radial-gradient(circle at center, color-mix(in srgb, var(--brand) 22%, transparent), transparent 64%); pointer-events: none; }
+    .hero .wrap { position: relative; padding: 92px 24px 76px; display: grid; grid-template-columns: 1.3fr .7fr; gap: 56px; align-items: end; }
+    .hero h1 { max-width: 15ch; }
+    .hero h1 em { font-style: normal; color: var(--brand); }
+    .lede { margin-top: 22px; font-size: clamp(1.05rem, 1.6vw, 1.28rem); color: var(--ink-soft); max-width: 58ch; }
+    .cta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 30px; }
+    .ot-btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: var(--radius); font-weight: 660; font-size: 14.5px; text-decoration: none; border: 1px solid transparent; }
+    .ot-btn--primary { background: var(--brand); color: var(--brand-ink); }
+    .ot-btn--primary:hover { filter: brightness(1.06); color: var(--brand-ink); }
+    .ot-btn--quiet { background: var(--surface); color: var(--ink); border-color: var(--line); }
+    .ot-btn--quiet:hover { border-color: var(--brand); color: var(--ink); }
+    .hero-aside { border: 1px solid var(--line); background: var(--surface); border-radius: calc(var(--radius) * 1.4); padding: 24px; box-shadow: var(--shadow); }
+    .hero-aside h2 { font-size: 1rem; letter-spacing: 0; text-transform: uppercase; font-weight: 680; color: var(--ink-faint); font-size: 11.5px; letter-spacing: 0.14em; }
+    .hero-aside ul { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 14px; }
+    .hero-aside li { display: grid; gap: 2px; padding-left: 16px; position: relative; }
+    .hero-aside li::before { content: ""; position: absolute; left: 0; top: 9px; width: 6px; height: 6px; border-radius: 50%; background: var(--brand); }
+    .hero-aside b { font-size: 14.5px; font-weight: 660; }
+    .hero-aside span { font-size: 13.5px; color: var(--ink-soft); }
+
+    .strip { border-bottom: 1px solid var(--line); background: var(--surface-muted); }
+    .strip .wrap { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; padding: 24px; }
+    .strip div { display: grid; gap: 2px; }
+    .strip b { font-size: 1.35rem; letter-spacing: -0.02em; }
+    .strip span { font-size: 12.5px; color: var(--ink-soft); }
+
+    section { padding: 84px 0; }
+    .section-head { display: flex; align-items: end; justify-content: space-between; gap: 28px; margin-bottom: 38px; }
+    .section-head p { max-width: 46ch; color: var(--ink-soft); }
+
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+    .card { background: var(--surface); border: 1px solid var(--line); border-radius: calc(var(--radius) * 1.3); padding: 26px; display: flex; flex-direction: column; gap: 12px; }
+    .card .glyph { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: color-mix(in srgb, var(--brand) 12%, transparent); color: var(--brand); margin-bottom: 4px; }
+    .card .glyph svg { width: 21px; height: 21px; }
+    .card p { color: var(--ink-soft); font-size: 14.5px; }
+    .card .tags { margin-top: auto; padding-top: 12px; display: flex; flex-wrap: wrap; gap: 6px; }
+    .tag { font-size: 11.5px; font-weight: 640; letter-spacing: 0.02em; color: var(--ink-soft); background: var(--surface-muted); border: 1px solid var(--line); border-radius: 999px; padding: 3px 9px; }
+
+    .products { background: var(--surface-muted); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .product { display: grid; grid-template-columns: 200px 1fr auto; gap: 28px; align-items: center; padding: 26px 0; border-top: 1px solid var(--line); }
+    .product:last-child { border-bottom: 1px solid var(--line); }
+    .product h3 { font-size: 1.35rem; }
+    .product p { color: var(--ink-soft); font-size: 14.5px; max-width: 62ch; }
+    .product .status { font-size: 12px; font-weight: 660; letter-spacing: 0.08em; text-transform: uppercase; color: var(--brand); white-space: nowrap; }
+    .product a { text-decoration: none; font-weight: 660; font-size: 14px; white-space: nowrap; }
+
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 54px; align-items: start; }
+    .principles { display: grid; gap: 0; border-top: 1px solid var(--line); }
+    .principle { display: grid; grid-template-columns: 46px 1fr; gap: 16px; padding: 20px 0; border-bottom: 1px solid var(--line); }
+    .principle b { font-variant-numeric: tabular-nums; color: var(--brand); font-size: 13px; letter-spacing: 0.06em; padding-top: 4px; }
+    .principle h3 { font-size: 1.02rem; margin-bottom: 4px; }
+    .principle p { color: var(--ink-soft); font-size: 14px; }
+    .quote { border-left: 3px solid var(--brand); padding: 4px 0 4px 22px; font-size: 1.12rem; color: var(--ink-soft); }
+    .quote b { color: var(--ink); }
+
+    .contact { background: var(--brand); color: var(--brand-ink); }
+    .contact h2 { color: var(--brand-ink); }
+    .contact .wrap { display: grid; grid-template-columns: 1.2fr .8fr; gap: 48px; align-items: center; }
+    .contact p { color: color-mix(in srgb, var(--brand-ink) 82%, transparent); }
+    .contact a.btn { display: inline-flex; padding: 13px 22px; border-radius: var(--radius); background: var(--brand-ink); color: var(--brand); font-weight: 700; text-decoration: none; }
+    .contact .details { display: grid; gap: 14px; font-size: 14.5px; }
+    .contact .details b { display: block; font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; opacity: .78; margin-bottom: 2px; }
+
+    footer { padding: 46px 0; border-top: 1px solid var(--line); }
+    footer .wrap { display: flex; flex-wrap: wrap; gap: 20px; align-items: center; justify-content: space-between; }
+    footer .links { display: flex; flex-wrap: wrap; gap: 18px; font-size: 13.5px; }
+    footer a { color: var(--ink-soft); text-decoration: none; }
+    footer a:hover { color: var(--brand); }
+    footer .fine { font-size: 12.5px; color: var(--ink-faint); }
+
+    @media (max-width: 900px) {
+      .hero .wrap { grid-template-columns: 1fr; gap: 34px; padding-top: 66px; }
+      .strip .wrap { grid-template-columns: repeat(2, 1fr); }
+      .grid-3 { grid-template-columns: 1fr; }
+      .product { grid-template-columns: 1fr; gap: 8px; }
+      .product .status, .product a { justify-self: start; }
+      .split { grid-template-columns: 1fr; gap: 34px; }
+      .contact .wrap { grid-template-columns: 1fr; }
+      .nav a:not(.nav-cta) { display: none; }
+      section { padding: 62px 0; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="masthead">
+    <div class="wrap">
+      <a class="brand" href="/" aria-label="Innotel Labs home">
+        <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
+          <rect width="48" height="48" rx="12" fill="var(--ink)"/>
+          <circle cx="24" cy="24" r="13" stroke="var(--brand)" stroke-width="2.4"/>
+          <circle cx="24" cy="24" r="5" fill="var(--brand)"/>
+          <path d="M24 7v7M24 34v7M7 24h7M34 24h7" stroke="var(--brand)" stroke-width="2.4" stroke-linecap="round"/>
+        </svg>
+        <span><strong>Innotel Labs</strong><small>Applied intelligence</small></span>
+      </a>
+      <nav class="nav" aria-label="Primary">
+        <a href="#work">What we build</a>
+        <a href="#products">Products</a>
+        <a href="#approach">How we work</a>
+        <a href="https://atheniq.innotel.us/">AthenIQ University</a>
+        <a class="nav-cta" href="#contact">Talk to us</a>
+        <button class="theme" id="theme-toggle" type="button" aria-label="Switch colour mode">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3a6.6 6.6 0 0 0 9.8 9.8Z"/></svg>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="wrap">
+        <div>
+          <p class="eyebrow">Innotel Labs</p>
+          <h1 id="hero-title">Applied AI, built for the <em>work that matters.</em></h1>
+          <p class="lede">We design, build and operate the products and platforms that put artificial intelligence to work — a university, an operations stack, and the quiet infrastructure that keeps both honest.</p>
+          <div class="cta">
+            <a class="ot-btn ot-btn--primary" href="#products">See what we run</a>
+            <a class="ot-btn ot-btn--quiet" href="#contact">Start a conversation</a>
+          </div>
+        </div>
+        <aside class="hero-aside">
+          <h2>At a glance</h2>
+          <ul>
+            <li><b>AthenIQ University</b><span>Online degrees taught in AI-native classrooms</span></li>
+            <li><b>ONYX</b><span>Storage, identity and edge operations</span></li>
+            <li><b>Platform engineering</b><span>Systems our partners build on</span></li>
+          </ul>
+        </aside>
+      </div>
+    </section>
+
+    <div class="strip" aria-label="Innotel Labs in numbers">
+      <div class="wrap">
+        <div><b>3</b><span>Degree programs in production</span></div>
+        <div><b>100</b><span>Courses authored and publishing</span></div>
+        <div><b>24/7</b><span>Operated services and support</span></div>
+        <div><b>One team</b><span>Product, platform and operations</span></div>
+      </div>
+    </div>
+
+    <section id="work" aria-labelledby="work-title">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">What we build</p>
+            <h2 id="work-title">Three kinds of work, one standard.</h2>
+          </div>
+          <p>Research that ships, products that teach, and infrastructure that stays boring under load. We keep all three in the same house so the lessons travel.</p>
+        </div>
+        <div class="grid-3">
+          <article class="card">
+            <div class="glyph" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/><circle cx="12" cy="12" r="4"/></svg></div>
+            <h3>Applied AI</h3>
+            <p>Retrieval, evaluation and agentic workflows wrapped in products people can actually use. Every model call is measured, bounded and replaceable.</p>
+            <div class="tags"><span class="tag">Evaluation</span><span class="tag">RAG</span><span class="tag">Agents</span></div>
+          </article>
+          <article class="card">
+            <div class="glyph" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg></div>
+            <h3>Learning platforms</h3>
+            <p>AthenIQ University is our own proof: an Open edX platform, a catalog of authored courses, live AI classrooms and a credential that can be verified.</p>
+            <div class="tags"><span class="tag">Open edX</span><span class="tag">Curriculum</span><span class="tag">Credentials</span></div>
+          </article>
+          <article class="card">
+            <div class="glyph" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="6" rx="2"/><rect x="3" y="14" width="18" height="6" rx="2"/><path d="M7 7h.01M7 17h.01"/></svg></div>
+            <h3>Platform &amp; operations</h3>
+            <p>Identity, storage, DNS, TLS and deployment pipelines for services that cannot afford an outage — designed so a small team can carry them.</p>
+            <div class="tags"><span class="tag">ONYX</span><span class="tag">Edge</span><span class="tag">Identity</span></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="products" id="products" aria-labelledby="products-title">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Products</p>
+            <h2 id="products-title">What we run today.</h2>
+          </div>
+          <p>These are not concepts. They are live services with real learners, real data and an on-call rotation behind them.</p>
+        </div>
+        <div class="product">
+          <h3>AthenIQ University</h3>
+          <p>Online bachelor’s and associate degrees in business, criminal justice and nursing. Small AI-native classrooms, faculty assessment and a signed credential. The Spring 2027 cohort is open, with early access to coursework now.</p>
+          <a href="https://atheniq.innotel.us/">atheniq.innotel.us →</a>
+        </div>
+        <div class="product">
+          <h3>ONYX</h3>
+          <p>Our storage and edge platform: S3-compatible buckets, signed access, DNS and certificate automation, and the operational tooling that keeps public hosts reachable and private ones private.</p>
+          <span class="status">Platform</span>
+        </div>
+        <div class="product">
+          <h3>Cerulean edge</h3>
+          <p>DNS, certificate issuance and proxy-host provisioning through one API. Cerulean is how our own domains — and our partners’ — get from a zone file to a working TLS endpoint without a ticket.</p>
+          <span class="status">Infrastructure</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="approach" aria-labelledby="approach-title">
+      <div class="wrap">
+        <div class="split">
+          <div>
+            <p class="eyebrow">How we work</p>
+            <h2 id="approach-title">Small team. Real systems. No theatre.</h2>
+            <p class="lede">We are builders first. That means we run what we ship, we measure what we claim, and we prefer a boring, inspectable system to a clever one nobody can operate at 3am.</p>
+            <p class="quote" style="margin-top:26px">“Put the intelligence in the product, not in the pitch. Then prove it with a learner who finishes, a course that publishes and a service that stays up.”</p>
+          </div>
+          <div class="principles">
+            <div class="principle"><b>01</b><div><h3>Ship the whole thing</h3><p>Product, platform and curriculum are one system. A course is not done until it is enrolled, assessed and credentialed.</p></div></div>
+            <div class="principle"><b>02</b><div><h3>Measure the model</h3><p>Every AI feature has an evaluation, a fallback and a cost ceiling. We do not ship a demo and call it a product.</p></div></div>
+            <div class="principle"><b>03</b><div><h3>Own the operations</h3><p>We run the edge, the database and the pager. The same team that designs the service is the team that answers for it.</p></div></div>
+            <div class="principle"><b>04</b><div><h3>Leave it legible</h3><p>Documented interfaces, reproducible deploys, and no dependency we cannot replace. Our clients inherit systems, not mysteries.</p></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="contact" id="contact" aria-labelledby="contact-title">
+      <div class="wrap">
+        <div>
+          <p class="eyebrow" style="color:var(--brand-ink)">Get in touch</p>
+          <h2 id="contact-title">Bring us the hard part.</h2>
+          <p style="margin-top:16px; max-width:52ch">A new platform, an AI workflow that has to survive contact with real users, or an education program that needs to open on time. We will tell you honestly whether we are the right team.</p>
+          <p style="margin-top:24px"><a class="btn" href="mailto:hello@innotel.us">hello@innotel.us</a></p>
+        </div>
+        <div class="details">
+          <div><b>General</b><a href="mailto:hello@innotel.us" style="color:var(--brand-ink)">hello@innotel.us</a></div>
+          <div><b>AthenIQ admissions</b><a href="mailto:admissions@atheniq.innotel.us" style="color:var(--brand-ink)">admissions@atheniq.innotel.us</a></div>
+          <div><b>Operations</b><span>24/7 for operated services</span></div>
+          <div><b>Where</b><span>United States · remote-first</span></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <div>
+        <div class="links">
+          <a href="#work">What we build</a>
+          <a href="#products">Products</a>
+          <a href="https://atheniq.innotel.us/">AthenIQ University</a>
+          <a href="mailto:hello@innotel.us">Contact</a>
+        </div>
+        <p class="fine" style="margin-top:12px">© <span id="year">2026</span> Innotel Labs. All rights reserved.</p>
+      </div>
+      <p class="fine">Built in the open, run with care.</p>
+    </div>
+  </footer>
+
+  <script src="assets/unity-theme.js"></script>
+  <script>
+    (function () {
+      var input = document.getElementById('theme-toggle');
+      if (input && window.UnityTheme) {
+        input.addEventListener('click', function () {
+          window.UnityTheme.setMode(window.UnityTheme.isDark() ? 'light' : 'dark');
+        });
+        window.addEventListener('unity:theme', function (e) {
+          input.setAttribute('aria-pressed', e.detail && e.detail.mode === 'dark' ? 'true' : 'false');
+        });
+      }
+      var year = document.getElementById('year');
+      if (year) year.textContent = new Date().getFullYear();
+    })();
+  </script>
+</body>
+</html>

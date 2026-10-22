@@ -1,26 +1,27 @@
-"""AthenIQ — the platform's own face, baked into the Tutor images.
+"""AthenIQ — the Unity theme for Open edX, baked into the Tutor images.
 
-WHAT THIS PLUGIN IS. `contrib/atheniq-theme` holds the files; this makes them
-part of a *rebuilt* image instead of a copy applied at runtime. `make theme`
-(`scripts/apply-atheniq-theme.sh`) covers the running deployment without a
-source rebuild: it bakes the same files into a one-layer derivative of the
-upstream image, so the brand survives a container recreate too. What it cannot
-survive is `tutor images build openedx`, which replaces that tag — this plugin
-is the form that a rebuild carries, and is why the two exist together.
+WHAT THIS INSTALLS. `contrib/openedx-theme-unity` is a complete Open edX theme:
 
-HOW IT LANDS. Two patches and one configuration default:
+* `lms/` and `cms/` hold the templates, the compiled stylesheets, fonts and
+  images; and
+* `lms/static/atheniq/` and `cms/static/atheniq/` hold the Unity design
+  system, its switch and the LMS/Studio skins.
+
+The theme directory is installed at `/openedx/themes/unity` as the site theme.
+It replaces `tutor-indigo`: Indigo is no longer installed, enabled or loaded.
+The theme's structural base was forked from Indigo's MIT/Apache-2.0 theme at the
+point AthenIQ adopted it, and every visible surface is painted by Unity (see
+`contrib/openedx-theme-unity/README.md` for the provenance and file map).
+
+HOW IT LANDS. Three patches and one configuration default:
 
 1. **The theme files**, rendered into the Open edX build context and `COPY`-ed
-   over Indigo's theme *after* the image's own asset collection, followed by a
-   `collectstatic` so the collected, content-hashed copies — the ones a browser
-   actually fetches — are the AthenIQ ones. Both halves arrive this way: the LMS
-   footer and `<head>` hook, the header logo, the favicon, the index overlay and
-   the Unity skin; and **Studio's** header and skin, which used to be applied by
-   hand after a deploy. The two served static directories are copied explicitly
-   (`/openedx/staticfiles/atheniq/` and
-   `/openedx/staticfiles/studio/indigo/atheniq/`), so `/static/atheniq/…` and
-   Studio's `/static/studio/indigo/atheniq/…` resolve even if a collect is run
-   with `--skip-themes`.
+   into `/openedx/themes/unity/`, followed by a `collectstatic` so the collected,
+   content-hashed copies — the ones a browser actually fetches — are the Unity
+   ones. The two served static halves are copied explicitly as well:
+   `/openedx/staticfiles/atheniq/` for the LMS (linked by `head-extra.html` as
+   `/static/atheniq/…`) and `/openedx/staticfiles/studio/unity/atheniq/` for
+   Studio (linked as `/static/studio/unity/atheniq/…`).
 
    Why after `collectstatic` rather than before: the theme directory is copied
    into the image at one point and its static assets are collected at another,
@@ -28,19 +29,11 @@ HOW IT LANDS. Two patches and one configuration default:
    extra `collectstatic` is a few seconds and removes the whole class of "the
    template changed but the served image did not" bugs.
 
-2. **The learner MFEs' palette.** Indigo renders `MFE_CONFIG["PARAGON_THEME_URLS"]`
-   from the `PARAGON_THEME_URLS` configuration value, and the MFEs paint from
-   those stylesheets at runtime. This patch keeps Indigo's compiled theme as the
-   `default` URL — it is the structure and the utility classes — and points
-   `brandOverride` at AthenIQ's Unity skin, served from the LMS's own theming
-   assets. No MFE bundle is rebuilt, and no MFE is left wearing another
-   platform's colors.
-
-   *Why the patch mutates in place rather than replacing the value.* The
-   `default` URL carries Indigo's release branch, so hard-coding it here would
-   pin the deployment to whatever was current the day this file was written.
-   Reading it back and overriding only `brandOverride` keeps this plugin
-   agnostic to the Indigo version underneath.
+2. **`DEFAULT_SITE_THEME = "unity"`** for the LMS and the CMS, as a settings
+   patch. This is what makes a freshly created site — and a site whose theme
+   record was reset — land on Unity instead of the platform default. The
+   existing site's theme is set with `tutor local do settheme unity`; both agree
+   on the same directory.
 
 3. **`PLATFORM_NAME`**, as a default only: a deployment that has already chosen
    its own name keeps it (`tutor config save` wins over a plugin default).
@@ -52,13 +45,15 @@ INSTALL
     tutor config save
     tutor images build openedx                       # the theme files are in the image
     tutor local launch
+    tutor local do settheme unity
 
-REQUIRES A REBUILT openedx IMAGE for part 1; part 2 takes effect on the next
-`tutor local launch` and an LMS restart, because it is a settings patch. Nothing
-here needs the `mfe` image rebuilt: the Unity skin is a stylesheet the MFEs load,
-not a component compiled into them. `contrib/tutor-atheniq-mfe` is the plugin
-for the parts that *do* need that rebuild — the footer lockup and the header
-logo's hover label inside the compiled bundles.
+REQUIRES A REBUILT openedx IMAGE for part 1. For a deployment that cannot
+rebuild from source, `scripts/apply-atheniq-theme.sh` bakes the same theme into a
+one-layer derivative of the running image and is what this repository's host
+uses. Nothing here needs the `mfe` image rebuilt: the Unity skin is a stylesheet
+the MFEs load, not a component compiled into them. `contrib/tutor-atheniq-mfe`
+is the plugin for the parts that *do* need that rebuild — the footer lockup and
+the header logo's hover label inside the compiled bundles.
 """
 
 from __future__ import annotations
@@ -67,67 +62,52 @@ from pathlib import Path
 
 from tutor import hooks
 
-#: The theme overlay: templates, brand rasters and the Unity stylesheets.
+#: The theme: templates, compiled CSS, brand rasters and the Unity stylesheets.
 #: Resolved from this file rather than configured, because the two directories
-#: are one artifact — the plugin exists to install `atheniq-theme`.
-THEME_DIR = Path(__file__).resolve().parent.parent.parent / "atheniq-theme"
+#: are one artifact — the plugin exists to install `openedx-theme-unity`.
+THEME_DIR = Path(__file__).resolve().parent.parent.parent / "openedx-theme-unity"
 if not THEME_DIR.is_dir():  # pragma: no cover - a broken install, said plainly
     raise ImportError(
-        f"the AthenIQ theme overlay is missing at {THEME_DIR}. Install this "
-        "plugin from the onTrak/atheniq checkout (pip install -e "
-        "contrib/tutor-atheniq-theme), or copy contrib/atheniq-theme beside it."
+        f"the Unity theme is missing at {THEME_DIR}. Install this plugin from "
+        "the onTrak/atheniq checkout (pip install -e contrib/tutor-atheniq-theme), "
+        "or copy contrib/openedx-theme-unity beside it."
     )
 
-#: Where Indigo keeps its theme inside the image, and therefore where ours goes.
-#: The LMS and the CMS are two overlays with two roots; Studio's chrome (the
-#: Platform Services link and its Unity bar) rides with the authoring templates.
-THEME_ROOT = "/openedx/themes/indigo/lms"
-CMS_THEME_ROOT = "/openedx/themes/indigo/cms"
+#: The theme's name, and therefore its directory under `/openedx/themes` and the
+#: value of `DEFAULT_SITE_THEME`. One string, so the three cannot drift.
+THEME_NAME = "unity"
+
+#: Where an Open edX theme lives inside the image. The LMS and the CMS are two
+#: overlays with the same root.
+THEME_ROOT = f"/openedx/themes/{THEME_NAME}"
 
 #: Where a browser actually fetches the two skins from. The LMS theming app
 #: resolves `/theming/asset/atheniq/…` out of the *top-level* collected static
-#: directory, and Studio asks for `/static/studio/indigo/atheniq/…` — the CMS's
+#: directory, and Studio asks for `/static/studio/unity/atheniq/…` — the CMS's
 #: static namespace is `studio`, and the theme's own files are collected under
-#: its `indigo/` inside that. Both are copied explicitly rather than left to
-#: `collectstatic`, which would leave the LMS's `/static/atheniq/…` URLs — the
-#: ones `head-extra.html` links — unserved.
+#: its `unity/` inside that. Both are copied explicitly rather than left to
+#: `collectstatic` alone, which would leave the LMS's `/static/atheniq/…` URLs —
+#: the ones `head-extra.html` links — unserved.
 LMS_STATIC_ROOT = "/openedx/staticfiles/atheniq"
-CMS_STATIC_ROOT = "/openedx/staticfiles/studio/indigo/atheniq"
+CMS_STATIC_ROOT = f"/openedx/staticfiles/studio/{THEME_NAME}/atheniq"
 
-#: The Tutor settings patches that carry the Unity skin into the MFEs.
-MFE_SETTINGS_PATCH = "mfe-lms-common-settings"
-
-
-def _unity_patch() -> str:
-    """The settings patch that re-points Paragon's brand override at Unity.
-
-    Only `brandOverride` moves: the compiled theme stays the `default` URL, so
-    the deployment keeps every structural rule and utility class Indigo ships.
-    `LMS_ROOT_URL` is the LMS's own public base URL — the same host that serves
-    the theming assets, so no new host is introduced.
-    """
-    return '''# AthenIQ — wear Unity. The compiled theme stays underneath; only the brand
-# override moves, so structure and utilities are untouched.
-_atheniq_variants = MFE_CONFIG.get("PARAGON_THEME_URLS", {}).get("variants", {})
-for _atheniq_variant in ("light", "dark"):
-    _atheniq_urls = _atheniq_variants.setdefault(_atheniq_variant, {}).setdefault("urls", {})
-    _atheniq_urls["brandOverride"] = (
-        f"{LMS_ROOT_URL}/theming/asset/atheniq/unity-{_atheniq_variant}.css"
-    )
-FRONTEND_SITE_CONFIG.setdefault("commonAppConfig", {})["PARAGON_THEME_URLS"] = (
-    MFE_CONFIG["PARAGON_THEME_URLS"]
-)
-'''
+#: The settings patch points that declare the default theme.
+LMS_SETTINGS_PATCH = "openedx-lms-common-settings"
+CMS_SETTINGS_PATCH = "openedx-cms-common-settings"
 
 
 # --- 1. the theme files, into the openedx image ------------------------------
 
-# The overlay is rendered into the build context (`env/build/openedx/`) under its
+# The theme is rendered into the build context (`env/build/openedx/`) under its
 # own directory name, so the Dockerfile can `COPY` exactly what it owns.
 hooks.Filters.ENV_TEMPLATE_ROOTS.add_item(str(THEME_DIR.parent))
 hooks.Filters.ENV_TEMPLATE_TARGETS.add_items(
     [
-        # `<contrib>/atheniq-theme/**` -> `build/openedx/atheniq-theme/**`
+        # `<contrib>/openedx-theme-unity/**` -> `build/openedx/openedx-theme-unity/**`
+        ("openedx-theme-unity", "build/openedx"),
+        # The course-card photographs are one pool shared by the publisher and
+        # the theme; they are copied from their single source into the served
+        # static directory below rather than duplicated in the theme.
         ("atheniq-theme", "build/openedx"),
     ]
 )
@@ -135,23 +115,23 @@ hooks.Filters.ENV_TEMPLATE_TARGETS.add_items(
 hooks.Filters.ENV_PATCHES.add_item(
     (
         # After the image's own `collectstatic`, so both the theme directory and
-        # the collected, hashed copies come out AthenIQ's.
+        # the collected, hashed copies come out Unity's.
         "openedx-dockerfile",
-        f"""# AthenIQ — the platform's own branding, on top of Indigo's theme. The theme
-# files are copied in and then re-collected, because a browser fetches the
-# collected, content-hashed copy under /openedx/staticfiles/, not the theme
-# directory: without the second step the templates change and the served logo
-# does not.
-COPY --chown=app:app ./atheniq-theme/lms/ {THEME_ROOT}/
-COPY --chown=app:app ./atheniq-theme/cms/ {CMS_THEME_ROOT}/
+        f"""# AthenIQ — the Unity Open edX theme. The theme files are copied in and then
+# re-collected, because a browser fetches the collected, content-hashed copy
+# under /openedx/staticfiles/, not the theme directory: without the second step
+# the templates change and the served logo does not.
+COPY --chown=app:app ./openedx-theme-unity/lms/ {THEME_ROOT}/lms/
+COPY --chown=app:app ./openedx-theme-unity/cms/ {THEME_ROOT}/cms/
 # The two skins' served copies. `head-extra.html` links `/static/atheniq/…` and
-# Studio's header links `/static/studio/indigo/atheniq/…`; these are the
+# Studio's header links `/static/studio/unity/atheniq/…`; these are the
 # directories those URLs resolve to, so the stylesheets, the switch and the
 # course photos are in place even if a collect is ever run with `--skip-themes`.
-COPY --chown=app:app ./atheniq-theme/lms/static/atheniq/ {LMS_STATIC_ROOT}/
-COPY --chown=app:app ./atheniq-theme/lms/static/images/ {LMS_STATIC_ROOT}/images/
-COPY --chown=app:app ./atheniq-theme/cms/static/atheniq/ {CMS_STATIC_ROOT}/
-RUN ./manage.py lms collectstatic --noinput --settings=tutor.assets && \\
+COPY --chown=app:app ./openedx-theme-unity/lms/static/atheniq/ {LMS_STATIC_ROOT}/
+COPY --chown=app:app ./openedx-theme-unity/lms/static/images/ {LMS_STATIC_ROOT}/images/
+COPY --chown=app:app ./atheniq-theme/lms/static/images/courses/ {LMS_STATIC_ROOT}/images/courses/
+COPY --chown=app:app ./openedx-theme-unity/cms/static/atheniq/ {CMS_STATIC_ROOT}/
+RUN ./manage.py lms collectstatic --noinput --settings=tutor.assets && \
     ./manage.py cms collectstatic --noinput --settings=tutor.assets
 """,
     ),
@@ -161,18 +141,19 @@ RUN ./manage.py lms collectstatic --noinput --settings=tutor.assets && \\
 )
 
 
-# --- 2. the learner MFEs' palette -------------------------------------------
+# --- 2. the site theme -------------------------------------------------------
 
-# `priority=LOW` IS NOT DECORATION. Tutor renders patches for one patch point in
-# priority order, highest last — and Indigo assigns `MFE_CONFIG["PARAGON_THEME_URLS"]`
-# from its own `mfe-lms-common-settings` patch at the default priority. At the
-# default priority ours renders *first* and Indigo then overwrites it, which is a
-# silent no-op: the stylesheet exists, the config looks right in `config.yml`, and
-# nothing changes on screen. LOW puts this after it. `LC_ALL=C tutor config save`
-# is how that was found, and `tests/test_unity_skin.py` pins it.
-hooks.Filters.ENV_PATCHES.add_item(
-    (MFE_SETTINGS_PATCH, _unity_patch()), priority=hooks.priorities.LOW
-)
+# `settheme` writes a `SiteTheme` row for the deployment's site; this makes the
+# same choice the default for any site that has no row (a fresh database, a new
+# site, or a hostname added later). Both point at the one directory above.
+for patch_name in (LMS_SETTINGS_PATCH, CMS_SETTINGS_PATCH):
+    hooks.Filters.ENV_PATCHES.add_item(
+        (
+            patch_name,
+            f'# AthenIQ — the platform wears Unity.\nDEFAULT_SITE_THEME = "{THEME_NAME}"\n',
+        ),
+        priority=hooks.priorities.LOW,
+    )
 
 
 # --- 3. the platform's name --------------------------------------------------

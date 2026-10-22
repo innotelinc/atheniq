@@ -122,58 +122,62 @@ tutor local restart lms cms                       # apply the regenerated config
 applies it without an image rebuild. It also flows into the MFEs' runtime config
 (`/api/mfe_config/v1` reports `SITE_NAME: AthenIQ`).
 
-The Indigo theme additionally hard-codes "Powered by: Tutor + Open edX" in its
-footer and an edX trademark paragraph, ships the upstream header logo and
-favicon, and comes with its own compiled palette.
-[`contrib/atheniq-theme`](../contrib/atheniq-theme) holds the replacement: the
-LMS footer and `<head>` hook, Studio's header, the generated
-`logo.png` / `logo-white.png` / `favicon.ico` (`make images`), the course
-photographs (`make course-photos`) and the per-course catalog cards (`make
-course-cards`), all painted from **Unity**, the Innotel Platform Stack's one
-theme.
-
-**Indigo is the base, Unity is the theme.** Open edX needs a theme package to
-supply the compiled LMS/CMS templates and the Paragon structure the MFEs build
-on, and Tutor's `indigo` plugin is that package; it is not what a visitor sees.
-Every Indigo surface is replaced: the LMS header logo, footer, favicon and
-`<head>`, Studio's chrome, the MFE brand override, and the landing page. The
-MFE HTML loads only the bundle's own CSS and `atheniq-unity.css`; the Indigo
-Paragon URL remains in `PARAGON_THEME_URLS` as the structural default. Removing
-the plugin itself would require shipping a full Open edX theme to replace it,
-which is a separate project.
+**Unity is the theme, and Indigo is gone.** `contrib/openedx-theme-unity` is a
+complete Open edX theme — LMS and Studio templates, compiled stylesheets, fonts,
+images, and the Unity palette, switch and skins — installed at
+`/openedx/themes/unity` with `DEFAULT_SITE_THEME = "unity"`. The `indigo` Tutor
+plugin is not enabled and no Indigo package is installed; nothing on the running
+LMS or Studio links an Indigo stylesheet. The theme's structural base was forked
+from Indigo's theme at 22.0.0 and vendored in the repository, so the deployment
+does not depend on it; every visible surface is painted by Unity.
 
 Unity is vendored byte-for-byte as `unity-theme.css` + `unity-theme.js` in both
 `lms/static/atheniq/` and `cms/static/atheniq/`. The LMS runs in the `desk`
 register (the training range's), Studio in `operations` (an authoring console),
-and the light/dark axis is the person's — `head-extra.html` adopts Indigo's own
-dark-mode cookie so the two switches never disagree. The LMS skin
-(`atheniq-lms.css`) and Studio's (`unity-cms.css`) name Unity tokens and no raw
-colours, so a palette change reaches both by replacing one file.
+and the light/dark axis is the person's. `head-extra.html` adopts the old
+theme's dark-mode cookie once, so a browser that already chose dark does not
+have to choose again. The LMS skin (`atheniq-lms.css`) and Studio's
+(`unity-cms.css`) name Unity tokens and no raw colours, so a palette change
+reaches both by replacing one file.
 
-Apply the whole overlay — **both halves**, no manual Studio step — with:
+The brand assets remain in `contrib/atheniq-theme`: the generated
+`logo.png` / `logo-white.png` / `favicon.ico` (`make images`), the course
+photographs (`make course-photos`) and the per-course catalog cards (`make
+course-cards`). The theme copies the rasters and the skins at install; the
+course photographs stay a single pool served from
+`/static/atheniq/images/courses/`.
+
+Install or refresh the theme — **both halves**, no manual Studio step — with:
 
 ```bash
 make theme        # == ./scripts/apply-atheniq-theme.sh
 ```
 
-The script copies the files into the running LMS and CMS **and bakes them into
-the image the compose project starts from** — a one-layer derivative of
-`overhangio/openedx` that is seconds to build, not the edx-platform source
-rebuild. That is what makes the brand survive `tutor local launch`: the platform
-is stopped and recreated from the image, so a copy in the container's writable
-layer would be gone. It restarts both containers, and verifies the baked image
-carries the LMS templates, the Studio header, the skins and the course photos
-before reporting success. The untouched image is kept as
+The script bakes the theme into the image the compose project starts from — a
+one-layer derivative of `overhangio/openedx` plus a `collectstatic`, not the
+edx-platform source rebuild — then recreates the LMS and CMS from it. That is
+what makes the theme survive `tutor local launch`: the platform is stopped and
+recreated from the image, so a copy in the container's writable layer would be
+gone. It verifies the baked image carries the LMS templates, the Studio header,
+the skins, the compiled `unity/` static assets and the course photos before
+reporting success. The untouched image is kept as
 `atheniq/openedx-theme-base:<tag>`; rolling back is a retag and a `tutor local
 start -d`. `--no-bake` gives the old footprint (a look, lost on the next
 recreate); `--no-restart` skips the restart.
 
+After the recreate, set the theme on the site (once per deployment, and after a
+fresh database):
+
+```bash
+tutor local do settheme unity
+```
+
 `tutor images build openedx` replaces the tag from source, so enable the
 [`contrib/tutor-atheniq-theme`](../contrib/tutor-atheniq-theme) plugin before a
-rebuild: its Dockerfile patch copies the same overlay in — LMS, CMS, the served
+rebuild: its Dockerfile patch copies the same theme in — LMS, CMS, the served
 static copies under `/openedx/staticfiles/atheniq/` and
-`/openedx/staticfiles/studio/indigo/atheniq/` — and re-collects the static assets,
-which is the durable form of this step.
+`/openedx/staticfiles/studio/unity/atheniq/` — sets `DEFAULT_SITE_THEME`, and
+re-collects the static assets, which is the durable form of this step.
 
 > **The learner MFEs** (catalog, learning, profile) render their own footer from
 compiled JS bundles. Indigo installs its footer into the frontend-plugin-framework
@@ -770,15 +774,13 @@ derived server-side from the name, so a name can never become a path.
 
 ### Studio chrome — `studio.innotel.us`
 
-`contrib/atheniq-theme/cms/` is the CMS half of the theme overlay: a header
+`contrib/openedx-theme-unity/cms/` is Studio's half of the Unity theme: a header
 template that adds the **AthenIQ Platform Services** entry (and a learner-portal
 link) beside the Studio logo, and `unity-cms.css`, which paints the Studio header
 in Unity while leaving the course editor itself on the platform's light default.
-The Tutor theme plugin copies both halves into `/openedx/themes/indigo/`. On a
-running deployment the files can be copied into the CMS container and followed by
-`./manage.py cms collectstatic --noinput --settings=tutor.production`; the theme
+The theme plugin copies it into `/openedx/themes/unity/cms/`; the theme
 namespace makes the stylesheet answer at
-`/static/studio/indigo/atheniq/unity-cms.css`.
+`/static/studio/unity/atheniq/unity-cms.css`.
 
 ### Stage 3b — OpenMAIC persistence Postgres (this repo)
 

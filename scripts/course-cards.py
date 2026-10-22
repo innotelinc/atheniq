@@ -295,8 +295,13 @@ def course_entries(programs_dir, term=None):
 
 
 def _term_label(start):
-    match = re.search(r"(20\d{2})", str(start or ""))
-    return f"{match.group(1)}_T4" if match else ""
+    """The cohort label on a card: the program's own words when it has them.
+
+    `startTerm` is human-facing ("Spring 2027", "Fall 2026", "2027_T1"); the
+    card prints it rather than inventing a quarter from the year, which is what
+    made every spring cohort read as `2027_T4`.
+    """
+    return str(start or "").strip()
 
 
 def build(programs_dir, out_dir, term=None):

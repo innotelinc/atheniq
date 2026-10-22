@@ -148,7 +148,14 @@ def term_for(program: dict, clock=time.time) -> str:
     quarter when even that is missing. The run is part of the course key, so it is
     derived once and then left alone — publishing again must not mint a second run
     of the same course.
+
+    `runTerm` is an explicit override for a cohort whose calendar label and
+    quarter disagree — "Spring 2027" that opens in January, for instance. The
+    label stays the human-facing one; the key stays a term.
     """
+    explicit_run = str(program.get("runTerm") or "").strip()
+    if re.fullmatch(r"20\d{2}_T[1-4]", explicit_run):
+        return explicit_run
     label = str(program.get("startTerm") or "").strip()
     when = None
     from_label = re.search(r"(20\d{2})-(\d{2})-(\d{2})", label)
@@ -211,15 +218,29 @@ def key_index(keys) -> dict[str, str]:
 # -- the OLX shell ------------------------------------------------------------
 
 
-def _dates(term: str) -> dict[str, str]:
-    """The run's dates: it opens two months early and stays open for two years."""
+def _dates(term: str, early_start: str | None = None) -> dict[str, str]:
+    """The run's dates: it opens two months early and stays open for two years.
+
+    `early_start` is an ISO date the course actually opens on, when the cohort
+    wants learners to begin before the term's first day. The advertised start
+    stays the term's, so the catalogue still says which semester the run belongs
+    to; the linked material is open from the earlier date.
+    """
     match = re.match(r"^(\d{4})_T([1-4])$", term)
     year = int(match.group(1)) if match else dt.date.today().year
     quarter = int(match.group(2)) if match else _quarter(dt.date.today())
     start = dt.datetime(year, 3 * (quarter - 1) + 1, 1, tzinfo=dt.timezone.utc)
+    opens = start
+    if early_start:
+        try:
+            opens = dt.datetime.fromisoformat(str(early_start)).replace(tzinfo=dt.timezone.utc)
+        except ValueError:
+            opens = start
+    enrollment_start = min(opens, start) - dt.timedelta(days=60)
     return {
-        "start": start.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "enrollment_start": (start - dt.timedelta(days=60)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "start": opens.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "advertised_start": start.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "enrollment_start": enrollment_start.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "enrollment_end": (start + dt.timedelta(days=730)).strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
 
@@ -251,6 +272,7 @@ def entry_for(course: dict, program: dict, semester: dict, term: str,
         "semesterName": semester.get("name") or "",
         "program": program.get("name") or "",
         "programId": program.get("id") or "",
+        "earlyStart": program.get("earlyAccessStart") or None,
         "credential": program.get("credential") or "",
         "credentialKind": program.get("credentialKind") or "degree",
         "totalCredits": program.get("totalCredits"),
@@ -432,7 +454,7 @@ def build_shell(entry: dict, dest: str) -> str:
     olx = os.path.join(dest, "olx")
     os.makedirs(olx)
     term = entry["term"]
-    dates = _dates(term)
+    dates = _dates(term, entry.get("earlyStart"))
     name = f"{entry['code']} — {entry['title']}"
     lessons = list(entry.get("lessons") or [])
     exam = [(index, question)
@@ -454,7 +476,8 @@ def build_shell(entry: dict, dest: str) -> str:
     course_children = "".join(f'<chapter url_name="{ref}"/>\n' for ref in children)
     _write(os.path.join(olx, "course", f"{term}.xml"), (
         f'<course display_name="{_xml(name)}" language="en" '
-        f'start="{dates["start"]}" enrollment_start="{dates["enrollment_start"]}" '
+        f'start="{dates["start"]}" advertised_start="{dates["advertised_start"]}" '
+        f'enrollment_start="{dates["enrollment_start"]}" '
         f'enrollment_end="{dates["enrollment_end"]}" cert_html_view_enabled="true" '
         f'certificates_display_behavior="CertificatesDisplayBehaviors.END">\n'
         f'{course_children}'
@@ -564,6 +587,7 @@ def build_shell(entry: dict, dest: str) -> str:
             "display_name": name,
             "language": "en",
             "start": dates["start"],
+            "advertised_start": dates["advertised_start"],
             "enrollment_start": dates["enrollment_start"],
             "enrollment_end": dates["enrollment_end"],
             "cert_html_view_enabled": True,

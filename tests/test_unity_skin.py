@@ -25,6 +25,7 @@ from pathlib import Path
 from _loader import ROOT
 
 THEME = ROOT / "contrib" / "atheniq-theme"
+UNITY_THEME = ROOT / "contrib" / "openedx-theme-unity"
 PLUGIN = ROOT / "contrib" / "tutor-atheniq-theme" / "atheniqtheme" / "plugin.py"
 
 #: Unity's `desk` register, from the platform stack's `standards/unity` (the
@@ -86,14 +87,16 @@ class Stylesheets(unittest.TestCase):
             self.assertEqual(css.count("{"), css.count("}"), name)
 
     def test_the_lms_copies_do_not_drift(self):
-        """The LMS serves its own copy; a copy that differs is a bug."""
+        """The installed theme's copy and the MFE source are one file."""
         for name in ("light", "dark"):
-            lms = (THEME / "lms" / "static" / "atheniq" / f"unity-{name}.css").read_text()
-            self.assertEqual(lms, _css(name), f"unity-{name}.css differs between lms/ and mfe/")
+            lms = (UNITY_THEME / "lms" / "static" / "atheniq" /
+                   f"unity-{name}.css").read_text()
+            self.assertEqual(lms, _css(name),
+                             f"unity-{name}.css differs between the theme and mfe/")
 
     def test_the_head_loads_unity_before_the_first_paint(self):
         """`head-extra.html` is the one hook in the LMS `<head>`."""
-        head = (THEME / "lms" / "templates" / "head-extra.html").read_text()
+        head = (UNITY_THEME / "lms" / "templates" / "head-extra.html").read_text()
         self.assertIn("/static/atheniq/unity-theme.css", head)
         self.assertIn("/static/atheniq/atheniq-lms.css", head)
         self.assertIn("/static/atheniq/unity-theme.js", head)
@@ -103,7 +106,7 @@ class Stylesheets(unittest.TestCase):
 
     def test_the_footer_no_longer_links_a_late_stylesheet(self):
         """A `<link>` at the end of the body is a flash of Indigo's colours."""
-        footer = (THEME / "lms" / "templates" / "footer.html").read_text()
+        footer = (UNITY_THEME / "lms" / "templates" / "footer.html").read_text()
         self.assertNotIn("unity-light.css", footer)
         self.assertNotIn("atheniq-lms.css", footer)
 
@@ -111,13 +114,13 @@ class Stylesheets(unittest.TestCase):
         """LMS and Studio are two apps, so two copies — byte-identical ones."""
         for name in ("unity-theme.css", "unity-theme.js"):
             self.assertEqual(
-                (THEME / "lms" / "static" / "atheniq" / name).read_bytes(),
-                (THEME / "cms" / "static" / "atheniq" / name).read_bytes(),
+                (UNITY_THEME / "lms" / "static" / "atheniq" / name).read_bytes(),
+                (UNITY_THEME / "cms" / "static" / "atheniq" / name).read_bytes(),
                 f"{name} differs between the LMS and the CMS",
             )
 
     def test_the_vendored_theme_is_the_canonical_one(self):
-        css = (THEME / "lms" / "static" / "atheniq" / "unity-theme.css").read_text()
+        css = (UNITY_THEME / "lms" / "static" / "atheniq" / "unity-theme.css").read_text()
         self.assertIn("UNITY — the shared theme.  THE canonical copy.", css)
         # `desk` is the bare `:root`; the other two registers are scoped.
         for scheme in (':root[data-scheme="operations"]', ':root[data-scheme="soc"]'):
@@ -126,7 +129,7 @@ class Stylesheets(unittest.TestCase):
 
     def test_the_lms_skin_names_tokens_not_colours(self):
         """The point of adopting Unity is that the palette lives in one file."""
-        css = (THEME / "lms" / "static" / "atheniq" / "atheniq-lms.css").read_text()
+        css = (UNITY_THEME / "lms" / "static" / "atheniq" / "atheniq-lms.css").read_text()
         self.assertIn("var(--brand)", css)
         self.assertIn("var(--surface)", css)
         self.assertIn("html[data-mode=\"dark\"]", css)
@@ -191,34 +194,40 @@ class Plugin(unittest.TestCase):
         self.text = PLUGIN.read_text(encoding="utf-8")
 
     def test_it_ships_the_theme_files_into_the_build_context(self):
-        self.assertIn('("atheniq-theme", "build/openedx")', self.text)
+        self.assertIn('("openedx-theme-unity", "build/openedx")', self.text)
         self.assertIn("ENV_TEMPLATE_ROOTS", self.text)
 
     def test_it_copies_them_into_the_image_and_recollects(self):
         self.assertIn('"openedx-dockerfile"', self.text)
-        self.assertIn("COPY --chown=app:app ./atheniq-theme/lms/", self.text)
+        self.assertIn("COPY --chown=app:app ./openedx-theme-unity/lms/", self.text)
         # The collected copy is what a browser fetches, so it is re-collected.
         self.assertIn("collectstatic", self.text)
-        self.assertIn("/openedx/themes/indigo/lms", self.text)
+        self.assertIn("THEME_ROOT = f\"/openedx/themes/{THEME_NAME}\"", self.text)
 
     def test_it_ships_the_cms_half_too(self):
-        """Studio's overlay is part of the image, not a hand-applied copy."""
-        self.assertIn("COPY --chown=app:app ./atheniq-theme/cms/", self.text)
-        self.assertIn("/openedx/themes/indigo/cms", self.text)
+        """Studio's theme is part of the image, not a hand-applied copy."""
+        self.assertIn("COPY --chown=app:app ./openedx-theme-unity/cms/", self.text)
+        self.assertIn("{THEME_ROOT}/cms/", self.text)
 
     def test_the_static_copies_are_where_the_templates_look(self):
-        """`/static/atheniq/…` and `/static/studio/indigo/atheniq/…` are two namespaces."""
+        """`/static/atheniq/…` and `/static/studio/unity/atheniq/…` are two namespaces."""
         self.assertIn("/openedx/staticfiles/atheniq", self.text)
-        # Studio collects under `studio/` and the theme's files under `indigo/`.
-        self.assertIn("/openedx/staticfiles/studio/indigo/atheniq", self.text)
+        # Studio collects under `studio/` and the theme's files under `unity/`.
+        self.assertIn("/openedx/staticfiles/studio/unity/atheniq", self.text)
         self.assertIn("lms/static/images/", self.text)
+        self.assertIn("atheniq-theme/lms/static/images/courses/", self.text)
 
-    def test_it_repoints_only_the_brand_override(self):
-        """The compiled theme stays the `default` URL: structure is not ours."""
-        self.assertIn("mfe-lms-common-settings", self.text)
-        self.assertIn('_atheniq_urls["brandOverride"]', self.text)
-        self.assertIn("unity-{_atheniq_variant}.css", self.text)
-        self.assertNotIn('_atheniq_urls["default"]', self.text)
+    def test_it_sets_the_site_theme(self):
+        """Unity is the default for a site with no theme row, in both apps."""
+        self.assertIn('DEFAULT_SITE_THEME = "unity"', self.text)
+        self.assertIn("openedx-lms-common-settings", self.text)
+        self.assertIn("openedx-cms-common-settings", self.text)
+
+    def test_it_is_no_longer_an_indigo_overlay(self):
+        """Indigo is neither installed nor patched by the theme plugin."""
+        self.assertNotIn("tutorindigo", self.text)
+        self.assertNotIn("/openedx/themes/indigo", self.text)
+        self.assertNotIn("PARAGON_THEME_URLS", self.text)
 
     def test_it_names_the_platform_as_a_default_only(self):
         self.assertIn('CONFIG_DEFAULTS.add_item(("PLATFORM_NAME", "AthenIQ"))', self.text)
@@ -233,7 +242,7 @@ class Plugin(unittest.TestCase):
 class CmsOverlay(unittest.TestCase):
     """Studio's header: Unity in the operations register, linked predictably."""
 
-    HEADER = THEME / "cms" / "templates" / "widgets" / "header.html"
+    HEADER = UNITY_THEME / "cms" / "templates" / "widgets" / "header.html"
 
     def setUp(self):
         self.text = self.HEADER.read_text()
@@ -245,7 +254,7 @@ class CmsOverlay(unittest.TestCase):
     def test_it_links_the_unhashed_served_paths(self):
         """A manifest hash would survive a `make theme` copy and serve stale CSS."""
         for name in ("unity-theme.css", "unity-cms.css", "unity-theme.js"):
-            self.assertIn(f'/static/studio/indigo/atheniq/{name}', self.text)
+            self.assertIn(f'/static/studio/unity/atheniq/{name}', self.text)
         self.assertNotIn("static.url('indigo/atheniq", self.text)
 
     def test_it_keeps_the_platform_entry_point(self):
@@ -272,11 +281,13 @@ class ThemeScript(unittest.TestCase):
         # Built from the compose image's own reference, which is what a recreate
         # starts, not from whatever container happens to be running.
         self.assertIn("{{.Config.Image}}", self.text)
-        self.assertIn("COPY --chown=app:app lms/ ${THEME_ROOT}/", self.text)
-        self.assertIn("COPY --chown=app:app cms/ ${CMS_THEME_ROOT}/", self.text)
-        self.assertIn("COPY --chown=app:app lms/static/atheniq/ ${STATIC_TARGET}/", self.text)
-        self.assertIn("COPY --chown=app:app lms/static/images/ ${STATIC_TARGET}/images/", self.text)
-        self.assertIn("COPY --chown=app:app cms/static/atheniq/ ${CMS_STATIC_TARGET}/", self.text)
+        self.assertIn("COPY --chown=app:app openedx-theme-unity/lms/ ${THEME_ROOT}/lms/", self.text)
+        self.assertIn("COPY --chown=app:app openedx-theme-unity/cms/ ${THEME_ROOT}/cms/", self.text)
+        self.assertIn("COPY --chown=app:app openedx-theme-unity/lms/static/atheniq/ ${STATIC_TARGET}/", self.text)
+        self.assertIn("COPY --chown=app:app openedx-theme-unity/lms/static/images/ ${STATIC_TARGET}/images/", self.text)
+        self.assertIn("COPY --chown=app:app openedx-theme-unity/cms/static/atheniq/ ${CMS_STATIC_TARGET}/", self.text)
+        self.assertIn("COPY --chown=app:app atheniq-theme/lms/static/images/courses/", self.text)
+        self.assertIn("collectstatic", self.text)
 
     def test_the_base_image_is_kept_and_never_stacked_on(self):
         self.assertIn('atheniq/openedx-theme-base:${tag}', self.text)
@@ -286,19 +297,20 @@ class ThemeScript(unittest.TestCase):
 
     def test_the_baked_image_is_verified_before_it_is_reported(self):
         self.assertIn('docker run --rm --entrypoint /bin/sh "${image}"', self.text)
-        self.assertIn("${THEME_TARGET}/footer.html", self.text)
-        self.assertIn("${THEME_TARGET}/head-extra.html", self.text)
+        self.assertIn("${THEME_ROOT}/lms/templates/footer.html", self.text)
+        self.assertIn("${THEME_ROOT}/lms/templates/head-extra.html", self.text)
+        self.assertIn("${THEME_ROOT}/cms/templates/widgets/header.html", self.text)
         self.assertIn("${STATIC_TARGET}/atheniq-lms.css", self.text)
-        self.assertIn("${CMS_THEME_TARGET}/widgets/header.html", self.text)
         self.assertIn("${CMS_STATIC_TARGET}/unity-cms.css", self.text)
+        self.assertIn("staticfiles/${THEME_NAME}/css", self.text)
 
     def test_the_cms_half_is_applied_automatically(self):
-        """The one thing that used to be done by hand after every deploy."""
+        """Studio's half travels with the same theme directory, not by hand."""
         self.assertIn("cms/templates/widgets/header.html", self.text)
         self.assertIn("CMS_CONTAINER", self.text)
-        self.assertIn("docker cp \"${THEME_DIR}/cms/templates/widgets/header.html\"", self.text)
-        self.assertIn("docker restart \"${LMS_CONTAINER}\" \"${CMS_CONTAINER}\"", self.text)
+        self.assertIn('docker cp "${THEME_SRC}/cms/."', self.text)
         self.assertIn("--no-restart", self.text)
+        self.assertIn("--force-recreate", self.text)
 
     def test_no_bake_is_the_opt_out_and_says_what_it_costs(self):
         self.assertIn("--no-bake", self.text)

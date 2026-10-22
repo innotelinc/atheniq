@@ -1,0 +1,84 @@
+## mako
+## AthenIQ — Unity, in the head, before the first paint.
+##
+## `main.html` includes `head-extra.html` on every server-rendered LMS page, and
+## it is the only hook in the `<head>` a theme gets. That makes it the right
+## place for three things:
+##
+##   1. **The palette.** Unity's tokens (`unity-theme.css`) and the LMS skin
+##      (`atheniq-lms.css`) load here rather than at the end of the body, so a
+##      page never paints the base theme's colours and then repaints ours.
+##
+##   2. **The scheme.** `desk` — the training range's register, which is what a
+##      learning platform is — is set on `<html>` before anything renders.
+##
+##   3. **The mode.** Unity's switch is the header control; this adopts the
+##      legacy `selected-paragon-theme-variant` cookie (written by the theme the
+##      deployment used before Unity) into Unity's storage once, so a browser
+##      that already picked dark does not have to pick again. Unity's own
+##      `data-mode` is the source of truth from then on.
+##
+## `UnityTheme` owns the tokens; the listener at the bottom keeps the compiled
+## base stylesheet's dark-mode class in step with `data-mode`.
+<script>
+(function () {
+  var root = document.documentElement;
+  root.setAttribute("data-scheme", "desk");
+
+  function cookie(name) {
+    try {
+      var found = document.cookie.match(new RegExp("(?:^|; )" + name + "=([^;]*)"));
+      return found ? decodeURIComponent(found[1]) : "";
+    } catch (error) {
+      return "";
+    }
+  }
+
+  function stored(key) {
+    try { return localStorage.getItem(key) || ""; } catch (error) { return ""; }
+  }
+
+  // The person's old choice is still their choice. Adopt it once, so a browser
+  // that already picked dark on this site does not have to pick again.
+  var previous = cookie("selected-paragon-theme-variant");
+  if ((previous === "dark" || previous === "light") && !stored("ontrak.mode")) {
+    try { localStorage.setItem("ontrak.mode", previous); } catch (error) {}
+  }
+})();
+</script>
+<link rel="stylesheet" href="/static/atheniq/unity-theme.css">
+<link rel="stylesheet" href="/static/atheniq/atheniq-lms.css">
+<script src="/static/atheniq/unity-theme.js"></script>
+<script>
+(function () {
+  function syncBase(dark) {
+    if (document.body) {
+      document.body.classList.toggle("unity-dark-theme", !!dark);
+    }
+  }
+
+  function bind() {
+    if (!window.UnityTheme) { return; }
+    syncBase(window.UnityTheme.isDark());
+
+    var input = document.getElementById("toggle-switch-input");
+    if (input && !input.dataset.atheniqUnity) {
+      input.dataset.atheniqUnity = "1";
+      input.checked = window.UnityTheme.isDark();
+      input.addEventListener("change", function () {
+        window.UnityTheme.setMode(input.checked ? "dark" : "light");
+      });
+    }
+
+    window.addEventListener("unity:theme", function (event) {
+      syncBase(event.detail && event.detail.mode === "dark");
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bind);
+  } else {
+    bind();
+  }
+})();
+</script>

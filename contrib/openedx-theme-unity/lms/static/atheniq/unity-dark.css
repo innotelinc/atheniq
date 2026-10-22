@@ -1,0 +1,224 @@
+/* AthenIQ — the dark half of the **Unity** skin.
+ *
+ * WHY THIS FILE EXISTS. AthenIQ is the LearningOps platform of the Innotel
+ * Platform Stack, and every platform in that stack wears one theme, Unity
+ * (`theme/unity-theme.css`): a palette of *semantic* tokens, two axes (mode and
+ * scheme), and no product that starts from its own dashboard template. The
+ * Tutor/Indigo stack the LMS foundation comes from ships its own theme either
+ * way, so this file is the seam that puts Unity back on top of it.
+ *
+ * WHAT IT IS. Two layers in one stylesheet:
+ *
+ *   1. **Paragon variables** (`--pgn-*`) — the learner MFEs (catalog, learning,
+ *      account, ...) paint from these. Loaded as the Paragon theme's
+ *      `brandOverride`, this recolors every MFE without rebuilding a bundle.
+ *   2. **Surface rules** — the LMS's own pages, and the one thing this platform
+ *      will not print: another platform's badge. Indigo's footer draws a
+ *      "Powered by Open edX" logo whose hover text is the image's `alt`;
+ *      AthenIQ is the platform, so the badge goes.
+ *
+ * The palette is Unity's, transcribed from `theme/unity-theme.css` (the
+ * canonical copy) rather than invented here. Change it there first.
+ *
+ * SCOPE. Color and brand only, nothing structural: a stylesheet cannot rename
+ * a template, and Indigo's compiled SCSS still owns geometry and spacing.
+ */
+:root {
+  /* surfaces — Unity `--canvas` / `--surface` / `--surface-muted` */
+  --pgn-color-bg-base: #100c22;
+  --pgn-color-body-bg: #100c22;
+  /* left to the theme: --pgn-color-dark-base is Paragon's dark-surface palette */
+  /* text — Unity `--ink` / `--ink-soft` */
+  --pgn-color-text-base: #f5f3ff;
+  --pgn-color-gray-900: #f5f3ff;
+  --pgn-color-gray-700: #c3bce0;
+  --pgn-color-gray-100: #221a40;
+  /* brand — Unity `--brand`, with its tint/shade scale */
+  --pgn-color-primary-100: #100d1a;
+  --pgn-color-primary-200: #2b2547;
+  --pgn-color-primary-300: #514485;
+  --pgn-color-primary-400: #7664c2;
+  --pgn-color-primary-500: #9b83ff;
+  --pgn-color-primary-600: #8571db;
+  --pgn-color-primary-700: #705eb8;
+  --pgn-color-primary-800: #60519e;
+  --pgn-color-primary-900: #514485;
+  --pgn-color-primary-base: #9b83ff;
+  --pgn-color-primary-light: #100c22;
+  /* links follow the brand, as Unity's do */
+  --pgn-color-link-base: var(--pgn-color-primary-500);
+  --pgn-color-link-hover: #514485;
+  --pgn-color-link-inline-base: var(--pgn-color-primary-500);
+  --pgn-color-link-inline-hover-base: #514485;
+  --pgn-color-link-brand-base: var(--pgn-color-primary-500);
+  --pgn-color-link-brand-hover: #514485;
+  /* status — Unity `--ok` / `--info` / `--attention` / `--bad` */
+  --pgn-color-success-base: #5ed37a;
+  --pgn-color-info-base: #6cc0ff;
+  --pgn-color-warning-base: #ffc157;
+  --pgn-color-danger-base: #ff8a80;
+  --pgn-color-accent-a: #6cc0ff;
+  --pgn-color-accent-b: #ffc157;
+}
+
+/* ------------------------------------------------------------------ brand -- */
+
+/* The mark is the platform's own. Nothing else signs the page. */
+img[alt="Powered by Open edX"],
+img[alt="Runs on Tutor"],
+a:has(> img[alt="Powered by Open edX"]),
+a:has(> img[alt="Runs on Tutor"]),
+.footer .logo-list,
+.powered-area {
+  display: none !important;
+}
+
+/* The header mark's hover label. An MFE takes its logo's `alt` from SITE_NAME
+ * ("AthenIQ"); this states the full attribution the brand page asks for, on the
+ * mark alone, until the MFE plugin's lockup ships with a rebuild. */
+header a[href$="/dashboard"] { position: relative; }
+header a[href$="/dashboard"]:hover::after {
+  content: "AthenIQ by Innotel Labs";
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 20;
+  padding: 4px 10px; border-radius: 8px; white-space: nowrap;
+  background: #191430; color: #ffffff;
+  font-size: 12px; line-height: 1.4; letter-spacing: 0.02em;
+}
+
+/* ---------------------------------------------------------- the MFE nav -- */
+
+/* The injected header nav, as a row. Paragon's `.nav-link` is `display:block`,
+ * so an unstyled wrapper stacked its links down the left of the header; the
+ * workspace menu (Courses · Programs · Classrooms · Studio · Platform) belongs
+ * to the console, not to a learner's header, so it goes by destination. The
+ * reasoning is in `unity-light.css`; this file only carries the same rules for
+ * the dark scheme. */
+nav.atheniq-nav:empty {
+  display: none !important;
+}
+nav.atheniq-nav {
+  display: flex !important;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  margin-inline-start: auto;
+}
+nav.atheniq-nav a.nav-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.65rem;
+  white-space: nowrap;
+}
+nav.atheniq-nav a.nav-link[href*="ai.lms.innotel.us"],
+nav.atheniq-nav a.nav-link[href*="studio.innotel.us"] {
+  display: none !important;
+}
+
+/* ------------------------------------------------------- the learner home -- */
+
+/* WHAT THIS IS. `/` is the catalog MFE's home page: a banner, the course
+ * search, and the course list. The last two are the platform's already; the
+ * banner is not, and it is the first thing anybody sees.
+ *
+ * WHY IT IS DONE HERE. The banner's copy and its artwork are compiled into the
+ * MFE bundle — the heading and the "{title} / It works! Powered by the Open
+ * edX® Platform" placeholder are translated defaults, and the background is a
+ * stock photograph the MFE ships. Neither is reachable from an LMS template or
+ * from `MFE_CONFIG`; both are reachable from the skin the MFEs already load as
+ * Paragon's brand override, so the page is finished here rather than left
+ * waiting on a bundle rebuild. `contrib/tutor-atheniq-mfe` is the door for the
+ * parts this cannot do.
+ *
+ * The palette is the dark register of the same rule in `unity-light.css`; keep
+ * the two in step. */
+
+/* The placeholder line goes. A learner's first page cannot greet them with
+ * "It works!" — that is a build report, not a welcome. The heading above it
+ * already names the platform, so nothing replaces the sentence. */
+.home-banner p.lead {
+  display: none !important;
+}
+
+/* The banner is the platform's front door, so it is painted as one: Unity's
+ * dark canvas under a study surface — graph-paper squares at 32px, ruled lines
+ * at 28px, the brand's violet glowing down from the top edge — instead of the
+ * stock photograph underneath. The MFE draws it in `.home-banner:before` from
+ * two custom properties plus `background-size: cover`, so every layer is set
+ * here explicitly (a size per layer is not expressible through the properties
+ * alone). */
+.home-banner:before {
+  background-color: #100c22 !important;
+  background-image:
+    linear-gradient(to right, rgba(245, 243, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(245, 243, 255, 0.05) 1px, transparent 1px),
+    repeating-linear-gradient(to bottom, transparent 0 27px, rgba(155, 131, 255, 0.18) 27px 28px),
+    radial-gradient(120% 90% at 50% -20%, #2b2154 0%, #1a1436 45%, #100c22 100%) !important;
+  background-size: 32px 32px, 32px 32px, 100% 28px, cover !important;
+  background-position: 0 0, 0 0, 0 0, center !important;
+  background-repeat: repeat, repeat, repeat, no-repeat !important;
+}
+
+/* The masthead. This heading is the page's header — there is no other — so it
+ * gets the treatment a title earns: a kicker naming the platform it belongs
+ * to, weight, and a shadow that keeps it legible over the glow. */
+.home-banner .animation-wrapper::before {
+  content: "LearningOps · Innotel Platform Stack";
+  display: inline-block;
+  margin-bottom: 0.75rem;
+  padding: 0.3rem 0.75rem;
+  border: 1px solid rgba(245, 243, 255, 0.28);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #f5f3ff;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.home-banner h1.display-1 {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.55);
+}
+
+/* The site header above it, in the same register: the brand along its bottom
+ * edge. The surface stays as the MFE sets it (white), because the logo in the
+ * header is drawn for it in both schemes. */
+header {
+  border-bottom: 3px solid #9b83ff;
+  box-shadow: none;
+}
+
+/* --------------------------------------------------------- the course cards -- */
+
+/* The same 16:9 crop as the light skin; the pool is one shape in both modes.
+ * Keep this rule in step with `unity-light.css`. */
+.pgn__card-image-cap,
+.course-card .pgn__card-image-cap,
+.course-card img,
+.discovery-card img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: #221a40;
+}
+
+.course-card,
+.discovery-card {
+  border: 1px solid #332a55;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 35%), 0 10px 30px -14px rgb(0 0 0 / 55%);
+}
+
+/* -------------------------------------------------------------- LMS pages -- */
+
+.wrapper-footer { background: #221a40 !important; border-top: 1px solid #332a55; }
+.wrapper-footer a { color: #9b83ff; }
+.btn-primary, .btn-brand, button.btn-primary {
+  background-color: #9b83ff !important;
+  border-color: #9b83ff !important;
+  color: #14102a !important;
+}
+.btn-primary:hover, .btn-brand:hover, button.btn-primary:hover { filter: brightness(1.06); }
+a { color: #9b83ff; }

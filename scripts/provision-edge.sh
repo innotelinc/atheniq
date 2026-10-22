@@ -99,18 +99,31 @@ certs = req("GET", "/api/certificates") or []
 npm_hosts = req("GET", "/api/npm/hosts") or []
 
 for host in hosts:
-    label = host[: -len(zone) - 1] if host.endswith("." + zone) else host
+    apex = host == zone
+    label = "" if apex else (host[: -len(zone) - 1] if host.endswith("." + zone) else host)
 
-    # 1. DNS
-    cnames = [r for r in records if str(r.get("name")) in (label, host) and str(r.get("type")) == "CNAME"]
-    if cnames and any(str(r.get("value")).rstrip(".") == zone for r in cnames):
-        print(f"   dns   {host}: already CNAME {zone}")
-    elif dry:
-        print(f"   dns   {host}: would add CNAME {zone}")
+    # 1. DNS. A subdomain is a CNAME to the zone apex, which already carries the
+    # edge's address; the apex itself must be an A record and is managed with
+    # the zone, so it is checked rather than rewritten here.
+    if apex:
+        addresses = [r for r in records if str(r.get("name")) in ("", "@", zone)
+                     and str(r.get("type")) == "A"]
+        if addresses:
+            print(f"   dns   {host}: apex A already published ({addresses[0].get('value')})")
+        elif dry:
+            print(f"   dns   {host}: apex has no A record — publish it with the zone")
+        else:
+            raise SystemExit(f"dns   {host}: no apex A record; add one in Cerulean Domains first")
     else:
-        out = req("POST", f"/api/domains/{zone_id}/records",
-                  {"type": "CNAME", "name": label, "value": zone + ".", "ttl": 300})
-        print(f"   dns   {host}: CNAME {zone}" if out and not out.get("_error") else f"   dns   {host}: {out}")
+        cnames = [r for r in records if str(r.get("name")) in (label, host) and str(r.get("type")) == "CNAME"]
+        if cnames and any(str(r.get("value")).rstrip(".") == zone for r in cnames):
+            print(f"   dns   {host}: already CNAME {zone}")
+        elif dry:
+            print(f"   dns   {host}: would add CNAME {zone}")
+        else:
+            out = req("POST", f"/api/domains/{zone_id}/records",
+                      {"type": "CNAME", "name": label, "value": zone + ".", "ttl": 300})
+            print(f"   dns   {host}: CNAME {zone}" if out and not out.get("_error") else f"   dns   {host}: {out}")
 
     # 2. Certificate (ACME DNS-01 through the same zone)
     cert = next((c for c in certs if c.get("domain") == host and c.get("status") == "issued"), None)

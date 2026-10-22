@@ -161,6 +161,33 @@ services:
       retries: 3
 
   # ------------------------------------------------------------------
+  # Innotel Labs — `innotel.us`.
+  #
+  # `web/innotel/` is the company site: what the lab builds, the products it
+  # runs and how to reach it. Like the AthenIQ landing page it is static and
+  # served straight from the repository, on its own port so the two sites cannot
+  # shadow each other. The apex record already points at the edge; NPM publishes
+  # it with Cerulean's `innotel.us` certificate. See docs/Deployment.md §"Cerulean
+  # DNS and TLS".
+  # ------------------------------------------------------------------
+  innotel:
+    image: caddy:2.11.4
+    container_name: innotel-landing
+    restart: unless-stopped
+    mem_limit: 128m
+    memswap_limit: 128m
+    command: ["caddy", "file-server", "--root", "/srv", "--listen", ":80"]
+    ports:
+      - "${INNOTEL_BIND:-0.0.0.0}:${INNOTEL_PORT:-8086}:80"
+    volumes:
+      - ./web/innotel:/srv:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ------------------------------------------------------------------
   # Course-generation console — `ai.lms.<domain>`.
   #
   # The staff screen for generating the classrooms a course spec describes

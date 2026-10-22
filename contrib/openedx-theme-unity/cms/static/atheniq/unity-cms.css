@@ -1,0 +1,340 @@
+/* AthenIQ — Studio wears **Unity**, in the `operations` register.
+ *
+ * WHY A SKIN AND NOT A RESKIN. Studio is an authoring tool: the editing surface
+ * has to stay light, high-contrast and legible for hours, so this file styles
+ * the *chrome* — the header, the course navigation, buttons, tables, dialogs and
+ * status — and leaves the content editor to the platform. What it does not do
+ * is invent a palette: every value below is a Unity token, and `unity-theme.css`
+ * (the canonical copy, vendored beside this file) is the only place the colours
+ * are defined.
+ *
+ * THE SCHEME. Unity separates *register* from *brightness*. Authoring is an
+ * operations console, not the service desk, so `widgets/header.html` sets
+ * `data-scheme="operations"` before the first paint; the mode stays the
+ * person's, and follows the machine unless they choose otherwise.
+ *
+ * Loaded from `cms/templates/widgets/header.html` — the one template the Studio
+ * shell renders on every page — immediately after `unity-theme.css`, whose
+ * tokens every rule below names.
+ */
+
+/* -- the shell ------------------------------------------------------------ */
+
+body,
+.studio-view,
+.wrapper-view,
+.view-course {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+
+a {
+  color: var(--brand);
+}
+
+a:hover,
+a:focus {
+  color: var(--ink);
+}
+
+.wrapper-header,
+.wrapper-header header.primary {
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
+}
+
+.wrapper-header header.primary .wrapper-l {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  min-height: 64px;
+  max-width: 1440px;
+}
+
+.wrapper-header .branding {
+  margin: 0;
+  flex: 0 0 auto;
+}
+
+/* The Studio mark is a dark raster: lift it on a dark header, leave it alone on
+ * a light one. Unity's mode decides, so the same file works either way. */
+.wrapper-header .brand-image {
+  height: 34px;
+  width: auto;
+}
+
+html[data-mode="dark"] .wrapper-header .brand-image {
+  filter: brightness(0) invert(1);
+  opacity: 0.94;
+}
+
+/* -- the Platform Services entry ----------------------------------------- */
+
+.atheniq-platform {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-left: auto;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-muted);
+}
+
+.atheniq-platform-link {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.atheniq-platform-link:hover,
+.atheniq-platform-link:focus-visible {
+  background: var(--brand-soft);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.atheniq-platform-name {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.atheniq-platform-sub {
+  color: var(--ink-faint);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.atheniq-platform-learner {
+  border-left: 1px solid var(--line);
+  padding-left: var(--space-3);
+  color: var(--brand);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+/* -- course navigation --------------------------------------------------- */
+
+.nav-course .nav-item > .title,
+.nav-account .nav-item > .title {
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+.nav-course .nav-item > .title:hover,
+.nav-course .nav-item.open > .title {
+  color: var(--brand);
+}
+
+.nav-course .wrapper-nav-sub,
+.nav-account .wrapper-nav-sub,
+.dropdown-menu {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-pop);
+}
+
+.nav-course .nav-sub a,
+.nav-account .nav-sub a {
+  color: var(--ink-soft);
+}
+
+.nav-course .nav-sub a:hover,
+.nav-account .nav-sub a:hover {
+  background: var(--brand-soft);
+  color: var(--ink);
+}
+
+.info-course .course-link,
+.info-course .course-org,
+.info-course .course-number {
+  color: var(--ink);
+}
+
+.info-course .course-title {
+  color: var(--ink-faint);
+}
+
+/* -- buttons, forms, tables ---------------------------------------------- */
+
+.btn,
+.btn-primary,
+button,
+input[type="submit"] {
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+}
+
+.btn-primary,
+.btn-brand,
+input[type="submit"].btn-primary {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: var(--brand-ink);
+}
+
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-brand:hover,
+.btn-brand:focus {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+.btn-secondary,
+.btn-outline-primary {
+  background: transparent;
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+
+.btn-secondary:hover,
+.btn-outline-primary:hover {
+  background: var(--surface-muted);
+  border-color: var(--brand);
+}
+
+a:focus-visible,
+button:focus-visible,
+.btn:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--brand-ring);
+  outline-offset: 2px;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="number"],
+input[type="search"],
+input[type="url"],
+select,
+textarea,
+.form-control {
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+}
+
+.input:focus,
+.form-control:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-soft);
+}
+
+table,
+.table {
+  color: var(--ink);
+}
+
+table thead th {
+  background: var(--surface-muted);
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-soft);
+}
+
+table tbody tr {
+  border-bottom: 1px solid var(--line);
+}
+
+table tbody tr:hover {
+  background: var(--surface-muted);
+}
+
+/* -- the outline tree ---------------------------------------------------- */
+
+.course-outline .outline-section,
+.course-outline .outline-subsection,
+.outline-unit {
+  border-color: var(--line);
+}
+
+.course-outline .outline-section > .section-header,
+.course-outline .outline-subsection > .subsection-header {
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.course-outline .outline-section.is-collapsed > .section-header,
+.course-outline .outline-subsection.is-collapsed > .subsection-header {
+  background: var(--surface-muted);
+}
+
+.course-outline .outline-item:hover,
+.course-outline .outline-unit:hover {
+  background: var(--brand-soft);
+}
+
+/* -- status -------------------------------------------------------------- */
+
+.alert,
+.wrapper-msg,
+.status-bar {
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--info);
+  border-radius: var(--radius-sm);
+  background: var(--info-soft);
+  color: var(--ink);
+}
+
+.alert-success {
+  border-left-color: var(--ok);
+  background: var(--ok-soft);
+}
+
+.alert-warning {
+  border-left-color: var(--attention);
+  background: var(--attention-soft);
+}
+
+.alert-danger,
+.alert-error {
+  border-left-color: var(--bad);
+  background: var(--bad-soft);
+}
+
+/* -- dialogs ------------------------------------------------------------- */
+
+.modal-content,
+.modal .modal-content {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-pop);
+  color: var(--ink);
+}
+
+.modal-header,
+.modal-footer {
+  border-color: var(--line);
+}
+
+/* -- dark ---------------------------------------------------------------- */
+
+html[data-mode="dark"] body,
+html[data-mode="dark"] .wrapper-view,
+html[data-mode="dark"] .view-course {
+  background: var(--canvas);
+  color: var(--ink);
+}
+
+html[data-mode="dark"] .wrapper-header,
+html[data-mode="dark"] .wrapper-header header.primary {
+  background: var(--surface);
+}
+
+html[data-mode="dark"] .course-outline .outline-section > .section-header,
+html[data-mode="dark"] .course-outline .outline-subsection > .subsection-header {
+  background: var(--surface);
+  color: var(--ink);
+}

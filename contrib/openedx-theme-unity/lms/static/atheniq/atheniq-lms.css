@@ -1,0 +1,499 @@
+/* AthenIQ — the LMS wears **Unity**.
+ *
+ * WHY THIS FILE EXISTS. The platform stack has one theme (`unity-theme.css`,
+ * vendored beside this file byte-for-byte), and AthenIQ is the LearningOps
+ * platform of that stack. Indigo is a Tutor theme, not a stack one, so the
+ * palette is layered on top of it here rather than forked: every rule below
+ * names a Unity token (`--surface`, `--brand`, `--ink-faint`) and never a raw
+ * colour. Change the palette in `unity-theme.css` and this skin follows; that
+ * is the difference between adoption and a second palette that happens to
+ * match today.
+ *
+ * TWO AXES, AS UNITY DEFINES THEM. `data-scheme` is fixed at `desk` — the
+ * training range's register, the one the learning platform belongs in — and is
+ * set in `head-extra.html` before the first paint. `data-mode` is the
+ * person's: light, dark, or absent (follow the machine). Indigo's own dark
+ * toggle owns the cookie; `head-extra.html` mirrors it onto `data-mode` so the
+ * two systems never disagree, and Unity's dark tokens do the rest.
+ *
+ * WHAT IT COVERS. The chrome Indigo compiles into SCSS and cannot be reached
+ * from a template: the header, the footer, buttons, forms, tables, cards and
+ * the course page. It is deliberately not a repaint of the courseware player —
+ * the player is an MFE and takes its palette from `unity-light.css` /
+ * `unity-dark.css` through Indigo's Paragon `brandOverride`.
+ *
+ * Loaded from `head-extra.html`, which is the one template every server-rendered
+ * LMS page includes in its `<head>`. `head-extra.html` links `unity-theme.css`
+ * first; the two files are a pair, and the theme must arrive first because
+ * every token this file names is defined there.
+ */
+
+/* -- the page ------------------------------------------------------------- */
+
+html {
+  background: var(--canvas);
+}
+
+body,
+body.view-in-course,
+body.dashboard {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+
+a {
+  color: var(--brand);
+}
+
+a:hover,
+a:focus {
+  color: var(--ink);
+}
+
+::selection {
+  background: var(--brand-soft);
+  color: var(--ink);
+}
+
+/* -- the header ----------------------------------------------------------- */
+
+header.global-header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  box-shadow: var(--shadow-card);
+}
+
+header.global-header .main-header {
+  min-height: 64px;
+}
+
+header.global-header .header-logo a {
+  display: inline-flex;
+  align-items: center;
+}
+
+header.global-header .header-logo .logo,
+header.global-header .header-logo .logo-white {
+  height: 44px;
+  width: auto;
+}
+
+header.global-header .nav-links .main a,
+header.global-header .nav-links a {
+  color: var(--ink-soft);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+header.global-header .nav-links .main a:hover,
+header.global-header .nav-links a:hover,
+header.global-header .nav-links .main a:focus,
+header.global-header .nav-links a:focus {
+  color: var(--brand);
+  text-decoration: none;
+}
+
+header.global-header .nav-links .main .active a,
+header.global-header .nav-links .main a[aria-current="page"] {
+  color: var(--brand);
+  box-shadow: inset 0 -2px 0 var(--brand);
+}
+
+header.global-header .user-menu,
+header.global-header .dropdown-menu {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-pop);
+}
+
+header.global-header .dropdown-menu a {
+  color: var(--ink-soft);
+}
+
+header.global-header .dropdown-menu a:hover {
+  background: var(--brand-soft);
+  color: var(--ink);
+}
+
+/* Indigo's appearance switch: Unity's mode, not a second dark mode. */
+.theme-toggle-button .slider {
+  background: var(--line-strong);
+}
+
+.theme-toggle-button input:checked + .slider {
+  background: var(--brand);
+}
+
+.theme-toggle-button .light-theme-icon,
+.theme-toggle-button .dark-theme-icon {
+  color: var(--ink-faint);
+}
+
+/* -- buttons -------------------------------------------------------------- */
+
+.btn,
+.btn-primary,
+.btn-secondary,
+.btn-brand,
+button,
+input[type="submit"],
+input[type="button"] {
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.btn-primary,
+.btn-brand,
+input[type="submit"].btn-primary {
+  background: var(--brand);
+  border: 1px solid var(--brand);
+  color: var(--brand-ink);
+}
+
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-brand:hover,
+.btn-brand:focus {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--surface);
+}
+
+.btn-secondary,
+.btn-outline-primary {
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  color: var(--ink);
+}
+
+.btn-secondary:hover,
+.btn-outline-primary:hover {
+  background: var(--surface-muted);
+  border-color: var(--brand);
+  color: var(--ink);
+}
+
+.btn-link {
+  color: var(--brand);
+  text-decoration: none;
+}
+
+a:focus-visible,
+button:focus-visible,
+.btn:focus-visible {
+  outline: 2px solid var(--brand-ring);
+  outline-offset: 2px;
+}
+
+/* -- forms ---------------------------------------------------------------- */
+
+label,
+.form-label {
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="search"],
+input[type="tel"],
+input[type="url"],
+select,
+textarea,
+.form-control {
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+}
+
+input:focus,
+select:focus,
+textarea:focus,
+.form-control:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-soft);
+  outline: none;
+}
+
+/* -- tables (the instructor dashboard) ------------------------------------ */
+
+table,
+.table {
+  color: var(--ink);
+}
+
+table thead th,
+.table thead th {
+  background: var(--surface-muted);
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-soft);
+  font-weight: 700;
+  text-transform: none;
+}
+
+table tbody tr,
+.table tbody tr {
+  border-bottom: 1px solid var(--line);
+}
+
+table tbody tr:hover,
+.table tbody tr:hover {
+  background: var(--surface-muted);
+}
+
+/* -- cards, including the course card photo ------------------------------- */
+
+.card,
+.course-card,
+.program-card,
+.discovery-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+.card:hover,
+.course-card:hover,
+.program-card:hover {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-pop);
+}
+
+/* The photograph is the card's top half: 16:9, cropped, never stretched. The
+ * images are rendered by `scripts/build-course-images.py` at 1200×675 and
+ * served from the platform's own static files, so every card — hand-authored or
+ * published by the console — has the same shape. */
+.course-card .cover-image,
+.course-card img.course-image,
+.discovery-card .card-image,
+.atheniq-card-photo {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: var(--surface-sunken);
+}
+
+.course-card .course-image,
+.course-card .cover-image {
+  border-bottom: 1px solid var(--line);
+}
+
+.course-card .card-title,
+.course-card h3,
+.course-card .course-title {
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+.course-card .card-subtitle,
+.course-card .course-org,
+.course-card .course-code {
+  color: var(--ink-faint);
+}
+
+/* -- the course page ------------------------------------------------------ */
+
+.course-info,
+.course-summary,
+.intro-inner,
+.hero,
+.course-sidebar {
+  background: var(--surface);
+  border-color: var(--line);
+}
+
+.course-info header,
+.course-summary header {
+  border-bottom: 1px solid var(--line);
+}
+
+.course-info .course-title,
+.course-summary .course-title,
+.hero h1 {
+  color: var(--ink);
+  font-family: var(--font-display);
+}
+
+.course-info .course-description,
+.course-summary .course-description,
+.lede {
+  color: var(--ink-soft);
+}
+
+.course-sidebar .register,
+.course-sidebar .enroll-btn {
+  border-radius: var(--radius-sm);
+}
+
+/* -- notices -------------------------------------------------------------- */
+
+.alert,
+.wrapper-msg,
+.status-bar {
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--info);
+  border-radius: var(--radius-sm);
+  background: var(--info-soft);
+  color: var(--ink);
+}
+
+.alert-success,
+.wrapper-msg.wrapper-msg-success {
+  border-left-color: var(--ok);
+  background: var(--ok-soft);
+}
+
+.alert-warning,
+.wrapper-msg.wrapper-msg-warning {
+  border-left-color: var(--attention);
+  background: var(--attention-soft);
+}
+
+.alert-danger,
+.alert-error,
+.wrapper-msg.wrapper-msg-error {
+  border-left-color: var(--bad);
+  background: var(--bad-soft);
+}
+
+/* -- the footer ----------------------------------------------------------- */
+
+.wrapper-footer {
+  background: var(--surface-muted);
+  border-top: 1px solid var(--line);
+  color: var(--ink-soft);
+}
+
+footer.tutor-container .nav-colophon a,
+.atheniq-footer a {
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+footer.tutor-container .nav-colophon a:hover,
+.atheniq-footer a:hover {
+  color: var(--brand);
+  text-decoration: none;
+}
+
+.atheniq-footer-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.4fr) repeat(3, minmax(140px, 1fr));
+  gap: var(--space-6);
+  align-items: start;
+  text-align: left;
+}
+
+.atheniq-footer-brand .atheniq-footer-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.atheniq-footer-brand svg {
+  width: 30px;
+  height: 30px;
+  color: var(--brand);
+}
+
+.atheniq-footer-tagline {
+  margin: var(--space-3) 0 0;
+  max-width: 30ch;
+  color: var(--ink-faint);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.atheniq-footer-col h2 {
+  margin: 0 0 var(--space-3);
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.atheniq-footer-col ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.atheniq-footer-col li + li {
+  margin-top: var(--space-2);
+}
+
+.atheniq-footer-base {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  justify-content: space-between;
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--line);
+  color: var(--ink-faint);
+  font-size: 0.82rem;
+  text-align: left;
+}
+
+.atheniq-footer-base .copyright-site {
+  color: var(--ink-soft);
+}
+
+@media (max-width: 900px) {
+  .atheniq-footer-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .atheniq-footer-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* -- Unity's dark register -------------------------------------------------
+ * Unity switches its tokens on `data-mode="dark"`; Indigo's compiled SCSS only
+ * knows `body.unity-dark-theme`. The rules here are the ones Indigo paints
+ * with a literal white or near-black that a token swap cannot reach.
+ */
+
+html[data-mode="dark"] body.unity-dark-theme,
+html[data-mode="dark"] body {
+  background: var(--canvas);
+}
+
+html[data-mode="dark"] header.global-header {
+  background: var(--surface);
+  border-bottom-color: var(--line);
+}
+
+html[data-mode="dark"] .wrapper-footer {
+  background: var(--surface-muted);
+}
+
+html[data-mode="dark"] .course-info,
+html[data-mode="dark"] .course-summary,
+html[data-mode="dark"] .card,
+html[data-mode="dark"] .course-card {
+  background: var(--surface);
+}
+
+html[data-mode="dark"] .atheniq-footer-base {
+  border-top-color: var(--line);
+}
