@@ -31,6 +31,13 @@ container, so the LMS only has to trust their origin — the bundle itself is
 host-agnostic and reads its configuration from the LMS, so it follows a rename
 without being rebuilt.
 
+It also moves the learner apps onto the LMS host under their own paths
+(`/dashboard`, `/catalog`, `/authn`, …) and proxies the bundles those pages ask
+for. Both halves are needed: the path returns the app's HTML, and the bundles at
+the app's origin root are what make it render. Pointing only the paths at the
+MFE serves an empty `<div id="root">` — the page loads and stays blank, because
+the LMS answers 404 to `/app.<hash>.js`.
+
 It also carries `ATHENIQ_SESSION_COOKIE_DOMAIN`, which is session unification
 rather than host naming: set to `.innotel.us`, the LMS and the CMS both write
 `sessionid`/`csrftoken` for the whole domain, so Studio and the MFEs open on the
@@ -163,6 +170,34 @@ hooks.Filters.ENV_PATCHES.add_item(
             f'handle /{path}* {{\n    reverse_proxy mfe:8002\n}}'
             for path in MFE_PATHS
         ),
+    )
+)
+
+#: The app paths above return the MFE's `index.html`; they do not return the
+#: files that page is made of. An MFE is a single-page app built to sit at the
+#: *root* of its own origin: its shell asks for `/runtime.<hash>.js`,
+#: `/app.<hash>.js`, `/cssLayerOrder.<hash>.css`, one chunk per route and the
+#: Unity skin at `/site/atheniq-unity.css` — all absolute, none of them under
+#: `/dashboard`. On `apps.<LMS_HOST>` that is invisible, because the whole site
+#: block proxies to `mfe:8002`. Here they match no `handle`, so they fall through
+#: to the LMS's catch-all and Django answers 404: the HTML arrives, every script
+#: it names does not, and the page renders as an empty `<div id="root">`.
+#:
+#: So the MFE's own files are proxied too. The matcher is deliberately narrow —
+#: a root-level `.js`/`.css`, the `/site/` prefix, `asset-manifest.json` and
+#: `/static/mfe/` — because everything else on this host (`/static/atheniq/…`
+#: course photographs, `/theming/`, `/api`, `/login`, `/courses`) belongs to the
+#: LMS and must keep going there.
+MFE_ASSET_PATTERN = r"^/(?:[^/]+\.(?:js|css)|site/.*|asset-manifest\.json|static/mfe/.*)$"
+
+hooks.Filters.ENV_PATCHES.add_item(
+    (
+        "caddyfile-lms",
+        "# AthenIQ: the bundles the MFE's own shell asks for, from the MFE's dist\n"
+        "# root rather than an app path. Without these the app paths above return a\n"
+        "# page whose scripts 404 and render nothing.\n"
+        f"@atheniq_mfe_assets path_regexp {MFE_ASSET_PATTERN}\n"
+        "handle @atheniq_mfe_assets {\n    reverse_proxy mfe:8002\n}",
     )
 )
 

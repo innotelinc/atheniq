@@ -754,6 +754,39 @@ https://learn.innotel.us/authn/login         sign-in (MFE)
 https://learn.innotel.us/login               LMS redirect into /authn/login
 ```
 
+An app path returns the MFE's `index.html`; it does not return the files that
+page is made of. An MFE is a single-page app built to sit at the *root* of its
+own origin, so its shell asks for `/runtime.<hash>.js`, `/app.<hash>.js`,
+`/cssLayerOrder.<hash>.css`, one chunk per route, the Unity skin at
+`/site/atheniq-unity.css` and `asset-manifest.json` — all absolute, none of them
+under `/dashboard`. On `apps.learn.innotel.us` that is invisible, because the
+whole site block proxies to `mfe:8002`. On the university host they match no
+`handle`, fall through to the LMS's catch-all and Django answers **404**: the
+HTML arrives, every script it names does not, and the page is an empty
+`<div id="root">` that never renders.
+
+The plugin therefore emits a second matcher beside the app handles:
+`@atheniq_mfe_assets path_regexp '^/(?:[^/]+\.(?:js|css)|site/.*|asset-manifest\.json|static/mfe/.*)$'`,
+proxied to the same container. It is deliberately narrow: `/static/atheniq/…`
+(course photographs), `/theming/`, `/api`, `/login` and `/courses` still go to
+the LMS.
+
+```bash
+# after `tutor config save` on the LMS host:
+tutor local restart caddy lms
+docker exec tutor_local-caddy-1 grep -A2 atheniq_mfe_assets /etc/caddy/Caddyfile
+
+# Every script the shell names has to come back 200, not 404.
+curl -s https://learn.innotel.us/dashboard | grep -o '/[^" ]*\.\(js\|css\)' | while read -r p; do
+  printf '%-46s ' "$p"
+  curl -s -o /dev/null -w '%{http_code}\n' "https://learn.innotel.us$p"
+done
+```
+
+A `/dashboard` that answers 200 while `/app.<hash>.js` answers 404 is this
+missing matcher, not a broken MFE: the shell is right there in the response, and
+it names scripts the host does not serve.
+
 ### University site — `atheniq.innotel.us`
 
 `web/landing/` is the university's public site: programs and outlines, tuition
