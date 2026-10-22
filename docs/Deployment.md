@@ -969,6 +969,8 @@ Canonical hosts for a reference deployment:
 
 | Host | Backend |
 | --- | --- |
+| `innotel.us` | Innotel Labs company site — the `innotel` compose service serving `web/innotel/` |
+| `www.<zone>` | Same site on the same NPM host (certificate SAN covers both names) |
 | `atheniq.<domain>` | Product landing page — the `landing` compose service serving `web/landing/` |
 | `learn.<domain>` | Tutor LMS — `LMS_HOST`, the canonical name |
 | `apps.learn.<domain>` | Learner MFEs (`apps.<LMS_HOST>`) |
@@ -984,6 +986,27 @@ Set the `CERULEAN_*` variables in `.env` (`CERULEAN_BASE_DOMAIN`,
 Cerulean provisioning. Docker/LAN addresses are never published to DNS; only
 the public WAN address is used for records and the LAN address for NPM
 upstreams.
+
+The apex of the registered zone is the lab's own site, not a product page:
+`web/innotel/` describes what Innotel Labs builds and runs, and the `innotel`
+service serves it with Caddy's file server on `INNOTEL_BIND:INNOTEL_PORT`
+(`192.168.1.59:8086` here). The zone's apex A record (`73.68.203.71`) and the
+`www` CNAME already point at the edge, and one NPM proxy host (id 88) carries
+both names, forwarding to `http://192.168.1.59:8086` and terminating TLS with
+Cerulean's `innotel.us` certificate (`CN=innotel.us`, `*.innotel.us`). Before
+2026-10 that host forwarded to the retired BIND/nginx box at `192.168.1.80` and
+answered 502; it is now the company site. Re-apply with:
+
+```bash
+FORWARD_HOST=192.168.1.59 FORWARD_PORT=8086 \
+  ./scripts/provision-edge.sh innotel.us www.innotel.us
+```
+
+Cerulean's password sign-in is off once Authentik SSO is on, so pass a portal
+session token (`CERULEAN_TOKEN=…`) or start the container with
+`BREAKGLASS_LOGIN=1` for the run; a bare password attempt now returns 403. The
+certificate and the NPM host already exist, so a re-apply reuses both rather
+than issuing or creating anything new.
 
 `atheniq.<domain>` is the product's own name and it has to answer with the
 product: `web/landing/` is the site (index, `/catalog/`, `/courses/*`), and the

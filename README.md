@@ -143,7 +143,8 @@ self-hosted backend are in [docs/Deployment.md](docs/Deployment.md) and
 ```
 atheniq/
 ├── docs/                      # Architecture, Integrations, Deployment, stack role
-├── web/landing/               # Static GitHub Pages landing page
+├── web/landing/               # Static GitHub Pages landing page (AthenIQ)
+├── web/innotel/               # Innotel Labs company site — served at innotel.us
 ├── .github/workflows/         # CI, attribution guard, Pages publish
 ├── .githooks/                 # Local attribution guard (shared with CI)
 ├── docker-compose.yml         # AI + realtime services: OpenMAIC Postgres, Convex
