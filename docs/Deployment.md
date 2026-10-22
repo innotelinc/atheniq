@@ -749,7 +749,8 @@ root to the university host.
 
 ```text
 https://learn.innotel.us/catalog/courses     catalog (MFE)
-https://learn.innotel.us/dashboard           learner dashboard (MFE)
+https://learn.innotel.us/dashboard           302 -> /learner-dashboard
+https://learn.innotel.us/learner-dashboard    learner dashboard (MFE)
 https://learn.innotel.us/authn/login         sign-in (MFE)
 https://learn.innotel.us/login               LMS redirect into /authn/login
 ```
@@ -764,6 +765,14 @@ whole site block proxies to `mfe:8002`. On the university host they match no
 `handle`, fall through to the LMS's catch-all and Django answers **404**: the
 HTML arrives, every script it names does not, and the page is an empty
 `<div id="root">` that never renders.
+
+`/dashboard` is the exception on both counts. The platform links there, but the
+`mfe` container serves the app at `/learner-dashboard` — the base path its chunks
+and router are built against — and `/dashboard` matches no app route, so the
+container answers with its root site shell: 200, `<div id="root">`, nothing
+inside. The plugin redirects `/dashboard` (and `/dashboard/<rest>`) to
+`/learner-dashboard`, so the address bar ends on the path the app believes it is
+on, and proxies `/learner-dashboard*` like any other app.
 
 The plugin therefore emits a second matcher beside the app handles:
 `@atheniq_mfe_assets path_regexp '^/(?:[^/]+\.(?:js|css)|site/.*|asset-manifest\.json|static/mfe/.*)$'`,

@@ -19,11 +19,27 @@ class LearnerApps(unittest.TestCase):
         self.text = PLUGIN.read_text(encoding="utf-8")
 
     def test_every_learner_app_has_its_own_handle(self):
+        """The paths the `mfe` container actually serves the apps on.
+
+        `learner-dashboard`, not `dashboard`: the container routes by the app's
+        own base path, and `/dashboard` is the platform's name for it (handled
+        by the redirect below).
+        """
         paths = re.search(r"MFE_PATHS = \((.*?)\)", self.text, re.S).group(1)
-        for app in ("catalog", "learning", "dashboard", "profile", "account",
-                    "discussions", "authoring", "communications", "gradebook",
-                    "ora-grading", "admin-console", "authn"):
+        for app in ("catalog", "learning", "learner-dashboard", "profile",
+                    "account", "discussions", "authoring", "communications",
+                    "gradebook", "ora-grading", "admin-console", "authn"):
             self.assertIn(f'"{app}"', paths)
+        self.assertNotIn('"dashboard"', paths)
+
+    def test_dashboard_redirects_to_the_app_the_container_serves(self):
+        """`/dashboard` is a 200 with an empty root div unless it redirects."""
+        self.assertIn('DASHBOARD_FROM = "dashboard"', self.text)
+        self.assertIn('DASHBOARD_TO = "learner-dashboard"', self.text)
+        # The suffix is carried over, so a deep link keeps its route. The
+        # doubled braces are the f-string's escape for Caddy's `{uri}`.
+        self.assertIn("uri strip_prefix /{DASHBOARD_FROM}", self.text)
+        self.assertIn("redir * /{DASHBOARD_TO}{{uri}} 302", self.text)
 
     def test_the_handles_proxy_to_the_mfe_container(self):
         self.assertIn("reverse_proxy mfe:8002", self.text)
@@ -57,12 +73,12 @@ class LearnerApps(unittest.TestCase):
         for path in ("/login", "/api/courses/v1/courses/", "/courses",
                      "/static/atheniq/images/courses/ACCT201.jpg",
                      "/static/atheniq/unity-theme.css", "/theming/asset/logo.png",
-                     "/dashboard"):
+                     "/dashboard", "/learner-dashboard/"):
             self.assertNotRegex(path, compiled)
 
     def test_the_bundle_handle_is_in_the_same_site_block(self):
-        """Both patches target `caddyfile-lms`, so neither can land elsewhere."""
-        self.assertEqual(self.text.count('"caddyfile-lms"'), 2)
+        """Every patch targets `caddyfile-lms`, so none can land elsewhere."""
+        self.assertEqual(self.text.count('"caddyfile-lms"'), 3)
         # The asset handle comes after the app handles: order is precedence.
         self.assertLess(self.text.index("MFE_PATHS = ("),
                         self.text.index("MFE_ASSET_PATTERN ="))

@@ -32,11 +32,15 @@ host-agnostic and reads its configuration from the LMS, so it follows a rename
 without being rebuilt.
 
 It also moves the learner apps onto the LMS host under their own paths
-(`/dashboard`, `/catalog`, `/authn`, …) and proxies the bundles those pages ask
-for. Both halves are needed: the path returns the app's HTML, and the bundles at
-the app's origin root are what make it render. Pointing only the paths at the
-MFE serves an empty `<div id="root">` — the page loads and stays blank, because
-the LMS answers 404 to `/app.<hash>.js`.
+(`/catalog`, `/learning`, `/learner-dashboard`, `/authn`, …) and proxies the
+bundles those pages ask for. Both halves are needed: the path returns the app's
+HTML, and the bundles at the app's origin root are what make it render. Pointing
+only the paths at the MFE serves an empty `<div id="root">` — the page loads and
+stays blank, because the LMS answers 404 to `/app.<hash>.js`.
+
+`/dashboard` is the exception: the platform links to that path, the `mfe`
+container serves the app at `/learner-dashboard`, and anything else lands on the
+container's root shell, which renders nothing. It redirects instead.
 
 It also carries `ATHENIQ_SESSION_COOKIE_DOMAIN`, which is session unification
 rather than host naming: set to `.innotel.us`, the LMS and the CMS both write
@@ -156,8 +160,9 @@ SESSION_COOKIE_SAMESITE = "Lax"
 #: `/catalog/courses` reaches the MFE while everything else — `/login`, `/api`,
 #: `/static`, `/courses` — still goes to the LMS.
 MFE_PATHS = (
-    "catalog", "learning", "dashboard", "profile", "account", "discussions",
-    "authoring", "communications", "gradebook", "ora-grading", "admin-console",
+    "catalog", "learning", "learner-dashboard", "profile", "account",
+    "discussions", "authoring", "communications", "gradebook", "ora-grading",
+    "admin-console",
     # The LMS redirects /login and /register here; without the proxy the
     # redirect lands on the LMS's 404.
     "authn",
@@ -170,6 +175,29 @@ hooks.Filters.ENV_PATCHES.add_item(
             f'handle /{path}* {{\n    reverse_proxy mfe:8002\n}}'
             for path in MFE_PATHS
         ),
+    )
+)
+
+#: The learner dashboard is the one app whose name in the platform and whose path
+#: in the `mfe` container disagree. Everything links to `/dashboard`
+#: (`student_dashboard`, the account page, every emailed course link), while the
+#: container serves the app at `/learner-dashboard` — its own base path, which is
+#: what its chunks and its router are built against. `/dashboard` matches no app
+#: path there, so the container falls back to its root site shell, whose only
+#: route is `/`: a 200 response, `<div id="root">`, and nothing inside it. A
+#: redirect rather than a rewrite, so the address bar ends up on the path the app
+#: believes it is on and its own links keep working.
+DASHBOARD_FROM = "dashboard"
+DASHBOARD_TO = "learner-dashboard"
+hooks.Filters.ENV_PATCHES.add_item(
+    (
+        "caddyfile-lms",
+        "# AthenIQ: /dashboard is the URL the platform links to; the app is served\n"
+        f"# at /{DASHBOARD_TO} in the mfe container.\n"
+        f"handle /{DASHBOARD_FROM} /{DASHBOARD_FROM}/* {{\n"
+        f"    uri strip_prefix /{DASHBOARD_FROM}\n"
+        f"    redir * /{DASHBOARD_TO}{{uri}} 302\n"
+        "}",
     )
 )
 
