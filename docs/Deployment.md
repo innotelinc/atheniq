@@ -132,6 +132,16 @@ photographs (`make course-photos`) and the per-course catalog cards (`make
 course-cards`), all painted from **Unity**, the Innotel Platform Stack's one
 theme.
 
+**Indigo is the base, Unity is the theme.** Open edX needs a theme package to
+supply the compiled LMS/CMS templates and the Paragon structure the MFEs build
+on, and Tutor's `indigo` plugin is that package; it is not what a visitor sees.
+Every Indigo surface is replaced: the LMS header logo, footer, favicon and
+`<head>`, Studio's chrome, the MFE brand override, and the landing page. The
+MFE HTML loads only the bundle's own CSS and `atheniq-unity.css`; the Indigo
+Paragon URL remains in `PARAGON_THEME_URLS` as the structural default. Removing
+the plugin itself would require shipping a full Open edX theme to replace it,
+which is a separate project.
+
 Unity is vendored byte-for-byte as `unity-theme.css` + `unity-theme.js` in both
 `lms/static/atheniq/` and `cms/static/atheniq/`. The LMS runs in the `desk`
 register (the training range's), Studio in `operations` (an authoring console),
@@ -719,9 +729,35 @@ STUDENT_BIND=192.168.1.59   STUDENT_PORT=8092   STUDENT_ROOT=/home/tutor/atheniq
 It runs as `atheniq-student.service`. The page is `web/student/` and wears the
 same Unity palette as the console and the Studio chrome. **Live:** the edge
 proxy host for `lms.innotel.us` now forwards to `192.168.1.59:8092` instead of
-the LMS root (which only ever answered with a redirect to
-`apps.learn.innotel.us/catalog/`), and `https://lms.innotel.us/` serves the
-portal with `/api/public/programs` answering 200.
+the LMS root, and `https://lms.innotel.us/` serves the portal with
+`/api/public/programs` answering 200.
+
+### One domain — `learn.innotel.us`
+
+The learner MFEs are no longer a second origin. `contrib/tutor-atheniq-hosts`
+patches the LMS site block in Caddy with a `handle` per app (`/catalog`,
+`/learning`, `/dashboard`, `/profile`, `/account`, `/discussions`, `/authoring`,
+`/communications`, `/gradebook`, `/ora-grading`, `/admin-console`, `/authn`) and
+re-points every absolute MFE URL from `apps.<LMS_HOST>` to `<LMS_HOST>`. The
+bundles are host-agnostic and read their configuration at runtime, so no MFE is
+rebuilt; `apps.learn.innotel.us` keeps answering as an alias that redirects its
+root to the university host.
+
+```text
+https://learn.innotel.us/catalog/courses     catalog (MFE)
+https://learn.innotel.us/dashboard           learner dashboard (MFE)
+https://learn.innotel.us/authn/login         sign-in (MFE)
+https://learn.innotel.us/login               LMS redirect into /authn/login
+```
+
+### University site — `atheniq.innotel.us`
+
+`web/landing/` is the university's public site: programs and outlines, tuition
+and aid, admissions, what to expect, FAQ, and every call to action into the
+catalog. It is served by the `landing` service (`caddy file-server` on the
+container host's `web/landing`) and wears **Unity** — `assets/unity-theme.css`
+and `assets/unity-theme.js` are byte-identical copies of the canonical theme in
+the Innotel platform, not a local palette.
 
 ### Library — shared media shelves
 

@@ -900,6 +900,42 @@ print("ATHENIQ_CARDS " + json.dumps({"uploaded": uploaded, "failed": failed}))
             raise LmsError("the CMS did not report which course cards were uploaded")
         return report
 
+    def check_course_cards(self, keys) -> dict:
+        """Ask the LMS to serve each course's card asset and report the misses.
+
+        A card that 404s is the failure this whole path exists to prevent, and it
+        is invisible from the database: the overview and the asset name can both
+        be right while the stored file is gone. So the check is an HTTP request
+        against the URL the catalog itself loads.
+        """
+        script = f"""
+import json
+import requests
+from django.conf import settings
+
+keys = json.loads({json.dumps([str(key) for key in keys])!r})
+bad, checked = [], 0
+for key in keys:
+    path = f"/asset-{{key.replace('course-v1:', 'v1:', 1)}}+type@asset+block@images_course_image.jpg"
+    url = settings.LMS_ROOT_URL.rstrip("/") + path
+    checked += 1
+    try:
+        response = requests.get(url, timeout=30)
+        size = len(response.content)
+        if response.status_code != 200 or size < 20000:
+            bad.append({{"key": key, "status": response.status_code, "bytes": size}})
+    except Exception as err:  # noqa: BLE001 - report, do not abort the sweep
+        bad.append({{"key": key, "error": str(err)[:200]}})
+print("ATHENIQ_CARDS_CHECK " + json.dumps({{"checked": checked, "bad": bad}}))
+"""
+        result = self._exec(self.cms, ["sh", "-c",
+                                       f"cd {self.platform} && {self.python} ./manage.py cms shell"],
+                            stdin_text=script)
+        for line in (result.stdout or "").splitlines():
+            if line.startswith("ATHENIQ_CARDS_CHECK "):
+                return json.loads(line[len("ATHENIQ_CARDS_CHECK "):])
+        raise LmsError("the card check returned no report")
+
     def reindex(self) -> str:
         """Rebuild the catalog search index the MFE catalog reads.
 
@@ -1412,6 +1448,16 @@ class Publisher:
                 answer["images"] = self.set_images(entries)
             except LmsError as err:
                 answer["images"] = {"available": False, "error": str(err)}
+            # A newly imported course has no card yet: render one per course
+            # (Pillow, best effort) and upload it as the course's card asset, so
+            # the catalog never shows the placeholder for a course the publisher
+            # just created. No second reindex: the asset path is unchanged.
+            if hasattr(self.lms, "apply_course_cards"):
+                answer["render"] = self.render_cards(entries)
+                try:
+                    answer["cards"] = self.apply_cards(entries, reindex=False)
+                except LmsError as err:
+                    answer["cards"] = {"available": False, "error": str(err)}
         return answer
 
     # -- photographs ------------------------------------------------------
@@ -1436,7 +1482,40 @@ class Publisher:
             return {"available": False, "error": str(err), "planned": len(mapping)}
         return {"available": True, **report, "planned": len(mapping)}
 
-    def apply_cards(self, entries=None) -> dict:
+    def render_cards(self, entries=None) -> dict:
+        """Render one catalog card per course, from the program plans.
+
+        Runs `scripts/course-cards.py` with the interpreter running this script,
+        because Pillow is a dependency of the renderer, not of publishing: a host
+        without it still publishes and keeps the cards it already has. The
+        renderer is idempotent — the same plans produce the same 100 JPEGs.
+        """
+        renderer = os.path.join(REPO, "scripts", "course-cards.py")
+        out = photos_module().PHOTO_DIR
+        command = [sys.executable, renderer, "--programs", self._programs_dir(),
+                   "--out", out]
+        try:
+            result = subprocess.run(command, capture_output=True, text=True, timeout=600)
+        except (OSError, subprocess.TimeoutExpired) as err:
+            return {"available": False, "error": str(err)}
+        if result.returncode != 0:
+            tail = ((result.stderr or "") + (result.stdout or "")).strip().splitlines()[-3:]
+            return {"available": False, "error": " / ".join(tail) or "renderer failed"}
+        wanted = {str(entry.get("code")).upper() for entry in (entries or [])}
+        rendered = sorted(name for name in os.listdir(out)
+                          if name.endswith(".jpg") and name[:-4] in wanted)
+        return {"available": True, "rendered": rendered}
+
+    def check_cards(self) -> dict:
+        """Every published course's card asset must be served, not just named."""
+        try:
+            keys = self.lms.course_ids()
+            report = self.lms.check_course_cards(keys)
+        except LmsError as err:
+            return {"available": False, "error": str(err)}
+        return {"available": True, **report}
+
+    def apply_cards(self, entries=None, reindex: bool = True) -> dict:
         """Put each course's own rendered card on its catalog card.
 
         Two records have to agree for a card to show: the course *asset* the
@@ -1472,11 +1551,12 @@ class Publisher:
         answer = {"available": True, "planned": len(plan), "uploaded": report.get("uploaded", []),
                   "failed": report.get("failed", []), "missing": missing, "images": images,
                   "reindexed": False}
-        try:
-            self.lms.reindex()
-            answer["reindexed"] = True
-        except LmsError as err:
-            answer["reindexError"] = str(err)
+        if reindex:
+            try:
+                self.lms.reindex()
+                answer["reindexed"] = True
+            except LmsError as err:
+                answer["reindexError"] = str(err)
         return answer
 
     # -- deleting ---------------------------------------------------------
@@ -1753,6 +1833,8 @@ def main():
                     help="(re)apply the course-card photographs to every planned course")
     ap.add_argument("--cards", action="store_true",
                     help="upload each course's rendered card (scripts/course-cards.py) as its catalog card")
+    ap.add_argument("--check-cards", action="store_true",
+                    help="fail if any published course's card asset is not served")
     ap.add_argument("--json", action="store_true", help="machine-readable output")
     args = ap.parse_args()
 
@@ -1771,6 +1853,22 @@ def main():
         print(f"{len(answer['deleted'])} course(s) deleted from the LMS"
               + (" and the catalog reindexed" if answer.get("reindexed") else ""))
         sys.exit(1 if answer["failed"] else 0)
+
+    if args.check_cards:
+        answer = publisher.check_cards()
+        if args.json:
+            print(json.dumps(answer, indent=2, sort_keys=True))
+            sys.exit(0 if answer.get("available") and not answer.get("bad") else 1)
+        if not answer.get("available"):
+            print(f"error: {answer.get('error')}", file=sys.stderr)
+            sys.exit(1)
+        bad = answer.get("bad") or []
+        print(f"course cards: {answer.get('checked', 0) - len(bad)} of "
+              f"{answer.get('checked', 0)} served")
+        for row in bad:
+            print(f"  {row.get('key'):<52} {row.get('status') or row.get('error')} "
+                  f"{row.get('bytes') or ''}", file=sys.stderr)
+        sys.exit(1 if bad else 0)
 
     if args.cards:
         answer = publisher.apply_cards()

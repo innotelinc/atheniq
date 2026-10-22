@@ -138,6 +138,86 @@ SESSION_COOKIE_SAMESITE = "Lax"
     )
 )
 
+#: The learner apps served on the LMS host itself, under their own paths. Tutor
+#: otherwise names them on `MFE_HOST` (default `apps.<LMS_HOST>`), which fragments
+#: the university across two origins: the catalog and dashboard live on one,
+#: sign-in and the landing page on the other.
+#:
+#: The `mfe` container already routes each app by its path (`/catalog/...`), so a
+#: plain `handle` (no prefix stripping) forwards them unchanged. These are added
+#: to the LMS site block *before* its catch-all `handle_path /*`, so a request for
+#: `/catalog/courses` reaches the MFE while everything else — `/login`, `/api`,
+#: `/static`, `/courses` — still goes to the LMS.
+MFE_PATHS = (
+    "catalog", "learning", "dashboard", "profile", "account", "discussions",
+    "authoring", "communications", "gradebook", "ora-grading", "admin-console",
+    # The LMS redirects /login and /register here; without the proxy the
+    # redirect lands on the LMS's 404.
+    "authn",
+)
+hooks.Filters.ENV_PATCHES.add_item(
+    (
+        "caddyfile-lms",
+        "\n".join(
+            '# AthenIQ: the learner app lives on the university host, not a second domain.\n'
+            f'handle /{path}* {{\n    reverse_proxy mfe:8002\n}}'
+            for path in MFE_PATHS
+        ),
+    )
+)
+
+#: The MFE configuration is generated from `MFE_HOST`; every absolute URL in it
+#: therefore points at `apps.<LMS_HOST>`. Re-point those values at the LMS host so
+#: the bundles' links, redirects and API callbacks all stay on one domain. The
+#: bundles are host-agnostic — they read this configuration at runtime — so no
+#: MFE image is rebuilt.
+hooks.Filters.ENV_PATCHES.add_item(
+    (
+        "openedx-lms-production-settings",
+        """
+def _atheniq_one_domain(value):
+    if isinstance(value, str):
+        return value.replace("https://{{ MFE_HOST }}", "https://{{ LMS_HOST }}")
+    if isinstance(value, list):
+        return [_atheniq_one_domain(item) for item in value]
+    if isinstance(value, dict):
+        return {key: _atheniq_one_domain(item) for key, item in value.items()}
+    return value
+
+MFE_CONFIG = _atheniq_one_domain(MFE_CONFIG)
+FRONTEND_SITE_CONFIG = _atheniq_one_domain(FRONTEND_SITE_CONFIG)
+FRONTEND_SITE_CONFIG.setdefault("commonAppConfig", {})["MFE_CONFIG"] = MFE_CONFIG
+
+# The MFE settings also live in individual module-level URLs (the LMS templates
+# and Studio redirects read these, not MFE_CONFIG). Rewrite every public string
+# that still names the apps host, so no link leaves the university domain.
+for _atheniq_name, _atheniq_value in list(globals().items()):
+    if (_atheniq_name.isupper() and isinstance(_atheniq_value, str)
+            and "https://apps.learn.innotel.us" in _atheniq_value):
+        globals()[_atheniq_name] = _atheniq_value.replace(
+            "https://apps.learn.innotel.us", "https://learn.innotel.us")
+""",
+    ),
+    priority=hooks.priorities.LOW,
+)
+
+#: Studio's own links to the authoring and catalog apps are generated from
+#: `MFE_HOST` too; they must land on the same host as the learner.
+hooks.Filters.ENV_PATCHES.add_item(
+    (
+        "openedx-cms-production-settings",
+        """
+COURSE_AUTHORING_MICROFRONTEND_URL = COURSE_AUTHORING_MICROFRONTEND_URL.replace(
+    "https://{{ MFE_HOST }}", "https://{{ LMS_HOST }}"
+)
+CATALOG_MICROFRONTEND_URL = CATALOG_MICROFRONTEND_URL.replace(
+    "https://{{ MFE_HOST }}", "https://{{ LMS_HOST }}"
+)
+""",
+    ),
+    priority=hooks.priorities.LOW,
+)
+
 #: Edge-side: the same name reaches the same application. The `caddyfile` patch
 #: point sits after Tutor's own site blocks, so these are additional hosts,
 #: never overrides.
