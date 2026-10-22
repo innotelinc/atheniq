@@ -106,11 +106,11 @@ CMS_SETTINGS_PATCH = "openedx-cms-common-settings"
 # comment. The whole directory is therefore copied verbatim; the only files that
 # need Tutor's configuration are the Mako templates, and they are not rendered
 # here either — Mako does that in the LMS at request time.
+@hooks.Filters.IS_FILE_RENDERED.add()
 def _copy_theme_verbatim(rendered: bool, template_name: str) -> bool:
-    return False if template_name.startswith(("openedx-theme-unity/", "atheniq-theme/")) else rendered
-
-
-hooks.Filters.IS_FILE_RENDERED.add_item(_copy_theme_verbatim)
+    if template_name.startswith(("openedx-theme-unity/", "atheniq-theme/")):
+        return False
+    return rendered
 hooks.Filters.ENV_TEMPLATE_ROOTS.add_item(str(THEME_DIR.parent))
 hooks.Filters.ENV_TEMPLATE_TARGETS.add_items(
     [
