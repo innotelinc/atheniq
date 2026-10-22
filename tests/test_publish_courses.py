@@ -196,10 +196,31 @@ class KeyTests(unittest.TestCase):
         self.assertEqual(keys["DATA101"], "course-v1:InnotelLabs+DATA101+2026_T1")
         self.assertEqual(keys["ACCT201"], "course-v1:InnotelLabs+ACCT201+2026_T4")
 
+    def test_an_explicit_run_term_wins_over_the_label(self):
+        self.assertEqual(
+            publisher.term_for({"startTerm": "Spring 2027", "runTerm": "2027_T1"}),
+            "2027_T1")
+
+    def test_early_start_opens_the_run_before_the_term(self):
+        dates = publisher._dates("2027_T1", "2026-10-21")
+        self.assertEqual(dates["start"], "2026-10-21T00:00:00Z")
+        self.assertEqual(dates["advertised_start"], "2027-01-01T00:00:00Z")
+        self.assertLess(dates["enrollment_start"], dates["start"])
+
 
 class ShellTests(Fixture):
     def entries(self):
         return self.publisher.entries(self.program, keys={})
+
+    def test_a_key_from_another_term_is_not_reused(self):
+        """A new cohort is a new run; last year's key is not this year's."""
+        program = dict(self.program, startTerm="Spring 2027", runTerm="2027_T1")
+        entries = self.publisher.entries(program, keys={
+            "TST101": "course-v1:InnotelLabs+TST101+2026_T4",
+        })
+        entry = next(e for e in entries if e["code"] == "TST101")
+        self.assertEqual(entry["key"], "course-v1:InnotelLabs+TST101+2027_T1")
+        self.assertFalse(entry["published"])
 
     def test_every_shell_is_a_valid_course(self):
         for entry in self.entries():
@@ -277,12 +298,19 @@ class PublishTests(Fixture):
         self.assertEqual(len(self.lms.imports), 2)
         self.assertEqual(self.lms.reindexes, 1)
 
-    def test_courses_already_in_the_lms_are_left_alone(self):
-        self.lms.keys = ["course-v1:InnotelLabs+TST101+2024_T1"]
+    def test_a_course_already_in_the_lms_for_this_term_is_left_alone(self):
+        self.lms.keys = ["course-v1:InnotelLabs+TST101+2026_T4"]
         answer = self.publisher.publish(execute=True)
         self.assertEqual([entry["code"] for entry in answer["published"]], ["TST102"])
         self.assertEqual(answer["skipped"][0]["key"],
-                         "course-v1:InnotelLabs+TST101+2024_T1")
+                         "course-v1:InnotelLabs+TST101+2026_T4")
+
+    def test_an_older_run_does_not_count_as_this_terms_course(self):
+        """2024's TST101 is not this cohort's TST101."""
+        self.lms.keys = ["course-v1:InnotelLabs+TST101+2024_T1"]
+        answer = self.publisher.publish(execute=True)
+        self.assertEqual([entry["code"] for entry in answer["published"]],
+                         ["TST101", "TST102"])
 
     def test_one_failed_course_does_not_stop_the_batch(self):
         self.lms.fail_imports = {"TST101-2026_T4"}

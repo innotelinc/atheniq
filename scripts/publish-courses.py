@@ -1346,6 +1346,11 @@ class Publisher:
                 if not code or (wanted and code not in wanted):
                     continue
                 existing = keys.get(code)
+                # A course code is the course for a learner, but a run is the
+                # cohort. A key from an earlier term is a different run; reusing
+                # it would silently keep publishing into last year's cohort.
+                if existing and not existing.endswith("+" + term):
+                    existing = None
                 out.append(entry_for(course, program, semester, term,
                                      key=existing, published=existing is not None))
         return out
