@@ -100,6 +100,17 @@ CMS_SETTINGS_PATCH = "openedx-cms-common-settings"
 
 # The theme is rendered into the build context (`env/build/openedx/`) under its
 # own directory name, so the Dockerfile can `COPY` exactly what it owns.
+# The theme is an artifact, not a template. Tutor renders every file under a
+# template root through Jinja, and the compiled CSS contains the sequence `{#`
+# (a minified `--#fff` custom property) which Jinja reads as the start of a
+# comment. The whole directory is therefore copied verbatim; the only files that
+# need Tutor's configuration are the Mako templates, and they are not rendered
+# here either — Mako does that in the LMS at request time.
+def _copy_theme_verbatim(rendered: bool, template_name: str) -> bool:
+    return False if template_name.startswith(("openedx-theme-unity/", "atheniq-theme/")) else rendered
+
+
+hooks.Filters.IS_FILE_RENDERED.add_item(_copy_theme_verbatim)
 hooks.Filters.ENV_TEMPLATE_ROOTS.add_item(str(THEME_DIR.parent))
 hooks.Filters.ENV_TEMPLATE_TARGETS.add_items(
     [
