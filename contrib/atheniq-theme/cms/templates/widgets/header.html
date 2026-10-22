@@ -24,9 +24,13 @@
   ## one template every Studio page renders, which makes it the seam.
   <script>window.UNITY_DEFAULT_SCHEME = "operations";
   document.documentElement.setAttribute("data-scheme", "operations");</script>
-  <link rel="stylesheet" href="${static.url('indigo/atheniq/unity-theme.css')}">
-  <link rel="stylesheet" href="${static.url('indigo/atheniq/unity-cms.css')}">
-  <script src="${static.url('indigo/atheniq/unity-theme.js')}"></script>
+  ## Paths, not `static.url()`: the manifest storage content-hashes what it
+  ## collects, and a `make theme` copy of an edited skin cannot update a hashed
+  ## name without a `collectstatic`. The unhashed copy is collected beside the
+  ## hashed one at image build, and is what the runtime overlay replaces.
+  <link rel="stylesheet" href="/static/studio/indigo/atheniq/unity-theme.css">
+  <link rel="stylesheet" href="/static/studio/indigo/atheniq/unity-cms.css">
+  <script src="/static/studio/indigo/atheniq/unity-theme.js"></script>
   <header class="primary" role="banner">
     <div class="wrapper wrapper-l">
       <h1 class="branding">

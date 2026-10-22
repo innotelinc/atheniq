@@ -207,10 +207,10 @@ class Plugin(unittest.TestCase):
         self.assertIn("/openedx/themes/indigo/cms", self.text)
 
     def test_the_static_copies_are_where_the_templates_look(self):
-        """`/static/atheniq/…` and `/static/studio/atheniq/…` are two namespaces."""
+        """`/static/atheniq/…` and `/static/studio/indigo/atheniq/…` are two namespaces."""
         self.assertIn("/openedx/staticfiles/atheniq", self.text)
-        # Studio's static namespace is `studio`, not the theme's directory name.
-        self.assertIn("/openedx/staticfiles/studio/atheniq", self.text)
+        # Studio collects under `studio/` and the theme's files under `indigo/`.
+        self.assertIn("/openedx/staticfiles/studio/indigo/atheniq", self.text)
         self.assertIn("lms/static/images/", self.text)
 
     def test_it_repoints_only_the_brand_override(self):
@@ -228,6 +228,29 @@ class Plugin(unittest.TestCase):
         pyproject = (PLUGIN.parent.parent / "pyproject.toml").read_text()
         self.assertIn('atheniqtheme = "atheniqtheme.plugin"', pyproject)
         self.assertIn('"tutor.plugin.v0"', pyproject)
+
+
+class CmsOverlay(unittest.TestCase):
+    """Studio's header: Unity in the operations register, linked predictably."""
+
+    HEADER = THEME / "cms" / "templates" / "widgets" / "header.html"
+
+    def setUp(self):
+        self.text = self.HEADER.read_text()
+
+    def test_it_sets_the_operations_register_before_rendering(self):
+        self.assertIn('window.UNITY_DEFAULT_SCHEME = "operations"', self.text)
+        self.assertIn('setAttribute("data-scheme", "operations")', self.text)
+
+    def test_it_links_the_unhashed_served_paths(self):
+        """A manifest hash would survive a `make theme` copy and serve stale CSS."""
+        for name in ("unity-theme.css", "unity-cms.css", "unity-theme.js"):
+            self.assertIn(f'/static/studio/indigo/atheniq/{name}', self.text)
+        self.assertNotIn("static.url('indigo/atheniq", self.text)
+
+    def test_it_keeps_the_platform_entry_point(self):
+        self.assertIn("AthenIQ Platform Services", self.text)
+        self.assertIn("ai.lms.innotel.us/programs.html", self.text)
 
 
 class ThemeScript(unittest.TestCase):
