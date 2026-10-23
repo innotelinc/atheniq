@@ -12,13 +12,17 @@
 # commits it moved across; brings up the compose services this repo owns; and
 # finishes with scripts/cert-check.py --http, because a host that restarted
 # cleanly onto a name whose certificate no longer covers it — or whose backend
-# never came back and answers 502 — has not deployed.
+# never came back and answers 502 — has not deployed. It then asks Studio to
+# accept each origin its apps are served from (scripts/check-host-trust.py): a
+# whitelist that lost one of them is invisible to curl and every server-side
+# check, and shows up as "Failed to load Studio" in a browser.
 #
 # USAGE
-#   ./scripts/deploy.sh                  # pull, restart, verify TLS
+#   ./scripts/deploy.sh                  # pull, restart, verify TLS + CORS
 #   ./scripts/deploy.sh --no-pull        # restart what is on disk as-is
 #   ./scripts/deploy.sh --recreate       # force new containers
 #   ./scripts/deploy.sh --no-cert-check  # skip the certificate gate
+#   ./scripts/deploy.sh --no-host-check  # skip the Studio origin gate
 #   DIR=/srv/atheniq ./scripts/deploy.sh
 #
 # --recreate matters when a bind-mounted directory is replaced rather than
@@ -37,14 +41,16 @@ set -euo pipefail
 DIR="${DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 PULL=1
 CERT_CHECK=1
+HOST_CHECK=1
 RECREATE=0
 
 for arg in "$@"; do
   case "$arg" in
     --no-pull) PULL=0 ;;
     --no-cert-check) CERT_CHECK=0 ;;
+    --no-host-check) HOST_CHECK=0 ;;
     --recreate) RECREATE=1 ;;
-    -h|--help) sed -n '2,28p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,32p' "$0"; exit 0 ;;
     *) echo "unknown argument: $arg" >&2; exit 2 ;;
   esac
 done
@@ -80,6 +86,7 @@ if [ "$PULL" = 1 ]; then
     reexec=()
     [ "$RECREATE" = 1 ] && reexec+=(--recreate)
     [ "$CERT_CHECK" = 0 ] && reexec+=(--no-cert-check)
+    [ "$HOST_CHECK" = 0 ] && reexec+=(--no-host-check)
     exec env DEPLOY_REEXEC=1 "$0" --no-pull ${reexec[@]+"${reexec[@]}"}
   fi
 fi
@@ -100,6 +107,16 @@ if [ "$CERT_CHECK" = 1 ]; then
   if ! python3 scripts/cert-check.py --http; then
     echo "deployed, but a platform name is not answering: see the certificate and" >&2
     echo "HTTP lines above (the edge, its upstream, or the certificate behind it)" >&2
+    exit 1
+  fi
+fi
+
+if [ "$HOST_CHECK" = 1 ]; then
+  echo
+  if ! python3 scripts/check-host-trust.py; then
+    echo "deployed, but Studio refuses an origin its apps are served from: the" >&2
+    echo "authoring app will give up loading course data in a browser (see the" >&2
+    echo "CORS lines above). Add the origin to the CMS whitelist and config save." >&2
     exit 1
   fi
 fi

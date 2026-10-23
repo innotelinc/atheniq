@@ -60,11 +60,44 @@ class LearnerApps(unittest.TestCase):
             text for name, text in cls.sinks["ENV_PATCHES"].items
             if name == "caddyfile-lms"
         )
+        cls.cms = "\n".join(
+            text for name, text in cls.sinks["ENV_PATCHES"].items
+            if name == "openedx-cms-production-settings"
+        )
+        cls.lms = "\n".join(
+            text for name, text in cls.sinks["ENV_PATCHES"].items
+            if name == "openedx-lms-production-settings"
+        )
+        # Additional site blocks (the legacy names), which are appended to the
+        # whole Caddyfile rather than to the LMS site block.
+        cls.hosts = "\n".join(
+            text for name, text in cls.sinks["ENV_PATCHES"].items
+            if name == "caddyfile"
+        )
+
+    def test_studio_trusts_the_host_that_serves_the_authoring_app(self):
+        """The authoring app lives on the LMS host and calls Studio's APIs.
+
+        Tutor whitelists `studio.<host>` and `apps.<host>` only, so a call from
+        `https://<host>/authoring` came back without
+        `Access-Control-Allow-Origin` and the app reported that it could not
+        load Studio home.
+        """
+        self.assertIn('CORS_ORIGIN_WHITELIST.append("https://{{ LMS_HOST }}")', self.cms)
+        self.assertIn('CSRF_TRUSTED_ORIGINS.append("https://{{ LMS_HOST }}")', self.cms)
+
+    def test_studio_trusts_the_legacy_names_too(self):
+        """Old bookmarks sign in on the same session as the new address."""
+        for hosts in ("ATHENIQ_LEGACY_LMS_HOSTS", "ATHENIQ_LEGACY_MFE_HOSTS"):
+            self.assertIn("{% for host in " + hosts + " %}", self.cms)
+        self.assertIn('CORS_ORIGIN_WHITELIST.append("https://{{ host }}")', self.cms)
+        self.assertIn('CSRF_TRUSTED_ORIGINS.append("https://{{ host }}")', self.cms)
 
     def test_every_learner_app_is_proxied_from_the_university_host(self):
         for app in ("catalog", "learning", "learner-dashboard", "profile",
                     "account", "discussions", "authoring", "communications",
-                    "gradebook", "ora-grading", "admin-console", "authn"):
+                    "gradebook", "ora-grading", "admin-console",
+                    "instructor-dashboard", "authn"):
             self.assertIn(f"handle /{app}* {{\n    reverse_proxy mfe:8002\n}}",
                           self.caddy)
 
@@ -108,6 +141,33 @@ class LearnerApps(unittest.TestCase):
                      "/static/atheniq/unity-theme.css", "/theming/asset/logo.png",
                      "/dashboard", "/learner-dashboard/app.js"):
             self.assertNotRegex(path, compiled)
+
+    def test_a_legacy_mfe_host_sends_its_bookmarks_to_the_university_host(self):
+        """`apps.lms.innotel.us/authoring/home` belongs at the same page on the
+        renamed host, not on a second copy of the bundle."""
+        self.assertIn('redir https://{{ LMS_HOST }}{uri} 301', self.hosts)
+
+    def test_the_legacy_hosts_are_no_longer_a_proxy(self):
+        """A host that serves the bundle also serves a second, stale origin."""
+        legacy_block = self.hosts.split("{% for host in ATHENIQ_LEGACY_MFE_HOSTS %}")[1]
+        legacy_block = legacy_block.split("{% endfor %}")[0]
+        self.assertNotIn("reverse_proxy", legacy_block)
+
+    def test_mfe_config_is_rewritten_with_or_without_a_scheme(self):
+        """`BASE_URL` names the host bare; every other key is a URL."""
+        self.assertIn('.replace("https://{{ MFE_HOST }}", "https://{{ LMS_HOST }}")', self.lms)
+        self.assertIn('.replace("{{ MFE_HOST }}", "{{ LMS_HOST }}")', self.lms)
+
+    def test_the_lms_own_app_urls_move_with_the_apps(self):
+        """The LMS builds links from module-level settings, not from MFE_CONFIG.
+
+        `INSTRUCTOR_MICROFRONTEND_URL` and its neighbours are generated from
+        `MFE_HOST`, so rewriting only `MFE_CONFIG` left every one of them — and
+        the `/login` redirect — pointing at `apps.<host>`.
+        """
+        self.assertIn('and "https://{{ MFE_HOST }}" in _atheniq_value', self.lms)
+        self.assertNotIn("apps.learn.innotel.us", self.lms)
+        self.assertNotIn("innotel", self.lms)
 
     def test_nothing_is_left_for_jinja_or_a_doubled_brace(self):
         """The patch is a plain string by the time Tutor sees it."""

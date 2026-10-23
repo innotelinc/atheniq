@@ -213,7 +213,14 @@ def check_host(host: str, port: int = 443, timeout: float = 15.0,
 
 
 def _finish(result: Result, host: str, port: int, timeout: float, warn_days: float,
-            pem: str, cert: dict | None = None, http: bool = False) -> Result:
+            pem: str, cert: dict | None = None, http: bool = False,
+            now: datetime | None = None) -> Result:
+    """Judge the certificate once the handshake (or the test's bytes) is in.
+
+    `now` exists so a test can pin the clock: an expiry decision made against a
+    real clock and asserted against a fixed one silently changes verdict as the
+    wall clock moves past the fixture.
+    """
     result.chain = chain_depth(host, port, timeout, pem)
     if result.chain is None:
         result.warnings.append("chain depth unknown (no openssl)")
@@ -223,7 +230,7 @@ def _finish(result: Result, host: str, port: int, timeout: float, warn_days: flo
     not_after = (cert or {}).get("notAfter")
     if not_after:
         try:
-            left = days_until(parse_openssl_time(not_after))
+            left = days_until(parse_openssl_time(not_after), now)
         except ValueError:
             result.warnings.append(f"unparsable notAfter {not_after!r}")
         else:

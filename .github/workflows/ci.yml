@@ -61,6 +61,9 @@ jobs:
       - name: Validate the syllabus pages are current
         run: make check-syllabus
 
+      - name: Validate the workforce site is current
+        run: make check-workforce-site
+
       - name: Validate the PNG assets are current
         run: make check-images
 

@@ -672,7 +672,9 @@ the CMS, under a key derived from the course code
   each, and a graded final examination assembled from the lesson questions. The
   course is imported again in place with stable component ids, so a learner's
   gradebook survives the rewrite. `publish-courses.py --attach` is the same step
-  from the CLI.
+  from the CLI for one named course, and `--attach-pending --execute` sweeps
+  every course whose plan records a classroom — the repair when a course went
+  on showing its plan-only shell after its classrooms had been generated.
 - **Pull LMS grades** reads every enrolled learner's current course grade from
   the LMS gradebook (`CourseGradeFactory`) and records it as the program
   completion with `source: lms`, so completion is a fact about graded work. A
@@ -707,6 +709,8 @@ sudo -u tutor python3 scripts/publish-courses.py --images            # (re)apply
 sudo -u tutor python3 scripts/publish-courses.py --cards             # upload each course's rendered card
 sudo -u tutor python3 scripts/publish-courses.py --delete-all        # remove every course, reindex
 sudo -u tutor python3 scripts/publish-courses.py --attach <id> --course BUS101 --classroom <stage>
+sudo -u tutor python3 scripts/publish-courses.py --attach-pending            # plan: who is waiting
+sudo -u tutor python3 scripts/publish-courses.py --attach-pending --execute  # write them all in
 sudo -u tutor python3 scripts/publish-courses.py --program <id> --grades
 sudo -u tutor python3 scripts/publish-courses.py --program <id> --enroll learner@example.org
 ```
@@ -804,6 +808,34 @@ catalog. It is served by the `landing` service (`caddy file-server` on the
 container host's `web/landing`) and wears **Unity** — `assets/unity-theme.css`
 and `assets/unity-theme.js` are byte-identical copies of the canonical theme in
 the Innotel platform, not a local palette.
+
+### Workforce development — `workforce.<domain>`
+
+`web/workforce/` is **AthenIQ Workforce**, the workforce development division's
+own site rather than a page on the university's. Its first program is Focused AI
+Skills Training (FAST AI), the Commonwealth Corporation program for Massachusetts
+employers: what the program is, what it costs an employer, which six courses it
+contains and what a worker can do afterwards.
+
+The page is generated, not hand-written:
+
+```bash
+make workforce-site          # write web/workforce/index.html
+make check-workforce-site    # CI: fail if the committed page is stale
+```
+
+`scripts/build-workforce-site.py` reads `config/workforce-programs.json` (the
+program, its funding terms, timeline and delivery model) plus the OLX packages
+under `courses/` (course titles and the modules actually inside them), so a
+course cannot be renamed, emptied or removed without the site saying the same. A
+course key the repo does not hold is a build error, not a broken link.
+
+It is served by the `workforce` service on `WORKFORCE_BIND:WORKFORCE_PORT`
+(`192.168.1.59:8087`), with `web/landing/assets/` mounted beside it for the
+canonical Unity theme — one theme file, two sites. Its public name needs the same
+three things every name in this table needs: an NPM proxy host pointing at that
+port, a certificate covering the name, and a zone record; see § *Cerulean DNS and
+TLS*. Set `WORKFORCE_BIND`/`WORKFORCE_PORT` in `.env` first.
 
 ### Library — shared media shelves
 
@@ -1014,6 +1046,7 @@ Canonical hosts for a reference deployment:
 | `innotel.us` | Innotel Labs company site — the `innotel` compose service serving `web/innotel/` |
 | `www.<zone>` | Same site on the same NPM host (certificate SAN covers both names) |
 | `atheniq.<domain>` | Product landing page — the `landing` compose service serving `web/landing/` |
+| `workforce.<domain>` | Workforce development site (FAST AI) — the `workforce` compose service serving `web/workforce/` |
 | `learn.<domain>` | Tutor LMS — `LMS_HOST`, the canonical name |
 | `apps.learn.<domain>` | Learner MFEs (`apps.<LMS_HOST>`) |
 | `lms.<domain>` | Alias of `learn.<domain>` (NPM host, certificate, zone CNAME) |
@@ -1131,6 +1164,21 @@ The edge is one step removed from this repo, so it has a check of its own:
 make cert-check          # or: python3 scripts/cert-check.py learn.innotel.us
 python3 scripts/cert-check.py --http    # also GET / and fail on a 5xx (the deploy gate)
 ```
+
+Studio's trust of the app origins is checked the same way — one step removed from
+this repo, and invisible to curl unless asked:
+
+```bash
+make check-host-trust    # Studio must accept every origin its apps are served from
+```
+
+For each origin it asks Studio for an anonymous API response with that `Origin`
+and requires `Access-Control-Allow-Origin` to name it (and credentials to be
+allowed), then asks with an origin nobody configured and requires a refusal, so
+an allow-all does not read as a pass. The app that needs it is the authoring app
+on the university host: it is served from `<host>/authoring` but reads its course
+data from `studio.<host>`, and a missing whitelist entry looks like "Failed to
+load Studio home" rather than an error anyone can see from the server.
 
 For every name it verifies the handshake against the system trust store, that the
 certificate's SAN list covers the name (wildcards cover exactly one label), that
@@ -1641,8 +1689,9 @@ required for the outline to render — the policy can be anything.
 - **Host deploys:** run [`scripts/deploy.sh`](../scripts/deploy.sh) from the
   host's checkout. It refuses to pull over a dirty tree, fast-forwards, reports
   the commits it crossed, `docker compose up -d --remove-orphans`, and finishes
-  with the certificate gate. `--no-pull` restarts what is on disk;
-  `--no-cert-check` skips the gate. The checkout is a normal `git clone` (its
+  with the certificate gate and the Studio origin gate. `--no-pull` restarts what
+  is on disk; `--no-cert-check` and `--no-host-check` skip the two gates. The
+  checkout is a normal `git clone` (its
   `.env` is gitignored and copied in once), which is what keeps
   `docker-compose.yml` and `web/landing/` from drifting away from the repo.
 - **Upgrades:** Tutor has its own upgrade command; OpenMAIC, Convex, OmniRoute,

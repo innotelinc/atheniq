@@ -466,6 +466,16 @@ class LessonTests(Fixture):
         syllabus = read(os.path.join(olx, "html", "l2_syllabus.html"))
         self.assertIn("2 questions", syllabus)
 
+    def test_a_shell_never_promises_content_that_is_not_there(self):
+        """Learners read the shell; it must not say lessons arrive later."""
+        entry = dict(self.entries()[0])
+        olx = self.shell(entry, "copy")
+        updates = read(os.path.join(olx, "info", "updates.html"))
+        plan = read(os.path.join(olx, "html", "l3_plan.html"))
+        self.assertNotIn("as they are built", updates)
+        self.assertNotIn("when it is generated", plan)
+        self.assertNotIn("Until then", plan)
+
     def test_a_shell_without_lessons_has_no_exam_paper(self):
         entry = dict(self.entries()[0])
         olx = self.shell(entry, "empty")
@@ -510,6 +520,37 @@ class LessonTests(Fixture):
         unpublished = self.publisher.attach(self.program["id"], "TST101", "stage-test1")
         self.assertFalse(unpublished["attached"])
         self.assertIn("not in the LMS", unpublished["error"])
+
+    def record_classroom(self, stage="stage-test1"):
+        """Put a finished classroom on the plan the way the console does."""
+        path = os.path.join(self.root, "programs", self.program["id"] + ".json")
+        with open(path, encoding="utf-8") as fh:
+            doc = json.load(fh)
+        doc["semesters"][0]["courses"][0]["classroomIds"] = [stage]
+        with open(path, "w", encoding="utf-8") as fh:
+            json.dump(doc, fh)
+
+    def test_attach_pending_rebuilds_a_course_whose_classroom_was_generated(self):
+        """The case the operator hit: generated, but the LMS still showed the shell."""
+        self.publisher.lessons = FakeLessons()
+        self.record_classroom()
+        self.publisher.publish(execute=True)
+        plan = self.publisher.attach_pending(execute=False)
+        self.assertEqual([entry["code"] for entry in plan["pending"]], ["TST101"])
+        self.assertEqual(plan["attached"], [])
+        answer = self.publisher.attach_pending(execute=True)
+        self.assertEqual(answer["failed"], [])
+        self.assertEqual([row["code"] for row in answer["attached"]], ["TST101"])
+        self.assertEqual(answer["attached"][0]["lessons"], 2)
+        self.assertEqual(self.lms.imports[-1][1], "TST101-2026_T4")
+
+    def test_attach_pending_skips_a_course_with_no_classroom(self):
+        self.publisher.publish(execute=True)
+        answer = self.publisher.attach_pending(execute=True)
+        self.assertEqual(answer["pending"], [])
+        self.assertEqual(answer["attached"], [])
+        self.assertEqual([row["reason"] for row in answer["skipped"]],
+                         ["no generated classroom"] * len(answer["skipped"]))
 
     def test_attach_reports_an_unreadable_classroom(self):
         self.publisher.lessons = FakeLessons(fail="no such stage")

@@ -10,8 +10,8 @@ SHELL := /bin/bash
         openmaic-up openmaic-down convex-up convex-down convex-key generation-console \
         onyx-check onyx-buckets onyx-selftest magnate-probe \
         paid-status entitlement-status entitlement-sync \
-        check-commits check-compose check-tracks check-courses check-classrooms check-catalog check-syllabus check-images check-brand check-course-photos check-course-cards cert-check \
-        catalog syllabus images course-photos course-cards course-bundle course-import test tutor-quickstart \
+        check-commits check-compose check-tracks check-courses check-classrooms check-catalog check-syllabus check-workforce-site check-images check-brand check-course-photos check-course-cards check-host-trust cert-check \
+        catalog syllabus workforce-site images course-photos course-cards course-bundle course-import test tutor-quickstart \
         theme gating check-gating gating-apply track-credential-status
 
 # Where the generated program plans live; the deployed host keeps them under
@@ -119,6 +119,12 @@ syllabus: ## Regenerate the per-course syllabus pages from the OLX outlines
 check-syllabus: ## Fail if a syllabus page is stale
 	python3 scripts/build-course-syllabus.py --check
 
+workforce-site: ## Regenerate workforce.atheniq.online from the program config
+	python3 scripts/build-workforce-site.py
+
+check-workforce-site: ## Fail if the workforce site is stale
+	python3 scripts/build-workforce-site.py --check
+
 images: ## Render the PNG brand + course-card assets (needs Pillow)
 	python3 scripts/build-course-images.py
 
@@ -174,6 +180,9 @@ check-compose: ## Validate every compose profile parses
 
 cert-check: ## Verify the public names' certificates (coverage, chain, expiry) -- needs network
 	python3 scripts/cert-check.py
+
+check-host-trust: ## Fail if Studio refuses the browser origins its apps run on -- needs network
+	python3 scripts/check-host-trust.py
 
 ## ---- LMS core (Tutor / AthenIQ) ------------------------------------------
 

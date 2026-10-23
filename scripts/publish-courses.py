@@ -37,6 +37,7 @@ updates it without orphaning a learner's grades.
     python3 scripts/publish-courses.py --program <id> --execute
     python3 scripts/publish-courses.py --course ACCT201 --execute
     python3 scripts/publish-courses.py --attach <program> --course BUS101 --classroom <id>
+    python3 scripts/publish-courses.py --attach-pending --execute   # every generated classroom
     python3 scripts/publish-courses.py --program <id> --grades
     python3 scripts/publish-courses.py --program <id> --enroll learner@x.edu
     python3 scripts/publish-courses.py --images             # (re)apply card photographs
@@ -308,9 +309,9 @@ def _welcome_html(entry: dict) -> str:
         "</strong>", html.escape(f" ({entry['credential']})"),
         f", semester {entry['semester']}", html.escape(f" — {entry['semesterName']}" if entry["semesterName"] else ""),
         f". It is worth {entry['credits']} credits.</p>\n",
-        f"<p>The course runs in {seats} classroom module{'s' if seats != 1 else ''}. "
-        "Each module's live classroom and its lessons are published in this course "
-        "as they are built; the syllabus below is what the course commits to now.</p>\n",
+        f"<p>The course runs in {seats} classroom module{'s' if seats != 1 else ''}, "
+        "each a live multi-agent session on OpenMAIC followed by that module's "
+        "work in this course.</p>\n",
         "<p>Start with the syllabus, then the course plan.</p>\n",
     ])
 
@@ -366,9 +367,9 @@ def _plan_html(entry: dict) -> str:
         f"<p>{html.escape(entry['title'])} is taught in {seats} classroom "
         f"module{'s' if seats != 1 else ''}, in this order:</p>\n",
         f"<ol>\n{items}</ol>\n",
-        "<p>Each module's classroom is built on OpenMAIC and added to this course "
-        "when it is generated. Until then this page is the course's published "
-        "plan: what it teaches, how much it is worth, and how it is assessed.</p>\n",
+        "<p>Each module is a live classroom on OpenMAIC, followed by the module's "
+        "work in this course. This page is the course's plan: what it teaches, "
+        "how much it is worth, and how it is assessed.</p>\n",
     ])
 
 
@@ -591,8 +592,8 @@ def build_shell(entry: dict, dest: str) -> str:
     ]))
     _write(os.path.join(olx, "about", "overview.html"), _welcome_html(entry))
     _write(os.path.join(olx, "info", "updates.html"),
-           f"<p>{html.escape(name)} is open. The syllabus and the course plan are "
-           "published; classroom modules are added as they are built.</p>")
+           f"<p>{html.escape(name)} is open. The syllabus, the course plan and the "
+           "assessment are published.</p>")
 
     policy = {
         f"course/{term}": {
@@ -1951,6 +1952,50 @@ class Publisher:
         self._keys = None
         return answer
 
+    def attach_pending(self, program_ids=None, codes=None, execute: bool = False) -> dict:
+        """Rebuild every course whose plan records a generated classroom.
+
+        Generation and publication are two steps, and nothing on a published
+        shell says which step a course stopped at: a classroom can be sitting in
+        OpenMAIC while the LMS run is still the plan-only shell. `--attach`
+        repairs one course when an operator names it; this sweeps the lot, so
+        "the classrooms were generated" can be made true in the LMS in one
+        command instead of forty.
+
+        Every entry with a recorded classroom is rebuilt from that classroom and
+        reimported under the same course key, so lessons replace the shell in
+        place and no learner's grade is orphaned. A course with no classroom is
+        reported as skipped, not failed — it is a plan waiting for generation,
+        which is not an error.
+        """
+        try:
+            entries = self.plan(program_ids, codes)
+        except LmsError as err:
+            return {"available": False, "execute": execute, "attached": [],
+                    "pending": [], "skipped": [], "failed": [], "error": str(err)}
+        pending, skipped = [], []
+        for entry in entries:
+            if not entry.get("classroomId"):
+                skipped.append({"code": entry["code"], "key": entry["key"],
+                                "reason": "no generated classroom"})
+            elif not entry["published"]:
+                skipped.append({"code": entry["code"], "key": entry["key"],
+                                "reason": "not in the LMS yet — publish it first"})
+            else:
+                pending.append(entry)
+        answer = {"available": True, "execute": execute, "pending": pending,
+                  "attached": [], "skipped": skipped, "failed": []}
+        if not execute:
+            return answer
+        for entry in pending:
+            result = self.attach(entry["programId"], entry["code"], entry["classroomId"])
+            if result.get("attached"):
+                answer["attached"].append(result)
+            else:
+                answer["failed"].append({"code": entry["code"], "key": entry["key"],
+                                         "error": result.get("error") or "not attached"})
+        return answer
+
     def grades(self, program_id: str, students=None) -> dict:
         """Every learner on a program, against every course of it, graded by the LMS."""
         try:
@@ -2048,6 +2093,9 @@ def main():
     ap.add_argument("--attach", metavar="PROGRAM",
                     help="write a generated classroom's lessons into one of the program's courses")
     ap.add_argument("--classroom", help="the classroom id to attach (default: the one on the plan)")
+    ap.add_argument("--attach-pending", action="store_true",
+                    help="write every generated classroom the plan records into its course "
+                         "(the repair for a course still showing its shell)")
     ap.add_argument("--grades", action="store_true",
                     help="read each enrolled learner's course grades from the LMS")
     ap.add_argument("--enroll", help="a learner identity to enroll in the selected programs")
@@ -2145,6 +2193,26 @@ def main():
         for key in answer.get("missing") or []:
             print(f"  {key:<52} not in the CMS", file=sys.stderr)
         sys.exit(0)
+    if args.attach_pending:
+        answer = publisher.attach_pending(args.program, args.course, execute=args.execute)
+        if args.json:
+            print(json.dumps(answer, indent=2, sort_keys=True))
+            sys.exit(1 if answer.get("failed") or not answer.get("available") else 0)
+        if not answer.get("available"):
+            print(f"error: the LMS is not reachable: {answer['error']}", file=sys.stderr)
+            sys.exit(1)
+        if not answer["pending"]:
+            print("no course has a generated classroom waiting to be written in")
+        for row in answer["attached"]:
+            print(f"  {row['key']:<52} {row['lessons']} lesson(s), "
+                  f"{row['questions']} question(s)")
+        for row in answer["failed"]:
+            print(f"  {row['key']:<52} FAILED: {row['error']}", file=sys.stderr)
+        if answer["pending"] and not args.execute:
+            print(f"\n{len(answer['pending'])} course(s) would be rebuilt "
+                  "— pass --execute to write them")
+        sys.exit(1 if answer.get("failed") else 0)
+
     if args.attach:
         if not args.course or len(args.course) != 1:
             raise SystemExit("--attach needs exactly one --course")

@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "site": {
+    "host": "workforce.atheniq.online",
+    "title": "AthenIQ Workforce",
+    "institute": "AthenIQ Institute",
+    "tagline": "Applied AI training for Massachusetts employers",
+    "description": "AthenIQ Workforce is the workforce development division of AthenIQ Institute. Its first program delivers Focused AI Skills Training (FAST AI) to Massachusetts employers and their workers.",
+    "contact": "workforce@atheniq.institute",
+    "catalog": "https://atheniq.courses/catalog/",
+    "login": "https://atheniq.courses/login",
+    "phone": ""
+  },
+  "programs": [
+    {
+      "id": "fast-ai",
+      "track": "fast-ai",
+      "name": "Focused AI Skills Training (FAST AI)",
+      "credential": "FAST AI — Applied AI Skills",
+      "status": "active",
+      "audience": "Massachusetts employers and the incumbent or newly hired workers they enroll",
+      "summary": "Instructor-led, applied AI training for the tools and tasks a worker already does. Six stackable courses take an employee from how a model behaves to prompting, analysis, occupation-specific workflows, management and governance — each course a set of live multi-agent classrooms with exercises built from the employer's own work.",
+      "funding": {
+        "administrator": "Commonwealth Corporation, a quasi-public arm of the Massachusetts Executive Office of Labor and Workforce Development, with the Executive Office of Economic Development",
+        "source": "Workforce Investment Trust Fund",
+        "cost": "No cost to an eligible employer. Commonwealth Corporation purchases training slots from approved providers and reimburses completed enrollments, so the employer pays no tuition for approved courses.",
+        "terms": [
+          "Course costs may not exceed $300 per instructional hour per training slot, or $3,000 per person per course, whichever is less.",
+          "A provider's total award may not exceed $400,000, covering all of its approved courses.",
+          "Contracts run for up to two years; match contributions are not required.",
+          "Enrollment, attendance and completion are tracked and reported to Commonwealth Corporation by the provider."
+        ]
+      },
+      "timeline": [
+        "Provider RFQ applications were due November 6, 2026, with award decisions expected in mid-December 2026.",
+        "The program opens for employer enrollment in January 2027.",
+        "Training is prioritised where it starts on or after February 1, 2027 and finishes by June 30, 2028."
+      ],
+      "delivery": [
+        "Instructor-led: every chapter runs as a live multi-agent classroom — an AI teacher, AI classmates, and the learner doing the work.",
+        "Applied: each exercise uses an artifact from the worker's own role, tools and day-to-day tasks rather than generic AI literacy content.",
+        "Tracked: attendance, completion and assessment are recorded in the LMS and reported to the program.",
+        "Stackable: the six courses can be taken as a certificate ladder or individually against an employer's training plan."
+      ],
+      "outcomes": [
+        "Explain what a language model does, where it fails, and how to verify an AI draft before it is used.",
+        "Write prompts and build repeatable AI workflows for the work the learner already owns.",
+        "Analyse data and produce reports with AI assistance, checking the result against the source.",
+        "Apply AI to the tasks of a specific occupation, with that occupation's own examples and constraints.",
+        "Lead AI adoption: choose use cases, set review steps, and measure whether the work improved.",
+        "Govern AI use: data handling, disclosure, bias and risk review under an organisation's policy."
+      ],
+      "courseDescriptions": {
+        "FAI101": "What a language model actually does, which tasks to hand it, what data may go in, and the verification habit every AI draft needs before it is used.",
+        "FAI102": "Briefs instead of wishes: prompts that state the task, the source and the standard, iteration that converges, and a prompt library a team can share.",
+        "FAI103": "From a business question to a checked answer: what AI analysis can and cannot tell you, assisted analysis with checks, and reporting for a decision.",
+        "FAI104": "Map the work before automating it, build the workflow on the tools the role already uses, handle client-facing work, then pilot, measure and hand it over.",
+        "FAI105": "A manager's map of AI, process improvement rather than tool envy, what changes for roles and people, and the business case with its rules attached.",
+        "FAI106": "The frameworks that apply, a risk assessment you can defend, transparency and worker rights, and vendor review with an incident response path."
+      },
+      "courses": [
+        "course-v1:InnotelLabs+FAI101+2026_T4",
+        "course-v1:InnotelLabs+FAI102+2026_T4",
+        "course-v1:InnotelLabs+FAI103+2026_T4",
+        "course-v1:InnotelLabs+FAI104+2026_T4",
+        "course-v1:InnotelLabs+FAI105+2026_T4",
+        "course-v1:InnotelLabs+FAI106+2026_T4"
+      ]
+    }
+  ]
+}

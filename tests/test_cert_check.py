@@ -98,7 +98,7 @@ class Expiry(unittest.TestCase):
         stale = self.now() - timedelta(days=3)
         cert._finish(result, "lms.innotel.us", 443, 1.0, cert.WARN_DAYS, LEAF + ISSUER,
                      {"notAfter": stale.strftime("%b %d %H:%M:%S %Y GMT"),
-                      "subjectAltName": (("DNS", "lms.innotel.us"),)})
+                      "subjectAltName": (("DNS", "lms.innotel.us"),)}, now=self.now())
         self.assertFalse(result.ok)
         self.assertTrue(any("expired" in f for f in result.failures))
 
@@ -106,7 +106,7 @@ class Expiry(unittest.TestCase):
         result = cert.Result(host="lms.innotel.us")
         soon = self.now() + timedelta(days=5)
         cert._finish(result, "lms.innotel.us", 443, 1.0, cert.WARN_DAYS, LEAF + ISSUER,
-                     {"notAfter": soon.strftime("%b %d %H:%M:%S %Y GMT")})
+                     {"notAfter": soon.strftime("%b %d %H:%M:%S %Y GMT")}, now=self.now())
         self.assertTrue(result.ok)
         self.assertTrue(any("renews in" in w for w in result.warnings))
 

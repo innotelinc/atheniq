@@ -145,6 +145,21 @@ SESSION_COOKIE_DOMAIN = "{{ ATHENIQ_SESSION_COOKIE_DOMAIN }}"
 CSRF_COOKIE_DOMAIN = "{{ ATHENIQ_SESSION_COOKIE_DOMAIN }}"
 SESSION_COOKIE_SAMESITE = "Lax"
 {% endif %}
+# AthenIQ: the authoring app is served from the LMS host (`/authoring`), but
+# every course it lists, opens and edits is a CMS API call to this host. Tutor
+# whitelists only <studio> and <apps>, so those calls were answered without
+# `Access-Control-Allow-Origin` and the app gave up with "Failed to load Studio
+# home" — with a perfectly good session behind it.
+CORS_ORIGIN_WHITELIST.append("https://{{ LMS_HOST }}")
+CSRF_TRUSTED_ORIGINS.append("https://{{ LMS_HOST }}")
+{% for host in ATHENIQ_LEGACY_LMS_HOSTS %}
+CORS_ORIGIN_WHITELIST.append("https://{{ host }}")
+CSRF_TRUSTED_ORIGINS.append("https://{{ host }}")
+{% endfor %}
+{% for host in ATHENIQ_LEGACY_MFE_HOSTS %}
+CORS_ORIGIN_WHITELIST.append("https://{{ host }}")
+CSRF_TRUSTED_ORIGINS.append("https://{{ host }}")
+{% endfor %}
 """,
     )
 )
@@ -162,7 +177,7 @@ SESSION_COOKIE_SAMESITE = "Lax"
 MFE_PATHS = (
     "catalog", "learning", "learner-dashboard", "profile", "account",
     "discussions", "authoring", "communications", "gradebook", "ora-grading",
-    "admin-console",
+    "admin-console", "instructor-dashboard",
     # The LMS redirects /login and /register here; without the proxy the
     # redirect lands on the LMS's 404.
     "authn",
@@ -242,7 +257,13 @@ hooks.Filters.ENV_PATCHES.add_item(
         """
 def _atheniq_one_domain(value):
     if isinstance(value, str):
-        return value.replace("https://{{ MFE_HOST }}", "https://{{ LMS_HOST }}")
+        # Both forms occur: URLs carry the scheme, `BASE_URL` does not (the
+        # frontend-platform config names the API host bare). Leaving that one on
+        # the apps host was the difference between "the app works" and "the app
+        # calls the LMS cross-origin with no session", so replace the bare name
+        # too — after the URL form, so `https://` is never doubled.
+        return (value.replace("https://{{ MFE_HOST }}", "https://{{ LMS_HOST }}")
+                    .replace("{{ MFE_HOST }}", "{{ LMS_HOST }}"))
     if isinstance(value, list):
         return [_atheniq_one_domain(item) for item in value]
     if isinstance(value, dict):
@@ -253,14 +274,19 @@ MFE_CONFIG = _atheniq_one_domain(MFE_CONFIG)
 FRONTEND_SITE_CONFIG = _atheniq_one_domain(FRONTEND_SITE_CONFIG)
 FRONTEND_SITE_CONFIG.setdefault("commonAppConfig", {})["MFE_CONFIG"] = MFE_CONFIG
 
-# The MFE settings also live in individual module-level URLs (the LMS templates
-# and Studio redirects read these, not MFE_CONFIG). Rewrite every public string
-# that still names the apps host, so no link leaves the university domain.
+# The MFE settings also live in individual module-level URLs: the LMS builds its
+# own links from these, not from MFE_CONFIG — `INSTRUCTOR_MICROFRONTEND_URL`,
+# `GRADEBOOK_MICROFRONTEND_URL`, `PROFILE_MICROFRONTEND_URL`,
+# `FRONTEND_LOGIN_URL` and their neighbours. They are generated from `MFE_HOST`,
+# so each still sent the learner to `apps.<host>` after the apps moved onto the
+# university host. Rewrite every upper-case setting that names the apps host, by
+# the configured name rather than by a literal written here: the host has been
+# renamed before and a hard-coded one silently stops matching.
 for _atheniq_name, _atheniq_value in list(globals().items()):
     if (_atheniq_name.isupper() and isinstance(_atheniq_value, str)
-            and "https://apps.learn.innotel.us" in _atheniq_value):
+            and "https://{{ MFE_HOST }}" in _atheniq_value):
         globals()[_atheniq_name] = _atheniq_value.replace(
-            "https://apps.learn.innotel.us", "https://learn.innotel.us")
+            "https://{{ MFE_HOST }}", "https://{{ LMS_HOST }}")
 """,
     ),
     priority=hooks.priorities.LOW,
@@ -297,10 +323,12 @@ hooks.Filters.ENV_PATCHES.add_item(
 }
 {% endfor %}
 {% for host in ATHENIQ_LEGACY_MFE_HOSTS %}
-# AthenIQ: another MFE hostname. The bundle is host-agnostic and reads its
-# config from the LMS, so it serves the renamed platform correctly.
+# AthenIQ: an MFE hostname from before the rename. Every app it served now
+# lives under the university host, so an old bookmark is sent there — one
+# address for the platform, rather than a second copy of the bundle on an
+# origin nothing else is configured for.
 {{ host }}{$default_site_port} {
-    import proxy "mfe:8002"
+    redir https://{{ LMS_HOST }}{uri} 301
 }
 {% endfor %}
 """,

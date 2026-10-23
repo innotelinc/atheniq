@@ -188,6 +188,38 @@ services:
       retries: 3
 
   # ------------------------------------------------------------------
+  # Workforce development — `workforce.<domain>`.
+  #
+  # `web/workforce/` is the workforce division's own site: the funded programs
+  # (starting with FAST AI for Massachusetts employers), what they cost, which
+  # courses they contain and how they run. It is generated from
+  # `config/workforce-programs.json` plus the OLX courseware, so it cannot drift
+  # from the catalog, and it is served straight from the repository like the
+  # landing pages.
+  #
+  # The Unity theme assets are mounted from `web/landing/assets/` rather than
+  # copied: one canonical theme file, two sites. TLS and the public name belong
+  # to the edge (NPM), which is why this listens on plain HTTP.
+  # ------------------------------------------------------------------
+  workforce:
+    image: caddy:2.11.4
+    container_name: atheniq-workforce
+    restart: unless-stopped
+    mem_limit: 128m
+    memswap_limit: 128m
+    command: ["caddy", "file-server", "--root", "/srv", "--listen", ":80"]
+    ports:
+      - "${WORKFORCE_BIND:-0.0.0.0}:${WORKFORCE_PORT:-8087}:80"
+    volumes:
+      - ./web/workforce:/srv:ro
+      - ./web/landing/assets:/srv/assets:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ------------------------------------------------------------------
   # Course-generation console — `ai.lms.<domain>`.
   #
   # The staff screen for generating the classrooms a course spec describes

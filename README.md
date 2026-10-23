@@ -145,6 +145,7 @@ atheniq/
 ├── docs/                      # Architecture, Integrations, Deployment, stack role
 ├── web/landing/               # Static GitHub Pages landing page (AthenIQ)
 ├── web/innotel/               # Innotel Labs company site — served at innotel.us
+├── web/workforce/             # AthenIQ Workforce — served at workforce.<domain> (FAST AI)
 ├── .github/workflows/         # CI, attribution guard, Pages publish
 ├── .githooks/                 # Local attribution guard (shared with CI)
 ├── docker-compose.yml         # AI + realtime services: OpenMAIC Postgres, Convex
@@ -172,6 +173,8 @@ make gating        # print the in-LMS track gating (prerequisite) plan
 make check-gating  # fail if the catalog cannot be gated cleanly
 make check-courses # validate the OLX course packages under courses/
 make check-classrooms # validate the OpenMAIC classroom specs against the OLX
+make workforce-site   # regenerate workforce.atheniq.online from the program config
+make check-workforce-site # fail if the workforce page is stale
 make images        # render the PNG brand + course-card assets (needs Pillow)
 make course-photos # fetch the course-card photographs (per-subject pool)
 make check-brand   # fail if the brand mark drifts between the generator and the SVGs
