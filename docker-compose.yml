@@ -207,12 +207,17 @@ services:
     restart: unless-stopped
     mem_limit: 128m
     memswap_limit: 128m
-    command: ["caddy", "file-server", "--root", "/srv", "--listen", ":80"]
+    # The Caddyfile exists because `/assets/` is a second mount: a directory
+    # cannot be bind-mounted inside another read-only one, so the two roots are
+    # joined by a rule instead of by nesting (`caddy file-server --root /srv`
+    # could only serve one).
+    command: ["caddy", "run", "--config", "/etc/caddy/workforce.Caddyfile", "--adapter", "caddyfile"]
     ports:
       - "${WORKFORCE_BIND:-0.0.0.0}:${WORKFORCE_PORT:-8087}:80"
     volumes:
-      - ./web/workforce:/srv:ro
-      - ./web/landing/assets:/srv/assets:ro
+      - ./web/workforce:/srv/site:ro
+      - ./web/landing/assets:/srv/landing/assets:ro
+      - ./deploy/caddy/workforce.Caddyfile:/etc/caddy/workforce.Caddyfile:ro
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/"]
       interval: 30s

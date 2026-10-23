@@ -1,0 +1,22 @@
+# workforce.atheniq.online — the workforce division's site.
+#
+# The page is generated into web/workforce/ and uses the same Unity assets as
+# the university's landing page. Those assets live in web/landing/assets and are
+# mounted here read-only rather than copied into the workforce tree: one copy in
+# the repository, one copy to keep in step. `/assets/` is therefore served from
+# the landing mount and everything else from the workforce mount — a bind mount
+# cannot be nested inside another read-only one, which is why this is a Caddyfile
+# and not `caddy file-server --root`.
+:80 {
+	encode gzip
+
+	handle /assets/* {
+		root * /srv/landing
+		file_server
+	}
+
+	handle {
+		root * /srv/site
+		file_server
+	}
+}
