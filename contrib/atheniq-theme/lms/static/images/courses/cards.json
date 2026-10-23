@@ -1,0 +1,32 @@
+{
+  "cards": [
+    {
+      "bytes": 56263,
+      "code": "TST101",
+      "credential": "Test Degree",
+      "credits": 3,
+      "description": "A first course about <testing> & evidence.",
+      "file": "TST101.jpg",
+      "program": "Test Program",
+      "semester": "Foundations",
+      "term": "Fall 2026",
+      "title": "Testing & Things"
+    },
+    {
+      "bytes": 53927,
+      "code": "TST102",
+      "credential": "Test Degree",
+      "credits": 4,
+      "description": "",
+      "file": "TST102.jpg",
+      "program": "Test Program",
+      "semester": "Practice",
+      "term": "Fall 2026",
+      "title": "Testing Further"
+    }
+  ],
+  "size": [
+    1600,
+    900
+  ]
+}

@@ -462,8 +462,10 @@ def render_cert_pdf(cert, signer_name, signer_title, out_path):
         "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
         "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 %d %d] "
         "/Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>" % (W, H),
-        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>",
+        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica "
+        "/Encoding /WinAnsiEncoding >>",
+        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold "
+        "/Encoding /WinAnsiEncoding >>",
     ]
     content.append("<< /Length %d >>\nstream\n%s\nendstream" % (len(stream), stream))
     pdf = "%PDF-1.4\n"
@@ -477,8 +479,13 @@ def render_cert_pdf(cert, signer_name, signer_title, out_path):
     for o in offsets:
         pdf += "%010d 00000 n \n" % o
     pdf += "trailer << /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n" % (len(content) + 1, xref)
+    # WinAnsi (cp1252), not ISO-8859-1: the fonts are declared with
+    # `/Encoding /WinAnsiEncoding`, and a credential named with an em dash —
+    # "FAST AI — Applied AI Skills" — exists in cp1252 (0x97) but not in
+    # latin-1, where writing it raised UnicodeEncodeError and lost the signature.
+    # `replace` keeps an unsupported character from costing the whole document.
     with open(out_path, "wb") as fh:
-        fh.write(pdf.encode("latin-1"))
+        fh.write(pdf.encode("cp1252", "replace"))
     return out_path
 
 
