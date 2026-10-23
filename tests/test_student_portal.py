@@ -67,7 +67,7 @@ class PortalTests(unittest.TestCase):
         card = payload["programs"][0]
         self.assertEqual(card["credential"], "Bachelor of Science in Criminal Justice")
         self.assertEqual(card["semesters"], 8)
-        self.assertEqual(len(payload["templates"]), 3)
+        self.assertEqual(len(payload["templates"]), 4)
 
     def test_program_detail_never_carries_learner_data(self):
         status, body = get(self.base, f"/api/public/programs/{self.doc['id']}")

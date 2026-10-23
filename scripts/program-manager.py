@@ -124,6 +124,30 @@ def _is_credit_minimum(problem: str) -> bool:
         problem.startswith("a bachelor's credential requires")
 
 
+def is_noncredit(doc: dict) -> bool:
+    """Whether a credential is awarded without credit hours.
+
+    FAST AI is workforce training: six short, stackable courses funded by
+    Commonwealth Corporation, with no semester hours and no credit claim to
+    make. Giving them an invented credit value so a degree-shaped store would
+    accept them would put a number on a state-funded certificate that its
+    program does not award. A `certificate` with no credit hours is therefore
+    valid and tracked by completion; a degree whose courses carry no credits is
+    still refused by `validate`.
+    """
+    return (str(doc.get("credentialKind") or "") == "certificate"
+            and int(doc.get("totalCredits") or 0) == 0)
+
+
+def _credit_floor(document_kind) -> int:
+    """The lowest credit value a course may carry on this credential.
+
+    Zero is allowed for a certificate (a non-credit workforce program); a degree
+    course is always worth at least one credit.
+    """
+    return 0 if str(document_kind or "degree") == "certificate" else 1
+
+
 class TemplateStore:
     """The catalog: the templates that ship with the platform, and the ones an
     operator writes.
@@ -327,8 +351,10 @@ class TemplateStore:
                     credits = int(raw.get("credits", 3))
                 except (TypeError, ValueError):
                     raise ProgramError(400, f"{code}: credits must be a whole number") from None
-                if not 1 <= credits <= 12:
-                    raise ProgramError(400, f"{code}: credits must be between 1 and 12")
+                floor = _credit_floor(merged.get("credentialKind"))
+                if not floor <= credits <= 12:
+                    raise ProgramError(
+                        400, f"{code}: credits must be between {floor} and 12")
                 prereq = raw.get("prerequisites") or []
                 if isinstance(prereq, str):
                     prereq = [prereq]
@@ -576,8 +602,10 @@ class ProgramStore:
                     credits = int(credits)
                 except (TypeError, ValueError):
                     raise ProgramError(400, f"{code}: credits must be a whole number") from None
-                if credits < 1 or credits > 12:
-                    raise ProgramError(400, f"{code}: credits must be between 1 and 12")
+                floor = _credit_floor(body.get("credentialKind"))
+                if credits < floor or credits > 12:
+                    raise ProgramError(
+                        400, f"{code}: credits must be between {floor} and 12")
                 prereq = raw.get("prerequisites") or []
                 if isinstance(prereq, str):
                     prereq = [prereq]
@@ -638,9 +666,10 @@ class ProgramStore:
         courses = self._course_map(doc)
         if not courses:
             return ["the program has no courses"]
+        noncredit = is_noncredit(doc)
         for semester in doc.get("semesters", []):
             for course in semester.get("courses", []):
-                if not course.get("credits", 0) > 0:
+                if not noncredit and not course.get("credits", 0) > 0:
                     problems.append(f"{course['code']} has no credits")
                 for prereq in course.get("prerequisites") or []:
                     if prereq not in courses:
@@ -1166,15 +1195,31 @@ class ProgramStore:
                         "score": score, "source": sources.get(code),
                     })
 
-        gpa = round(points / earned, 2) if earned else 0.0
+        if earned:
+            gpa = round(points / earned, 2)
+        elif completed:
+            # A non-credit credential has no hours to weight by, so its grade
+            # point average is the plain mean of the completed courses. Leaving
+            # it at 0.0 would read as a failing average in the console and in
+            # the conferral record.
+            scored = [row["score"] for row in completed if row.get("score") is not None]
+            gpa = (round(sum(grade_points(score) for score in scored) / len(scored), 2)
+                   if scored else 0.0)
+        else:
+            gpa = 0.0
         certificates = self._certificates_earned(doc, student)
         blockers = []
-        if earned < int(doc.get("totalCredits") or 0):
-            blockers.append(f"{doc.get('totalCredits')} credits required, {earned} earned")
+        required = int(doc.get("totalCredits") or 0)
+        if required and earned < required:
+            blockers.append(f"{required} credits required, {earned} earned")
         if remaining:
             blockers.append(f"{len(remaining)} course(s) still incomplete")
-        if gpa < float(doc.get("minGpa") or 2.0):
-            blockers.append(f"GPA {gpa} is below the {doc.get('minGpa')} minimum")
+        # `or 2.0` would turn a deliberate 0.0 minimum back into 2.0, which is
+        # how a non-credit certificate would fail a rule it never set.
+        minimum_gpa = doc.get("minGpa")
+        minimum_gpa = 2.0 if minimum_gpa is None else float(minimum_gpa)
+        if gpa < minimum_gpa:
+            blockers.append(f"GPA {gpa} is below the {minimum_gpa} minimum")
         failed_finals = [row["code"] for row in final_rows
                          if row["score"] is not None and not row["passed"]]
         if failed_finals:

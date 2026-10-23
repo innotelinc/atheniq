@@ -559,11 +559,22 @@ it forwards.
 
 The console also runs whole credentials. A program is the ordered set of
 semesters, courses, prerequisites and final assessments that ends in a degree or
-a stackable certificate; `scripts/program-catalog.py` ships three
-(`criminal-justice`, `business-administration`, `nursing`) and
+a stackable certificate; `scripts/program-catalog.py` ships four
+(`criminal-justice`, `business-administration`, `nursing`, `fast-ai`) and
 `scripts/program-manager.py` holds the rules. Programs are stored as JSON under
 `GENERATION_ROOT/programs/`, so the store must be writable by the unit's user
 (`tutor` on this host) and `conferrals/` beside it receives the signed record.
+
+`fast-ai` is the workforce-development program: a `certificate` credential with
+**no credit hours**, one cohort instead of semesters, and six courses (FAI101–
+FAI106) that are stackable and independently enrollable, so none of them
+requires another. Credentials like it are tracked by completion — progress
+reports no credits, the grade point average is the plain mean of the completed
+courses rather than a credit-weighted 0.0, and the credential is conferred when
+every course is passed. Degrees are unaffected: a `degree` whose courses carry
+no credits is still refused. The course list and descriptions are the ones
+`config/workforce-programs.json` publishes on workforce.atheniq.online, and
+`tests/test_programs.py` fails if the two drift apart.
 
 ```text
 GET    /api/programs                     running programs + catalog templates
@@ -832,10 +843,18 @@ course key the repo does not hold is a build error, not a broken link.
 
 It is served by the `workforce` service on `WORKFORCE_BIND:WORKFORCE_PORT`
 (`192.168.1.59:8087`), with `web/landing/assets/` mounted beside it for the
-canonical Unity theme — one theme file, two sites. Its public name needs the same
-three things every name in this table needs: an NPM proxy host pointing at that
-port, a certificate covering the name, and a zone record; see § *Cerulean DNS and
-TLS*. Set `WORKFORCE_BIND`/`WORKFORCE_PORT` in `.env` first.
+canonical Unity theme — one theme file, two sites. The two mounts cannot nest (a
+bind mount inside another read-only one is refused), so the container runs
+`deploy/caddy/workforce.Caddyfile`, which serves `/assets/` from the landing
+mount and everything else from `web/workforce/`. Set
+`WORKFORCE_BIND`/`WORKFORCE_PORT` in `.env` first.
+
+Live: `https://workforce.atheniq.online` — CNAME `workforce` → `atheniq.online`
+in the `atheniq.online` zone (Cerulean DNS/Technitium), NPM proxy host pointing at
+`192.168.1.59:8087`, and the existing `*.atheniq.online` certificate
+(`CN=atheniq.online`, expires 2027-01-20) attached to it. No certificate of its
+own is needed while the wildcard is current; re-issue the wildcard rather than
+attaching a new name-only certificate.
 
 ### Library — shared media shelves
 

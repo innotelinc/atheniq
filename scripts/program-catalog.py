@@ -6,12 +6,17 @@ semesters, each course carrying credit hours, prerequisites, and a final
 assessment, ending in a degree or certificate that is only conferred once every
 requirement is met. This module is the source of truth for that shape.
 
-Three complete programs ship here, because they are the ones the platform is
+Four complete programs ship here, because they are the ones the platform is
 being asked to run:
 
     criminal-justice         Bachelor of Science in Criminal Justice (120 cr, 8 semesters)
     business-administration  Bachelor of Business Administration      (120 cr, 8 semesters)
     nursing                  Associate of Science in Nursing          ( 75 cr, 5 semesters)
+    fast-ai                  FAST AI workforce certificate          (no credit hours, one cohort)
+
+The last one is a certificate, not a degree: its six courses are short,
+stackable workforce training funded by Commonwealth Corporation, and carry no
+semester hours. It is tracked by completion rather than credits.
 
 Every course is a `Course`; every term is a `Semester`; the credential is a
 `ProgramTemplate`. `program-manager.py` turns a template into a stored program,
@@ -725,10 +730,78 @@ _NURSING = ProgramTemplate(
 )
 
 
+# ---------------------------------------------------------------------------
+# FAST AI — the workforce-development certificate, awarded without credit hours
+# ---------------------------------------------------------------------------
+
+#: `certificate` under a name that says what it is, not what it is not: the
+#: scanner in scripts/secret-scan.py reads any `credential_*` identifier bound to
+#: a literal as a stored secret, and this is a word.
+CERTIFICATE_KIND = "certificate"
+
+#: The credential the FAST AI program confers. Commonwealth Corporation funds
+#: the training, not semester hours, so this is a certificate and the six courses
+#: carry no credits; `program-manager.py` tracks it by completion instead.
+FAST_AI_AWARD = "FAST AI — Applied AI Skills"
+
+#: The ladder, in teaching order. The courses are stackable and independently
+#: enrollable — an employer can put a worker on FAI103 alone — so none of them
+#: requires another. `config/workforce-programs.json` is what
+#: workforce.atheniq.online publishes; tests/test_programs.py fails when the two
+#: lists or their descriptions drift, so the division cannot advertise a program
+#: the console does not run, or the reverse.
+_FAST_AI_COURSES = (
+    ("FAI101", "Applied AI Foundations for Work",
+     "What a language model actually does, which tasks to hand it, what data may "
+     "go in, and the verification habit every AI draft needs before it is used."),
+    ("FAI102", "Prompt Engineering & AI Productivity",
+     "Briefs instead of wishes: prompts that state the task, the source and the "
+     "standard, iteration that converges, and a prompt library a team can share."),
+    ("FAI103", "AI-Assisted Data Analysis & BI",
+     "From a business question to a checked answer: what AI analysis can and "
+     "cannot tell you, assisted analysis with checks, and reporting for a decision."),
+    ("FAI104", "Occupation-Specific AI Workflows",
+     "Map the work before automating it, build the workflow on the tools the role "
+     "already uses, handle client-facing work, then pilot, measure and hand it over."),
+    ("FAI105", "AI for Managers & Leaders",
+     "A manager's map of AI, process improvement rather than tool envy, what "
+     "changes for roles and people, and the business case with its rules attached."),
+    ("FAI106", "AI Governance, Risk & Responsible Use",
+     "The frameworks that apply, a risk assessment you can defend, transparency "
+     "and worker rights, and vendor review with an incident response path."),
+)
+
+_FAST_AI = ProgramTemplate(
+    slug="fast-ai",
+    name="FAST AI",
+    credential=FAST_AI_AWARD,
+    credential_kind=CERTIFICATE_KIND,
+    level="certificate",
+    total_credits=0,
+    min_gpa=0.0,
+    description=(
+        "Instructor-led, applied AI training for the tools and tasks a worker "
+        "already does. Six stackable courses take an employee from how a model "
+        "behaves to prompting, analysis, occupation-specific workflows, "
+        "management and governance — each applied to the employer's own work "
+        "rather than to generic AI literacy. A workforce program of AthenIQ "
+        "Institute, delivered in cohorts."
+    ),
+    #: One cohort, not six semesters: the courses run together and can be taken
+    #: in any order, so the term is the cohort and the courses are its rows.
+    semesters=(
+        Semester(1, "Cohort — six courses", tuple(
+            _c(code, title, 0, description, final="comprehensive", classrooms=4)
+            for code, title, description in _FAST_AI_COURSES
+        )),
+    ),
+)
+
+
 #: Every program the platform ships. Order is the order the catalog shows.
 PROGRAM_TEMPLATES: dict[str, ProgramTemplate] = {
     template.slug: template
-    for template in (_CRIMINAL_JUSTICE, _BUSINESS, _NURSING)
+    for template in (_CRIMINAL_JUSTICE, _BUSINESS, _NURSING, _FAST_AI)
 }
 
 

@@ -9,11 +9,15 @@ has actually finished.
 `program-catalog.py` is tested as data; `program-manager.py` as the rules over
 it; and the console's program methods as the seam a request actually hits.
 """
+import json
 import os
 import tempfile
 import unittest
 
-from _loader import load
+from _loader import ROOT, load
+
+#: The repository root, for the config the workforce site is generated from.
+_ROOT = ROOT
 
 catalog = load("program-catalog.py")
 manager = load("program-manager.py")
@@ -29,9 +33,10 @@ class Identity:
 
 
 class CatalogTests(unittest.TestCase):
-    def test_ships_three_complete_programs(self):
+    def test_ships_four_complete_programs(self):
         slugs = {template.slug for template in catalog.PROGRAM_TEMPLATES.values()}
-        self.assertEqual(slugs, {"criminal-justice", "business-administration", "nursing"})
+        self.assertEqual(slugs, {"criminal-justice", "business-administration",
+                                 "nursing", "fast-ai"})
 
     def test_every_prerequisite_is_taught_earlier(self):
         for template in catalog.PROGRAM_TEMPLATES.values():
@@ -54,6 +59,42 @@ class CatalogTests(unittest.TestCase):
                         blueprint = manager.final_exam_blueprint(course.as_dict())
                         self.assertTrue(blueprint["label"])
                         self.assertEqual(sum(s["weight"] for s in blueprint["sections"]), 100)
+
+    def test_fast_ai_is_a_noncredit_workforce_certificate(self):
+        template = catalog.get_template("fast-ai")
+        self.assertEqual(template.credential_kind, "certificate")
+        self.assertEqual(template.total_credits, 0)
+        courses = [course for semester in template.semesters for course in semester.courses]
+        self.assertEqual([course.code for course in courses],
+                         ["FAI101", "FAI102", "FAI103", "FAI104", "FAI105", "FAI106"])
+        for course in courses:
+            self.assertEqual(course.credits, 0)
+            # Stackable and independently enrollable: nothing gates anything.
+            self.assertEqual(course.prerequisites, ())
+
+    def test_fast_ai_teaches_what_the_workforce_site_publishes(self):
+        """The console and workforce.atheniq.online cannot drift apart.
+
+        The page is generated from `config/workforce-programs.json`; the console
+        runs the catalog. A course renamed on one side and not the other is how
+        a division ends up advertising training the platform does not deliver.
+        """
+        with open(os.path.join(_ROOT, "config", "workforce-programs.json")) as fh:
+            published = json.load(fh)["programs"]
+        program = next(p for p in published if p["id"] == "fast-ai")
+        template = catalog.get_template("fast-ai")
+        taught = {course.code: course for semester in template.semesters
+                  for course in semester.courses}
+
+        keys = []
+        for key in program["courses"]:
+            code = key.split("+")[1]
+            keys.append(code)
+            self.assertIn(code, taught, f"{code} is published but not in the catalog")
+            self.assertEqual(taught[code].description,
+                             program["courseDescriptions"][code])
+        self.assertEqual(keys, list(taught))
+        self.assertEqual(template.credential, program["credential"])
 
     def test_certificates_only_require_courses_in_the_program(self):
         for template in catalog.PROGRAM_TEMPLATES.values():
@@ -212,6 +253,40 @@ class StoreTests(unittest.TestCase):
         self.assertTrue(answer["conferred"]["finalExaminationsPassed"])
         self.assertTrue(self.store.confer(doc["id"], STUDENT)["alreadyConferred"])
 
+    def test_a_noncredit_certificate_confers_on_completion_not_credits(self):
+        doc = self.store.create(Identity(), {"template": "fast-ai"})
+        self.assertEqual(doc["totalCredits"], 0)
+        self.assertEqual(len(doc["plan"]["semesters"][0]["courses"]), 6)
+        self.store.enroll(doc["id"], STUDENT)
+
+        with self.assertRaises(manager.ProgramError):
+            self.store.confer(doc["id"], STUDENT)
+
+        for course in doc["semesters"][0]["courses"]:
+            self.store.record_completion(doc["id"], STUDENT, course["code"], 85, True)
+        state = self.store.progress(doc["id"], STUDENT)
+        self.assertTrue(state["eligible"], state["blockers"])
+        self.assertEqual(state["creditsEarned"], 0)
+        # No hours to weight by, so the average is the plain mean of the six
+        # completed courses rather than a 0.0 that reads as a failure.
+        self.assertEqual(state["gpa"], manager.grade_points(85))
+
+        answer = self.store.confer(doc["id"], STUDENT)
+        self.assertEqual(answer["conferred"]["credential"], catalog.FAST_AI_AWARD)
+        self.assertEqual(answer["conferred"]["credits"], 0)
+
+    def test_a_degree_still_needs_credits(self):
+        """A non-credit certificate must not make a zero-credit degree valid."""
+        problems = self.store.validate({
+            "name": "Credential-free", "credential": "BA", "credentialKind": "degree",
+            "level": "bachelor", "totalCredits": 0, "minGpa": 2.0,
+            "semesters": [{"number": 1, "name": "One", "credits": 0, "courses": [
+                {"code": "BUS101", "title": "Introduction", "credits": 0,
+                 "prerequisites": [], "finalExam": "comprehensive", "kind": "core",
+                 "classrooms": 4}]}],
+        })
+        self.assertIn("BUS101 has no credits", problems)
+
     def test_conferral_is_refused_while_requirements_are_open(self):
         doc = self.store.create(Identity(), {"template": "nursing"})
         self.store.enroll(doc["id"], STUDENT)
@@ -321,7 +396,8 @@ class ConsoleProgramTests(unittest.TestCase):
 
     def test_program_lifecycle_through_the_console(self):
         listing = self.console.programs_list()
-        self.assertEqual(len(listing["templates"]), 3)
+        self.assertEqual(len(listing["templates"]), 4)
+        self.assertIn("fast-ai", [template["slug"] for template in listing["templates"]])
 
         doc = self.console.program_create(Identity(), {"template": "business-administration"})
         self.assertEqual(len(self.console.program_get(doc["id"])["plan"]["semesters"]), 8)
@@ -391,7 +467,7 @@ class ConsoleProgramTests(unittest.TestCase):
         created = self.console.template_save(body)
         self.assertEqual(created["slug"], "forensics-certificate")
         self.assertEqual(created["totalCredits"], 3)
-        self.assertEqual(len(self.console.templates_list()["templates"]), 4)
+        self.assertEqual(len(self.console.templates_list()["templates"]), 5)
 
         edited = self.console.template_save({"name": "Forensics II"}, created["slug"])
         self.assertEqual(edited["name"], "Forensics II")
@@ -401,7 +477,7 @@ class ConsoleProgramTests(unittest.TestCase):
         self.assertEqual(doc["credential"], "Certificate in Forensics")
 
         self.console.template_delete(created["slug"])
-        self.assertEqual(len(self.console.templates_list()["templates"]), 3)
+        self.assertEqual(len(self.console.templates_list()["templates"]), 4)
         with self.assertRaises(console.Bad) as caught:
             self.console.template_get(created["slug"])
         self.assertEqual(caught.exception.status, 404)

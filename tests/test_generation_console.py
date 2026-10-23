@@ -686,7 +686,7 @@ class HttpSurface(GatewayCase):
     def test_templates_are_served_created_edited_and_removed(self):
         status, body, _ = self.call("/api/templates", headers=self.signed())
         self.assertEqual(status, 200)
-        self.assertEqual(len(body["templates"]), 3)
+        self.assertEqual(len(body["templates"]), 4)
 
         status, created, _ = self.mutate("/api/templates", body={
             "name": "Test Certificate", "credential": "Certificate in Testing",
@@ -710,7 +710,7 @@ class HttpSurface(GatewayCase):
         status, removed, _ = self.mutate(f"/api/templates/{created['slug']}", method="DELETE")
         self.assertEqual(status, 200)
         self.assertTrue(removed["ok"])
-        self.assertEqual(3, len(self.call("/api/templates", headers=self.signed())[1]["templates"]))
+        self.assertEqual(4, len(self.call("/api/templates", headers=self.signed())[1]["templates"]))
 
     def test_deleting_a_course_removes_its_spec(self):
         """The whole course directory goes, not just its `openmaic/` folder.

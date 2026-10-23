@@ -69,6 +69,14 @@ const toast = (message, kind = "ok") => {
 
 const isStaff = () => Boolean(state.me && state.me.mayGenerate);
 const badge = (text, kind = "") => el("span", { class: `badge ${kind}`.trim() }, text);
+
+// A workforce certificate is awarded without credit hours, so its scope is its
+// courses, not a credit count it never had. Degrees are unchanged.
+const scopeLine = (doc) => {
+  const terms = `${doc.semesters} ${doc.semesters === 1 ? "term" : "semesters"}`;
+  const courses = `${doc.courses} courses`;
+  return doc.totalCredits ? `${terms} · ${courses} · ${doc.totalCredits} credits` : `${terms} · ${courses}`;
+};
 const num = (value) => (value === null || value === undefined ? "—" : String(value));
 
 // -- catalog ---------------------------------------------------------------
@@ -80,8 +88,7 @@ const templateCard = (template) => el("button", {
   el("span", { class: "program-kind" }, template.credentialKind === "degree" ? "Degree" : "Certificate"),
   el("span", { class: "program-name" }, template.name),
   el("span", { class: "program-credential" }, template.credential),
-  el("span", { class: "program-meta" },
-    `${template.semesters} semesters · ${template.courses} courses · ${template.totalCredits} credits`),
+  el("span", { class: "program-meta" }, scopeLine(template)),
   el("span", { class: "program-desc" }, template.description),
   template.certificates && template.certificates.length
     ? el("span", { class: "program-certs" }, `Includes ${template.certificates.join(", ")}`)
@@ -96,8 +103,7 @@ const programCard = (program) => el("button", {
   el("span", { class: "program-kind" }, program.credentialKind === "degree" ? "Degree" : "Certificate"),
   el("span", { class: "program-name" }, program.name),
   el("span", { class: "program-credential" }, program.credential),
-  el("span", { class: "program-meta" },
-    `${program.semesters} semesters · ${program.courses} courses · ${program.totalCredits} credits`),
+  el("span", { class: "program-meta" }, scopeLine(program)),
   el("span", { class: "program-meta" },
     `${program.generated}/${program.courses} classrooms generated · `
     + `${program.built || 0} with lessons · ${program.enrolled} enrolled`),
@@ -149,8 +155,7 @@ const templateRow = (template) => el("div", { class: "template-item" },
   el("div", { class: "template-item-main" },
     el("div", { class: "template-item-name" }, template.name),
     el("div", { class: "template-item-sub" }, template.credential),
-    el("div", { class: "template-item-sub" },
-      `${template.semesters} semesters · ${template.courses} courses · ${template.totalCredits} credits`),
+    el("div", { class: "template-item-sub" }, scopeLine(template)),
   ),
   el("div", { class: "template-item-actions" },
     template.edited ? badge("edited here", "ready") : badge("shipped"),
@@ -701,8 +706,10 @@ const progressPanel = () => {
 
   return el("div", { class: "progress" },
     el("div", { class: "stat-grid" },
-      stat("credits earned", `${progress.creditsEarned} / ${progress.creditsRequired}`,
-           `${progress.creditsRemaining} to go`),
+      progress.creditsRequired
+        ? stat("credits earned", `${progress.creditsEarned} / ${progress.creditsRequired}`,
+               `${progress.creditsRemaining} to go`)
+        : null,
       stat("GPA", progress.gpa.toFixed(2),
            `minimum ${progress.minGpa}`),
       stat("courses complete", `${(progress.completed || []).length}`,
@@ -718,8 +725,8 @@ const progressPanel = () => {
     progress.conferred
       ? el("div", { class: "conferred" },
           el("b", {}, `${progress.conferred.credential} conferred`),
-          ` on ${progress.conferred.conferredAt} · GPA ${progress.conferred.gpa} · `,
-          `${progress.conferred.credits} credits`)
+          ` on ${progress.conferred.conferredAt} · GPA ${progress.conferred.gpa}`,
+          progress.conferred.credits ? ` · ${progress.conferred.credits} credits` : "")
       : el("div", { class: "confer-row" },
           el("div", {},
             progress.eligible
@@ -777,7 +784,7 @@ const renderDetail = () => {
       el("h2", {}, doc.name),
       el("div", { class: "program-credential" }, doc.credential),
       el("div", { class: "badge-row" },
-        badge(`${doc.totalCredits} credits`),
+        badge(doc.totalCredits ? `${doc.totalCredits} credits` : "no credit hours"),
         badge(`${plan.semesters.length} semesters`),
         badge(`${plan.finals.length} final examinations`),
         badge(`minimum GPA ${doc.minGpa}`),
