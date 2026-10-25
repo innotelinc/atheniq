@@ -22,7 +22,9 @@ through the Innotel Platform Stack.
 > Course engine (via [Tutor](https://github.com/overhangio/tutor)) meets
 > [OpenMAIC](https://github.com/THU-MAIC/OpenMAIC)'s generative multi-agent
 > classrooms, with **Authentik** as the identity provider and **Signara**
-> certifying course certificates. **Landing page:**
+> certifying course certificates. The Pages site is AthenIQ Institute's public face —
+> its degree and certificate tracks, the course catalogue, and the syllabi generated
+> from this repository's own catalogs. **Landing page:**
 > [innotelinc.github.io/atheniq](https://innotelinc.github.io/atheniq)
 
 ---
