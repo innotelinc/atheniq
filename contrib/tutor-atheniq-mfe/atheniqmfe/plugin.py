@@ -55,6 +55,32 @@ INDIGO_STYLED_MFES = [
 
 FOOTER_SLOT = "org.openedx.frontend.layout.footer.v1"
 
+#: Where Indigo renders the wordmark. It is one slot for every app, and Indigo
+#: fills it by hiding `default_contents` and inserting its own `custom_logo`.
+LOGO_SLOT = "logo_slot"
+
+#: Indigo registers that logo in all of these apps, not only the six it styles
+#: a footer for, so the override has to name the same set or the logo keeps its
+#: stock link in the rest.
+LOGO_MFES = [
+    "admin-console",
+    "authn",
+    "authoring",
+    "account",
+    "communications",
+    "discussions",
+    "gradebook",
+    "learner-dashboard",
+    "learning",
+    "ora-grading",
+    "profile",
+    "catalog",
+]
+
+#: The learner portal the wordmark should open. Indigo's own component points at
+#: `${LMS_BASE_URL}/dashboard`, which is the learner's course list, not the site.
+BRAND_URL = "https://atheniq.institute"
+
 #: The console's own base URL. Kept as one value so the create actions cannot
 #: drift from the pages they open.
 AI_CONSOLE_URL = "https://ai.lms.innotel.us/"
@@ -141,6 +167,66 @@ RenderWidget: AthenIQFooter,
 },
 """
 
+# The wordmark, defined here rather than by editing Indigo's package. Indigo's
+# components are inlined into `env.config.jsx` when `tutor config save` renders,
+# so patching `tutorindigo/components/ThemedLogo.jsx` in site-packages only
+# changes the next render — and any pip reinstall of the theme silently restores
+# the stock anchor. Owning the component in the plugin makes the link survive
+# both, and the slot below replaces Indigo's registration.
+#
+# The markup mirrors Indigo's, including the dark-variant swap, so the header is
+# visually identical; only the anchor differs.
+LOGO_COMPONENT = f"""
+const AthenIQLibLogo = () => {{
+  const BASE_URL = getConfig().LMS_BASE_URL;
+
+  return (
+    <>
+      <style>
+        {{`
+          #root header .logo-image.logo-white {{
+            display: none;
+          }}
+          [data-paragon-theme-variant="dark"] #root header .logo-image {{
+            display: none;
+          }}
+          [data-paragon-theme-variant="dark"] #root header .logo-white {{
+            display: block;
+          }}
+        `}}
+      </style>
+      <a href="{BRAND_URL}" title="AthenIQ" className="logo">
+        <img className="logo-image" src={{`${{BASE_URL}}/static/indigo/images/logo.png`}} alt="AthenIQ" />
+        <img className="logo-image logo-white" src={{`${{BASE_URL}}/static/indigo/images/logo-white.png`}} alt="AthenIQ" />
+      </a>
+    </>
+  );
+}};
+"""
+
+# Hide Indigo's logo and put ours in its place. Indigo's widget id is stable
+# (`custom_logo`); the `default_contents` hide stays so the stock Open edX
+# wordmark cannot reappear if Indigo stops inserting its own.
+LOGO_SLOT_CONFIG = """
+{
+op: PLUGIN_OPERATIONS.Hide,
+widgetId: 'default_contents',
+},
+{
+op: PLUGIN_OPERATIONS.Hide,
+widgetId: 'custom_logo',
+},
+{
+op: PLUGIN_OPERATIONS.Insert,
+widget: {
+id: 'atheniq_logo',
+type: DIRECT_PLUGIN,
+priority: 20,
+RenderWidget: AthenIQLibLogo,
+},
+},
+"""
+
 # The authoring app's own create row. The stock heading and "+ New course"
 # button are hidden rather than edited, because they live in the compiled
 # bundle; the four entries below are the whole create surface.
@@ -209,6 +295,9 @@ _tutor_hooks.Filters.ENV_PATCHES.add_item(
 _tutor_hooks.Filters.ENV_PATCHES.add_item(
     ("mfe-env-config-runtime-definitions", STUDIO_COMPONENT)
 )
+_tutor_hooks.Filters.ENV_PATCHES.add_item(
+    ("mfe-env-config-runtime-definitions", LOGO_COMPONENT)
+)
 
 # The legacy per-app stages and the site stage each build webpack, and each
 # carries its own "before the build" hook; refresh browserslist data in both.
@@ -221,6 +310,9 @@ if PLUGIN_SLOTS is not None:
     # The authoring app's create row, in the page slot rather than the header:
     # the four buttons belong over the studio list, not inside the nav.
     PLUGIN_SLOTS.add_items([("authoring", AUTHORING_SLOT, STUDIO_SLOT_CONFIG)])
+    # The wordmark's destination, in every app Indigo registers a logo in.
+    PLUGIN_SLOTS.add_items([(mfe, LOGO_SLOT, LOGO_SLOT_CONFIG)
+                            for mfe in LOGO_MFES])
 
 # Declarative hooks surface expected by the Tutor plugin loader (v0).
 hooks: dict = {}

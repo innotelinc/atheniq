@@ -57,6 +57,23 @@ is not installed.
 The LMS footer itself is replaced without a rebuild by
 [`contrib/atheniq-theme`](../atheniq-theme); this plugin is only for the MFEs.
 
+## The wordmark
+
+The header logo opens `https://atheniq.institute`. Indigo's `ThemedLogo` points
+at `${LMS_BASE_URL}/dashboard` — the learner's own course list — and it is
+**inlined into `env.config.jsx` when `tutor config save` renders**, so editing
+`tutorindigo/components/ThemedLogo.jsx` in site-packages only changes the next
+render, and any reinstall of the theme quietly restores the stock anchor.
+
+This plugin owns the component instead. It defines `AthenIQLibLogo` (the same
+markup, including Indigo's dark-variant swap, so the header looks unchanged) and
+replaces Indigo's registration in `logo_slot`: hide `custom_logo`, insert
+`atheniq_logo`. That slot is one id for all twelve apps Indigo brands —
+`authn`, `learning`, `learner-dashboard`, `catalog`, `profile`, `account`,
+`discussions`, `authoring`, `admin-console`, `communications`, `gradebook`,
+`ora-grading` — so `LOGO_MFES` names all twelve. Registering only the six apps
+that get the footer leaves the rest linking to the dashboard.
+
 ## Install
 
 ```bash

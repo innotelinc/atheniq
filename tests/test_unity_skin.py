@@ -344,6 +344,65 @@ class HeaderLinks(unittest.TestCase):
         self.assertNotIn("header_desktop_main_menu", self.text)
 
 
+class Wordmark(unittest.TestCase):
+    """The header wordmark opens the portal, and the plugin owns that link.
+
+    Indigo inlines its components into `env.config.jsx` at render time, so the
+    link cannot be fixed by editing `tutorindigo` in site-packages: the next
+    render, or any reinstall of the theme, restores `${BASE_URL}/dashboard`.
+    The plugin replaces Indigo's `custom_logo` in the `logo_slot` instead, which
+    is why these assertions are about the slot registration and not the theme.
+    """
+
+    MFE_PLUGIN = ROOT / "contrib" / "tutor-atheniq-mfe" / "atheniqmfe" / "plugin.py"
+
+    def setUp(self):
+        self.text = self.MFE_PLUGIN.read_text(encoding="utf-8")
+
+    def test_the_brand_url_is_the_portal(self):
+        self.assertIn('BRAND_URL = "https://atheniq.institute"', self.text)
+
+    def test_the_logo_is_rendered_from_the_plugin(self):
+        self.assertIn("LOGO_COMPONENT", self.text)
+        self.assertIn("const AthenIQLibLogo = ", self.text)
+        self.assertIn("RenderWidget: AthenIQLibLogo,", self.text)
+
+    def test_the_component_does_not_fall_back_to_the_dashboard(self):
+        start = self.text.index("LOGO_COMPONENT")
+        component = self.text[start:self.text.index("LOGO_SLOT_CONFIG")]
+        self.assertIn("href=\"{BRAND_URL}\"", component)
+        self.assertNotIn("/dashboard", component)
+
+    def test_indigos_logo_is_hidden_and_ours_inserted(self):
+        start = self.text.index("LOGO_SLOT_CONFIG")
+        config = self.text[start:self.text.index("\"\"\"", start + 20)]
+        self.assertIn("PLUGIN_OPERATIONS.Hide", config)
+        self.assertIn("widgetId: 'custom_logo'", config)
+        self.assertIn("PLUGIN_OPERATIONS.Insert", config)
+        self.assertIn("id: 'atheniq_logo'", config)
+        self.assertIn("DIRECT_PLUGIN", config)
+
+    def test_every_app_indigo_styles_gets_the_override(self):
+        self.assertIn('LOGO_SLOT = "logo_slot"', self.text)
+        start = self.text.index("LOGO_MFES = [")
+        apps = self.text[start:self.text.index("]", start)]
+        # Indigo registers its logo in twelve apps, not only the six it gives a
+        # footer; missing one leaves that app linking to the course list.
+        for app in ("authn", "learning", "learner-dashboard", "catalog",
+                    "profile", "account", "discussions", "authoring",
+                    "admin-console", "communications", "gradebook", "ora-grading"):
+            self.assertIn(f'"{app}"', apps)
+        self.assertIn("(mfe, LOGO_SLOT, LOGO_SLOT_CONFIG)", self.text)
+
+    def test_the_remediation_is_not_a_site_packages_patch(self):
+        # The comment above LOGO_COMPONENT names the old path to explain why it
+        # was abandoned; only executable lines matter here.
+        code = "\n".join(line for line in self.text.splitlines()
+                         if not line.lstrip().startswith("#"))
+        self.assertNotIn("tutorindigo/components/ThemedLogo.jsx", code)
+        self.assertNotIn("orig-logo", code)
+
+
 class HeaderNavSkin(unittest.TestCase):
     """The skins reach every app, including bundles built before the plugin fix."""
 
