@@ -37,6 +37,27 @@ class PlannedOutputs(unittest.TestCase):
                 self.assertEqual(size, images.CARD_SIZE)
 
 
+class CardTitles(unittest.TestCase):
+    """The card says the code once, and never depends on an em dash.
+
+    An OLX title is `CODE — Title`. Drawing it beside the `CODE` eyebrow said the
+    code twice, and the separator rendered as a box wherever the bold face was
+    missing — which is what the shipped cards showed before 2026-10-26.
+    """
+
+    def test_the_code_is_not_repeated_in_the_title(self):
+        entry = images._headline("SQL101 \u2014 SQL Essentials", "SQL101")
+        self.assertEqual(entry, "SQL Essentials")
+
+    def test_no_shipped_title_carries_the_code_or_a_dash(self):
+        for course in images.course_models():
+            self.assertNotIn(course["code"], course["title"], course["slug"])
+            self.assertNotIn("\u2014", course["title"], course["slug"])
+
+    def test_a_title_that_is_only_the_code_still_reads(self):
+        self.assertEqual(images._headline("SQL101", "SQL101"), "SQL101")
+
+
 class ShippedRasters(unittest.TestCase):
     def test_every_raster_exists_and_matches_its_spec(self):
         for path, size in images.planned_outputs():

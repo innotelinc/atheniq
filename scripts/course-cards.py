@@ -16,6 +16,12 @@ The photograph still comes from `scripts/course-photos.py` (the subject pool,
 picked by a hash of the code), but it is graded into the brand background and
 carries the course's own words, so no two cards read the same.
 
+A course is not always a line in a program plan. The workforce runs belong to
+*tracks* (`config/workforce-tracks.json`), where the track is the program and its
+credential is the footer, and a few catalog courses (the demo course) belong to no
+credential at all. Those are read from the same two files rather than composed by
+hand, so every card the catalog lists comes from this one renderer.
+
     python3 scripts/course-cards.py --programs DIR --out DIR
     python3 scripts/course-cards.py --programs DIR --out DIR --check
     python3 scripts/course-cards.py --programs DIR --out DIR --list
@@ -37,6 +43,15 @@ import sys
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PHOTO_DIR = os.path.join(REPO, "contrib", "atheniq-theme", "lms", "static",
                          "images", "courses")
+
+#: The workforce tracks: named ladders of catalog courses that share a credential.
+TRACKS_FILE = os.path.join(REPO, "config", "workforce-tracks.json")
+
+#: The catalog's own sheet — every sellable run and the name a learner reads.
+PRICES_FILE = os.path.join(REPO, "config", "course-prices.json")
+
+#: What a card says when its course belongs to no credential (the demo course).
+PLATFORM = "AthenIQ"
 
 CARD_SIZE = (1600, 900)
 
@@ -257,10 +272,133 @@ def render_card(entry, photo_path):
     return canvas
 
 
-def course_entries(programs_dir, term=None):
-    """[(entry, photo_path)] for every course in every program file."""
+def _read_json(path):
+    """The document at `path`, or None when there is nothing readable there."""
+    if not path:
+        return None
+    try:
+        with open(path, encoding="utf-8") as fh:
+            return json.load(fh)
+    except (OSError, ValueError):
+        return None
+
+
+def _run_term(key, term=None):
+    """The cohort label a catalog key carries (`2026_T4` reads `2026 T4`)."""
+    if term:
+        return str(term)
+    parts = str(key).split("+")
+    return parts[2].replace("_", " ") if len(parts) == 3 else ""
+
+
+def _headline(name, code):
+    """The course's own words: a catalog name is `CODE — Title`, and the chip
+    already carries the code, so the headline is what follows it."""
+    text = str(name or "").strip()
+    if code and text.upper().startswith(code.upper()):
+        text = text[len(code):].lstrip(" -\u2013\u2014:")
+    return text or code
+
+
+def _credential_of(track):
+    """The footer a track's cards carry: its own credential, when it has one."""
+    credential = track.get("credential")
+    if isinstance(credential, dict):
+        return str(credential.get("title") or "")
+    return str(credential or "")
+
+
+def track_entries(tracks_path, prices_path=None, term=None):
+    """[(entry, photo_path)] for every course of every active workforce track.
+
+    A track course is not a line in a program plan: it is a run the workforce
+    catalog sells, and what it belongs to is the track — whose title is the
+    eyebrow and whose credential is the footer. That join is written down in
+    `config/workforce-tracks.json`, so the card is read from it.
+    """
+    tracks = (_read_json(tracks_path) or {}).get("tracks") or []
+    prices = (_read_json(prices_path) or {}).get("courses") or {}
     photos = _photos()
     manifest = photos.load_manifest()
+    out = []
+    for track in sorted((t for t in tracks if isinstance(t, dict)),
+                        key=lambda t: str(t.get("id") or t.get("title") or "")):
+        if track.get("status", "draft") != "active":
+            continue
+        program_name = str(track.get("title") or PLATFORM)
+        credential = _credential_of(track)
+        for key in track.get("courses") or []:
+            parts = str(key).split("+")
+            if len(parts) != 3:
+                continue
+            code = parts[1].strip().upper()
+            title = _headline((prices.get(key) or {}).get("name") or code, code)
+            resolved = photos.resolve(code, title, "", manifest=manifest,
+                                      allow_rendered=False)
+            entry = {
+                "code": code,
+                "title": title,
+                "program": program_name,
+                "credential": credential,
+                "semester": "",
+                "credits": None,
+                "term": _run_term(key, term),
+                "description": "",
+            }
+            out.append((entry, os.path.join(PHOTO_DIR, resolved["file"])))
+    return out
+
+
+def catalog_only_entries(prices_path, covered, term=None):
+    """[(entry, photo_path)] for catalog courses that belong to no credential.
+
+    The demo course is the estate's own sample: the catalog lists it, so it needs a
+    card, but no program and no track owns it. It is badged as the platform rather
+    than as a credential nobody granted.
+    """
+    prices = (_read_json(prices_path) or {}).get("courses") or {}
+    photos = _photos()
+    manifest = photos.load_manifest()
+    out = []
+    for key in sorted(prices, key=lambda k: str(k).split("+")[1]
+                      if len(str(k).split("+")) == 3 else str(k)):
+        parts = str(key).split("+")
+        if len(parts) != 3:
+            continue
+        code = parts[1].strip().upper()
+        if not code or code in covered:
+            continue
+        covered.add(code)
+        title = _headline((prices.get(key) or {}).get("name") or code, code)
+        resolved = photos.resolve(code, title, "", manifest=manifest,
+                                  allow_rendered=False)
+        entry = {
+            "code": code,
+            "title": title,
+            "program": PLATFORM,
+            "credential": "",
+            "semester": "",
+            "credits": None,
+            "term": _run_term(key, term),
+            "description": "",
+        }
+        out.append((entry, os.path.join(PHOTO_DIR, resolved["file"])))
+    return out
+
+
+def course_entries(programs_dir, term=None, tracks_path=None, prices_path=None):
+    """[(entry, photo_path)] for every course the catalog shows, once each.
+
+    A course a track carries is the track's card: the track is the ladder the
+    catalog sells and its credential is the footer, while the program plan is a
+    cohort those runs sit in. Every other planned course keeps its plan, and a
+    course neither owns is badged as the platform.
+    """
+    photos = _photos()
+    manifest = photos.load_manifest()
+    tracked = {}
+    for entry, photo in track_entries(tracks_path, prices_path, term):
+        tracked.setdefault(entry["code"], (entry, photo))
     out = []
     seen = set()
     names = sorted(name for name in os.listdir(programs_dir) if name.endswith(".json"))
@@ -277,9 +415,12 @@ def course_entries(programs_dir, term=None):
                 if not code or code in seen:
                     continue
                 seen.add(code)
+                if code in tracked:
+                    out.append(tracked[code])
+                    continue
                 title = str(course.get("title") or code)
                 resolved = photos.resolve(code, title, course.get("description") or "",
-                                          manifest=manifest)
+                                          manifest=manifest, allow_rendered=False)
                 entry = {
                     "code": code,
                     "title": title,
@@ -291,6 +432,12 @@ def course_entries(programs_dir, term=None):
                     "description": course.get("description") or "",
                 }
                 out.append((entry, os.path.join(PHOTO_DIR, resolved["file"])))
+    for code, (entry, photo) in tracked.items():
+        if code in seen:
+            continue
+        seen.add(code)
+        out.append((entry, photo))
+    out.extend(catalog_only_entries(prices_path, seen, term))
     return out
 
 
@@ -304,11 +451,20 @@ def _term_label(start):
     return str(start or "").strip()
 
 
-def build(programs_dir, out_dir, term=None):
-    """Render every card; returns the manifest written to `cards.json`."""
+def build(programs_dir, out_dir, term=None, tracks_path=None, prices_path=None,
+          only=None):
+    """Render every card; returns the manifest written to `cards.json`.
+
+    `only` narrows it to those codes, which is what publishing uses: it renders
+    the cards for the courses it just imported, not the whole catalog, so a
+    publish of two courses stays two renders.
+    """
     os.makedirs(out_dir, exist_ok=True)
     cards = []
-    for entry, photo in course_entries(programs_dir, term):
+    wanted = {str(code).strip().upper() for code in (only or [])}
+    for entry, photo in course_entries(programs_dir, term, tracks_path, prices_path):
+        if wanted and entry["code"] not in wanted:
+            continue
         if not os.path.isfile(photo):
             raise SystemExit(f"{entry['code']}: no photograph at {photo}")
         image = render_card(entry, photo)
@@ -328,28 +484,38 @@ def main():
     ap.add_argument("--programs", required=True, help="directory of program JSON files")
     ap.add_argument("--out", default=PHOTO_DIR, help="output directory for the cards")
     ap.add_argument("--term", help="override the term label, e.g. 2026_T4")
+    ap.add_argument("--tracks", default=TRACKS_FILE,
+                    help="workforce-track catalog, for courses no program plan carries "
+                         f"(default: {os.path.relpath(TRACKS_FILE, REPO)}; empty string skips it)")
+    ap.add_argument("--prices", default=PRICES_FILE,
+                    help="the catalog's course sheet, for the names and runs it lists "
+                         f"(default: {os.path.relpath(PRICES_FILE, REPO)})")
+    ap.add_argument("--only", metavar="CODES",
+                    help="render only these course codes, comma separated")
     ap.add_argument("--check", action="store_true", help="verify cards exist and are sized")
     ap.add_argument("--list", action="store_true", help="print the planned cards")
     args = ap.parse_args()
 
     if args.check:
         missing = []
-        for entry, _photo in course_entries(args.programs, args.term):
+        entries = course_entries(args.programs, args.term, args.tracks, args.prices)
+        for entry, _photo in entries:
             path = os.path.join(args.out, f"{entry['code']}.jpg")
             if not os.path.isfile(path):
                 missing.append(entry["code"])
         if missing:
             raise SystemExit("course cards missing: " + ", ".join(missing))
-        print(f"course cards are present ({len(course_entries(args.programs, args.term))}).")
+        print(f"course cards are present ({len(entries)}).")
         return
 
     if args.list:
-        for entry, photo in course_entries(args.programs, args.term):
+        for entry, photo in course_entries(args.programs, args.term, args.tracks, args.prices):
             print(f"{entry['code']:<9} {entry['program'][:22]:<24} "
                   f"{os.path.basename(photo):<16} {entry['title'][:44]}")
         return
 
-    manifest = build(args.programs, args.out, args.term)
+    only = [code.strip() for code in (args.only or "").split(",") if code.strip()]
+    manifest = build(args.programs, args.out, args.term, args.tracks, args.prices, only)
     print(f"wrote {len(manifest['cards'])} cards to {os.path.relpath(args.out, REPO)}")
 
 

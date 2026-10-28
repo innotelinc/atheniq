@@ -1,7 +1,7 @@
 {
   "cards": [
     {
-      "bytes": 56263,
+      "bytes": 100482,
       "code": "TST101",
       "credential": "Test Degree",
       "credits": 3,
@@ -13,7 +13,7 @@
       "title": "Testing & Things"
     },
     {
-      "bytes": 53927,
+      "bytes": 118827,
       "code": "TST102",
       "credential": "Test Degree",
       "credits": 4,

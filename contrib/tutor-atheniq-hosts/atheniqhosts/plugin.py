@@ -42,6 +42,12 @@ stays blank, because the LMS answers 404 to `/app.<hash>.js`.
 container serves the app at `/learner-dashboard`, and anything else lands on the
 container's root shell, which renders nothing. It redirects instead.
 
+A host in `ATHENIQ_STUDIO_ALIAS_HOSTS` gets a site block of its own: the CMS
+shell, which is keyed to `CMS_HOST` and 404s a name it was not told about, plus
+the authn MFE's page and bundles and the LMS's `/api/mfe_config` — the sign-in
+page a Studio visitor lands on is the LMS's, and the config it reads is the
+LMS's too.
+
 It also carries `ATHENIQ_SESSION_COOKIE_DOMAIN`, which is session unification
 rather than host naming: set to `.innotel.us`, the LMS and the CMS both write
 `sessionid`/`csrftoken` for the whole domain, so Studio and the MFEs open on the
@@ -82,6 +88,23 @@ hooks.Filters.CONFIG_DEFAULTS.add_item(
 #: LMS needs to trust their origins. Empty by default, like the list above.
 hooks.Filters.CONFIG_DEFAULTS.add_item(
     ("ATHENIQ_LEGACY_MFE_HOSTS", [])
+)
+
+#: Studio hostnames other than `CMS_HOST`. Studio is a single site keyed to one
+#: name, so an estate that publishes authoring under its own name needs a site
+#: block for it — and one that renders the CMS's shell, the MFE's bundles and the
+#: LMS's config, because the sign-in page a Studio visitor lands on is the LMS's
+#: authn app. Empty by default, like the lists above.
+hooks.Filters.CONFIG_DEFAULTS.add_item(
+    ("ATHENIQ_STUDIO_ALIAS_HOSTS", [])
+)
+
+#: Names that are the platform under a second spelling and have nothing of their
+#: own to serve — `www.<domain>` and the like. Each is a permanent redirect to the
+#: canonical host, keeping the path, so a printed link still lands on the page.
+#: Empty by default: which spelling is a redirect is a deployment decision.
+hooks.Filters.CONFIG_DEFAULTS.add_item(
+    ("ATHENIQ_REDIRECT_HOSTS", [])
 )
 
 #: The cookie domain every Open edX service should agree on, e.g. `.innotel.us`.
@@ -174,6 +197,29 @@ CSRF_TRUSTED_ORIGINS.append("https://{{ host }}")
 #: to the LMS site block *before* its catch-all `handle_path /*`, so a request for
 #: `/catalog/courses` reaches the MFE while everything else — `/login`, `/api`,
 #: `/static`, `/courses` — still goes to the LMS.
+#: The learner apps own the page at their path, not every request under it. One
+#: exception has to be routed to the LMS first: the authn app's "reset your
+#: password" page does not send the mail itself — it POSTs the address to
+#: `${LMS_BASE_URL}/account/password` and the LMS mails the link. `/account` is
+#: proxied to the `mfe` container, which serves files and answers a POST with
+#: `405 Method Not Allowed`, so without this rule the button does nothing. Only
+#: the POST is taken: `GET /account/password` is still the app's page.
+#:
+#: Registered before `MFE_PATHS` below, because `handle` directives are matched
+#: in the order they are written and this one has to win over `/account*`.
+hooks.Filters.ENV_PATCHES.add_item(
+    (
+        "caddyfile-lms",
+        "# AthenIQ: the reset-mail request is the LMS's, the page that makes it is\n"
+        "# the MFE's — same path, different method.\n"
+        "@atheniq_password_reset {\n"
+        "    path /account/password\n"
+        "    method POST\n"
+        "}\n"
+        "handle @atheniq_password_reset {\n    reverse_proxy lms:8000\n}",
+    )
+)
+
 MFE_PATHS = (
     "catalog", "learning", "learner-dashboard", "profile", "account",
     "discussions", "authoring", "communications", "gradebook", "ora-grading",
@@ -284,9 +330,15 @@ FRONTEND_SITE_CONFIG.setdefault("commonAppConfig", {})["MFE_CONFIG"] = MFE_CONFI
 # renamed before and a hard-coded one silently stops matching.
 for _atheniq_name, _atheniq_value in list(globals().items()):
     if (_atheniq_name.isupper() and isinstance(_atheniq_value, str)
-            and "https://{{ MFE_HOST }}" in _atheniq_value):
+            and "{{ MFE_HOST }}" in _atheniq_value):
+        # Both forms occur: a URL carries the scheme, a bare host does not.
+        # `AUTHN_MICROFRONTEND_DOMAIN` is the bare one (`apps.<host>/authn`), and
+        # it is what the password-reset mail is built from — leaving it on the
+        # apps host mailed every learner a reset link to a name nothing answers.
+        # The URL form is replaced first so `https://` is never doubled.
         globals()[_atheniq_name] = _atheniq_value.replace(
-            "https://{{ MFE_HOST }}", "https://{{ LMS_HOST }}")
+            "https://{{ MFE_HOST }}", "https://{{ LMS_HOST }}").replace(
+            "{{ MFE_HOST }}", "{{ LMS_HOST }}")
 """,
     ),
     priority=hooks.priorities.LOW,
@@ -329,6 +381,74 @@ hooks.Filters.ENV_PATCHES.add_item(
 # origin nothing else is configured for.
 {{ host }}{$default_site_port} {
     redir https://{{ LMS_HOST }}{uri} 301
+}
+{% endfor %}
+""",
+    )
+)
+
+#: Studio under its estate name. The CMS is keyed to `CMS_HOST` and answers 404
+#: to a name it was not told about, so the block gives the alias a site that
+#: presents the CMS the `Host` it accepts; but Studio's sign-in page is the LMS's
+#: authn MFE, so its shell, bundles and configuration come from the `mfe` and
+#: `lms` containers, and the LMS is given *its own* host — `CMS_HOST` is not in
+#: its `ALLOWED_HOSTS`, and asking it as the CMS host is a 400 for
+#: `/api/mfe_config`, which is exactly the config the login page needs.
+STUDIO_ALIAS_ASSET_PATTERN = r"^/(?:[^/]+\.(?:js|css)|site/.*|asset-manifest\.json|static/mfe/.*)$"
+hooks.Filters.ENV_PATCHES.add_item(
+    (
+        "caddyfile",
+        """
+{% for host in ATHENIQ_STUDIO_ALIAS_HOSTS %}
+# AthenIQ: Studio answers on this name too. The CMS shell and its assets are the
+# CMS's; the sign-in page and its configuration are the LMS's.
+{{ host }}{$default_site_port} {
+    @favicon_matcher path_regexp ^/favicon.ico$
+    rewrite @favicon_matcher /theming/asset/images/favicon.ico
+    encode gzip
+
+    handle /authn* {
+        reverse_proxy mfe:8002
+    }
+    @atheniq_studio_assets path_regexp """
+        + STUDIO_ALIAS_ASSET_PATTERN
+        + """
+    handle @atheniq_studio_assets {
+        reverse_proxy mfe:8002
+    }
+    handle /api/mfe_config* {
+        reverse_proxy lms:8000 {
+            header_up Host {{ LMS_HOST }}
+        }
+    }
+    handle /api/user* {
+        reverse_proxy lms:8000 {
+            header_up Host {{ LMS_HOST }}
+        }
+    }
+
+    handle {
+        reverse_proxy cms:8000 {
+            header_up Host {{ CMS_HOST }}
+            header_up X-Forwarded-Port 443
+        }
+    }
+}
+{% endfor %}
+""",
+    )
+)
+
+#: A second spelling of the same name, sent to the canonical one rather than
+#: serving a second copy of the platform.
+hooks.Filters.ENV_PATCHES.add_item(
+    (
+        "caddyfile",
+        """
+{% for host in ATHENIQ_REDIRECT_HOSTS %}
+# AthenIQ: another spelling of the platform's name; the page is the canonical one.
+{{ host }}{$default_site_port} {
+    redir https://{{ LMS_HOST }}{uri} permanent
 }
 {% endfor %}
 """,

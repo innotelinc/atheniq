@@ -147,6 +147,54 @@ class LearnerApps(unittest.TestCase):
         renamed host, not on a second copy of the bundle."""
         self.assertIn('redir https://{{ LMS_HOST }}{uri} 301', self.hosts)
 
+    def test_a_studio_alias_serves_the_cms_as_the_cms(self):
+        """The CMS is keyed to `CMS_HOST` and 404s a name it was not told about."""
+        block = self._studio_block()
+        self.assertIn("reverse_proxy cms:8000 {", block)
+        self.assertIn("header_up Host {{ CMS_HOST }}", block)
+
+    def test_a_studio_alias_asks_the_lms_as_the_lms(self):
+        """`CMS_HOST` is not in the LMS's ALLOWED_HOSTS: `/api/mfe_config` 400s.
+
+        The sign-in page Studio redirects to is the LMS's authn MFE, and the
+        configuration that page reads comes from the LMS. Presenting it the CMS
+        host — the name the CMS answers on — was a 400 on every request, so the
+        login page loaded with no configuration behind it.
+        """
+        block = self._studio_block()
+        lms_handler = block.split("handle /api/mfe_config*")[1]
+        self.assertIn("reverse_proxy lms:8000 {", lms_handler)
+        self.assertIn("header_up Host {{ LMS_HOST }}", lms_handler)
+        self.assertNotIn("{{ CMS_HOST }}", lms_handler.split("handle /api/user*")[0])
+
+    def test_a_studio_alias_carries_the_sign_in_page_and_its_bundles(self):
+        """The authn shell is the MFE's; its scripts live at the origin root."""
+        block = self._studio_block()
+        self.assertIn("handle /authn* {", block)
+        # The authn app's own shell and chunks are under `/authn/`, so the app
+        # handler carries them; the root-level bundles are the asset matcher's.
+        authn = block.split("handle /authn* {")[1].split("}")[0]
+        self.assertIn("reverse_proxy mfe:8002", authn)
+        pattern = re.search(r"@atheniq_studio_assets path_regexp (\S+)", block).group(1)
+        compiled = re.compile(pattern)
+        for asset in ("/778.bcf50168f6a7d190079c.css",
+                      "/site/atheniq-unity.css", "/asset-manifest.json"):
+            self.assertRegex(asset, compiled)
+        for path in ("/home/", "/api/mfe_config/v1",
+                     "/static/atheniq/images/courses/FAI101.jpg"):
+            self.assertNotRegex(path, compiled)
+
+    def test_a_second_spelling_redirects_to_the_canonical_host(self):
+        """`www.<host>` keeps the path, so a printed link still lands on the page."""
+        self.assertIn("{% for host in ATHENIQ_REDIRECT_HOSTS %}", self.hosts)
+        block = self.hosts.split("{% for host in ATHENIQ_REDIRECT_HOSTS %}")[1].split("{% endfor %}")[0]
+        self.assertIn("redir https://{{ LMS_HOST }}{uri} permanent", block)
+        self.assertNotIn("reverse_proxy", block)
+
+    def _studio_block(self):
+        self.assertIn("{% for host in ATHENIQ_STUDIO_ALIAS_HOSTS %}", self.hosts)
+        return self.hosts.split("{% for host in ATHENIQ_STUDIO_ALIAS_HOSTS %}")[1].split("{% endfor %}")[0]
+
     def test_the_legacy_hosts_are_no_longer_a_proxy(self):
         """A host that serves the bundle also serves a second, stale origin."""
         legacy_block = self.hosts.split("{% for host in ATHENIQ_LEGACY_MFE_HOSTS %}")[1]
@@ -164,10 +212,47 @@ class LearnerApps(unittest.TestCase):
         `INSTRUCTOR_MICROFRONTEND_URL` and its neighbours are generated from
         `MFE_HOST`, so rewriting only `MFE_CONFIG` left every one of them — and
         the `/login` redirect — pointing at `apps.<host>`.
+
+        The guard must match the bare form too: `AUTHN_MICROFRONTEND_DOMAIN` is
+        `apps.<host>/authn`, with no scheme, and it is what the password-reset
+        mail is built from. Requiring `https://` there skipped it, so every
+        reset link named a host nothing answers.
         """
-        self.assertIn('and "https://{{ MFE_HOST }}" in _atheniq_value', self.lms)
+        self.assertIn('and "{{ MFE_HOST }}" in _atheniq_value', self.lms)
+        self.assertNotIn('and "https://{{ MFE_HOST }}" in _atheniq_value', self.lms)
         self.assertNotIn("apps.learn.innotel.us", self.lms)
         self.assertNotIn("innotel", self.lms)
+
+    def test_the_reset_link_is_built_from_the_lms_host(self):
+        """The password-reset mail's host, proved by running the patch's rewrite.
+
+        `AUTHN_MICROFRONTEND_DOMAIN` is the bare `apps.<host>/authn` — no scheme —
+        and it is what the authn MFE pastes into the reset mail. A guard that only
+        matched `https://` left it on a name with no DNS record, so every learner
+        was mailed a link to a host nothing answers. This executes the rewrite the
+        patch actually ships, with a bare value, rather than grepping for it.
+        """
+        marker = "for _atheniq_name, _atheniq_value in list(globals().items()):"
+        self.assertIn(marker, self.lms)
+        loop = self.lms[self.lms.index(marker):]
+        # The patch runs on Tutor's *template* text, so the value it sees is the
+        # placeholder, not the rendered host: `AUTHN_MICROFRONTEND_DOMAIN` is
+        # `{{ MFE_HOST }}/authn` with no scheme, which is exactly the form the
+        # old guard skipped.
+        settings = {
+            "AUTHN_MICROFRONTEND_DOMAIN": "{{ MFE_HOST }}/authn",
+            # URL form, which must not come out with a doubled scheme.
+            "INSTRUCTOR_MICROFRONTEND_URL": "https://{{ MFE_HOST }}/instructor",
+            # Nothing to do with the apps host: must be left alone.
+            "LMS_ROOT_URL": "https://learn.innotel.us",
+        }
+        exec(loop, settings)
+        self.assertEqual(settings["AUTHN_MICROFRONTEND_DOMAIN"], "{{ LMS_HOST }}/authn")
+        self.assertEqual(settings["INSTRUCTOR_MICROFRONTEND_URL"], "https://{{ LMS_HOST }}/instructor")
+        self.assertEqual(settings["LMS_ROOT_URL"], "https://learn.innotel.us")
+        # And with the host filled in, that is the reset link a learner receives.
+        rendered = settings["AUTHN_MICROFRONTEND_DOMAIN"].replace("{{ LMS_HOST }}", "learn.innotel.us")
+        self.assertEqual(rendered, "learn.innotel.us/authn")
 
     def test_nothing_is_left_for_jinja_or_a_doubled_brace(self):
         """The patch is a plain string by the time Tutor sees it."""

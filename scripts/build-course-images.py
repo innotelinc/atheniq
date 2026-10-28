@@ -310,8 +310,12 @@ def render_course_card(code, title, subtitle):
     _tracked(draw, (84, 495), code, _font("bold", round(39)), ACCENT_HOVER, 4.5)
 
     title_font = _fit_font(title, "bold", round(60), width - 84 - 56)
-    draw.text((84, 564), title, font=title_font, fill=TEXT)
-    draw.text((84, 618), subtitle, font=_font("regular", round(27)), fill=MUTED)
+    # The subtitle sits off the title's measured bottom, not a fixed baseline: a
+    # 60px title's descenders reached `618` and drew through the subtitle, which
+    # is the first thing a reader sees wrong on the card. Measured, 2026-10-26.
+    draw.text((84, 552), title, font=title_font, fill=TEXT)
+    title_box = draw.textbbox((84, 552), title, font=title_font)
+    draw.text((84, title_box[3] + 20), subtitle, font=_font("regular", round(27)), fill=MUTED)
     return img
 
 
@@ -388,6 +392,22 @@ def render_og_card():
 
 # --- Model -----------------------------------------------------------------
 
+def _headline(title, code):
+    """The card's own words: the eyebrow already prints the code.
+
+    An OLX course title is `CODE — Title`, so drawing it beside the `CODE`
+    eyebrow said the code twice and pushed the line through the auto-fit at half
+    the size it should have been. Keep what follows the separator, the same rule
+    `course-cards.py` uses for the catalog cards, so the two card styles read
+    alike — and so nothing on the card depends on an em dash a fallback face may
+    not carry (it rendered as a box wherever Lato was absent).
+    """
+    text = str(title or "").strip()
+    if code and text.upper().startswith(str(code).upper()):
+        text = text[len(str(code)):].lstrip(" -\u2013\u2014:")
+    return text or str(code)
+
+
 def course_models(repo=REPO):
     """Every shipped course as {slug, code, title, subtitle}."""
     track_by_key = {}
@@ -405,7 +425,7 @@ def course_models(repo=REPO):
         key = summary["course_key"]
         parts = key.split("+")
         code = parts[1] if len(parts) > 1 else key
-        title = summary["title"] or code
+        title = _headline(summary["title"] or code, code)
         track = track_by_key.get(key)
         subtitle = (f"Innotel Labs · {track} track" if track
                     else "Innotel Labs · platform reference course")

@@ -596,6 +596,26 @@ class HttpSurface(GatewayCase):
         self.assertEqual(status, 400)
         self.assertIn("both course and classroom", body["error"])
 
+    def test_a_programs_courses_are_listed_before_anything_is_built(self):
+        """A plan's courses are courses; the page that omits them reads as "missing".
+
+        Only a spec used to make a line on Courses, so a program saved minutes ago
+        showed 23 courses on its own page and none here.
+        """
+        status, doc, _ = self.mutate("/api/programs", body={"template": "nursing"})
+        self.assertEqual(status, 201)
+        status, body, _ = self.call("/api/courses", headers=self.signed())
+        self.assertEqual(status, 200)
+        planned = {row["code"]: row for row in body["courses"] if row.get("planned")}
+        self.assertIn("NUR101", planned)
+        self.assertEqual(planned["NUR101"]["program"]["id"], doc["id"])
+        # A planned course has nothing to generate and nothing to open yet.
+        self.assertEqual((planned["NUR101"]["total"], planned["NUR101"]["generated"]), (0, 0))
+        self.assertEqual(planned["NUR101"]["classrooms"], [])
+        # The spec that does exist is still listed once, and not as planned.
+        codes = [row["course"] for row in body["courses"] if row.get("slug")]
+        self.assertIn("course-v1:InnotelLabs+DEMO101+2026_T1", codes)
+
     def test_courses_and_runs_are_served_with_course_metadata(self):
         self.mutate("/api/generate", body={"course": "demo", "classroom": "demo-ch01"})
         status, body, _ = self.call("/api/courses", headers=self.signed())

@@ -140,6 +140,16 @@ def _library_slug(name: str) -> str:
     return "-".join(part for part in cleaned.lower().replace("_", " ").split() if part)[:48]
 
 
+def _course_code(source) -> str:
+    """The course code a spec's `source_course` run key carries.
+
+    `course-v1:InnotelLabs+FAI103+2026_T4` -> `FAI103`, which is how a spec is
+    matched to the line of the program plan it satisfies.
+    """
+    parts = str(source or "").split("+")
+    return (parts[1] if len(parts) > 1 else str(source or "")).strip().upper()
+
+
 def _load_builder():
     """The batch tool, imported for its brief-building and API client.
 
@@ -489,12 +499,39 @@ class Console:
             out.append({
                 "slug": slug,
                 "course": doc.get("source_course") or "",
+                "code": _course_code(doc.get("source_course")),
                 "locale": doc.get("locale") or "",
                 "classrooms": classrooms,
                 "generated": sum(1 for c in classrooms if c["generated"]),
                 "total": len(classrooms),
             })
-        return out
+        # A course a plan carries has no spec until something is generated, so it
+        # had no line here: a program saved this morning listed 40 courses on its
+        # own page and none on Courses, which reads as "the course was not
+        # created". They are listed as planned, pointing at the program that
+        # teaches them, so the two pages answer the same question the same way.
+        seen = {entry["code"] for entry in out if entry.get("code")}
+        planned = []
+        for summary in self.programs.list_programs():
+            try:
+                doc = self.programs.get(summary["id"])
+            except Exception:  # noqa: BLE001 — one unreadable program is not a dead list
+                continue
+            for semester in (doc.get("plan") or {}).get("semesters") or []:
+                for course in semester.get("courses") or []:
+                    code = str(course.get("code") or "").strip().upper()
+                    if not code or code in seen:
+                        continue
+                    seen.add(code)
+                    planned.append({
+                        "slug": None, "course": code, "code": code,
+                        "title": course.get("title"), "locale": "",
+                        "classrooms": [], "generated": 0, "total": 0,
+                        "planned": True,
+                        "program": {"id": doc.get("id"), "name": doc.get("name")},
+                    })
+        planned.sort(key=lambda item: (item["code"], item["title"] or ""))
+        return out + planned
 
     def find_classroom(self, slug: str, classroom_id: str) -> tuple[dict, dict, str]:
         """The spec doc, the classroom entry in it, and the brief to submit."""

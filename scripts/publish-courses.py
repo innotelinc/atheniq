@@ -1707,6 +1707,13 @@ class Publisher:
         out = photos_module().PHOTO_DIR
         command = [sys.executable, renderer, "--programs", self._programs_dir(),
                    "--out", out]
+        # The cards this publish needs are the ones for the courses it imported.
+        # Rendering the whole catalog here made a two-course publish cost the same
+        # as a catalog rebuild; `--only` keeps the work proportional.
+        codes = sorted({str(entry.get("code") or "").upper()
+                        for entry in (entries or [])} - {""})
+        if codes:
+            command += ["--only", ",".join(codes)]
         try:
             result = subprocess.run(command, capture_output=True, text=True, timeout=600)
         except (OSError, subprocess.TimeoutExpired) as err:

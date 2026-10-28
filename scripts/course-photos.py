@@ -93,12 +93,18 @@ def subject_for(title, code="", description="", manifest=None):
     return manifest.get("default") or "learning"
 
 
-def resolve(code, title, description="", manifest=None):
+def resolve(code, title, description="", manifest=None, allow_rendered=True):
     """The photograph for one course: {subject, photo, file, url}.
 
     The pick inside the subject is a hash of the course code, so the same
     course always gets the same photograph and two courses in one program
     usually get different ones — no clock, no randomness, no state to keep.
+
+    `allow_rendered` is what keeps the card renderer honest: the renderer writes
+    its output into this same directory, so a card already there would otherwise
+    be taken as the photograph and composited inside the next card — every
+    re-render would nest the last one. The renderer passes False; every other
+    caller wants the card that exists.
     """
     manifest = manifest or load_manifest()
     subjects = manifest.get("subjects") or {}
@@ -109,7 +115,7 @@ def resolve(code, title, description="", manifest=None):
     # over the shared subject pool: it carries the course's own title, code and
     # program, so the catalog never shows two courses with the same picture.
     per_course = f"{str(code).upper()}.jpg"
-    if os.path.isfile(os.path.join(PHOTO_DIR, per_course)):
+    if allow_rendered and os.path.isfile(os.path.join(PHOTO_DIR, per_course)):
         return {"subject": subject_name, "photo": None,
                 "file": per_course, "url": f"{URL_PREFIX}/{per_course}"}
 

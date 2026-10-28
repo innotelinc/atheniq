@@ -43,15 +43,31 @@ the lesson and its checks, and the completion produces a signed certificate.
 
 ## 3. Next
 
-### 2.1 — Completion handoff to ITS `[ ]`
+### 2.1 — Completion handoff to ITS `[x]`
 
 **Goal:** the classroom's progress is not a second record of record.
 
-- `[ ]` A classroom completion becomes an ITS training record (and, where the
+- `[x]` A classroom completion becomes an ITS training record (and, where the
   course requires it, an ITS certificate), with the classroom's own completion id
-  as the idempotency key.
-- `[ ]` Exit: finishing a lesson produces a verifiable ITS record, once, and a
-  retry does not duplicate it.
+  as the idempotency key. **Both halves are shipped.** The classroom half:
+  `scripts/report-classroom-completion.py` builds and sends the body
+  (`ontrak.classroom.completion/v1`), derives the key
+  `openmaic:<classroom>:<learner>:<lesson>` so a retry is the same fact, quotes
+  ITS's `error`/`issues` on a refusal, and rehearses with `--dry-run` without a
+  token or a socket. It reads `ITS_BASE_URL` (default
+  `https://its.ontrak.technology`) and `ONTRAK_API_TOKEN`, and its contract is
+  documented in [Integrations.md](Integrations.md#openmaic--generative-interactive-classroom).
+  The door it calls — `POST /api/v1/classroom/completions` — is the other half and
+  lives in OnTrak ITS: it stores a `ClassroomCompletion` row, issues and stores a
+  tamper-evident completion record on a pass, and answers with the record and its
+  `ONTRAK-…` code, which `/verify` accepts. It was exercised against a running
+  app: the first delivery is `201`, a retry is `200` with the same record and code,
+  and a failing lesson issues none. The token is the deployment's `ONTRAK_API_TOKEN`
+  and the sender prints the code for the learner.
+- `[x]` Exit: finishing a lesson produces a verifiable ITS record, once, and a
+  retry does not duplicate it. The sender's tests pin the once-and-idempotent
+  half offline (`tests/test_report_classroom_completion.py`); the verifiable
+  record is what the ITS door adds.
 
 ### 2.2 — Instructor authoring `[ ]`
 

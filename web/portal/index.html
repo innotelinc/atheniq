@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en" data-scheme="operations">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AthenIQ — Programs and courses</title>
+  <meta name="description" content="Every programme AthenIQ teaches and every course it carries: the credential, the semesters, and what is ready to study.">
+  <meta name="robots" content="index, follow">
+  <script src="unity-theme.js"></script>
+  <link rel="stylesheet" href="unity-theme.css">
+  <link rel="stylesheet" href="portal.css">
+</head>
+<body>
+  <a class="skip" href="#catalog">Skip to the catalog</a>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <span class="brand">
+        <span class="mark" aria-hidden="true"></span>
+        AthenIQ <span class="sep">/</span> <span class="muted" id="view-label">Catalog</span>
+      </span>
+      <nav class="nav" aria-label="Sections">
+        <a href="#programs">Programs</a>
+        <a href="#courses">Courses</a>
+        <a href="#generation" id="generation-link" hidden>Generation</a>
+        <a href="/console/platform.html" id="tools-link" hidden>Platform tools</a>
+        <a href="https://studio.innotel.us/" rel="noopener">Studio</a>
+      </nav>
+      <span class="who" id="who"></span>
+      <span class="pill" id="mode" data-state="learner">learner view</span>
+    </div>
+  </header>
+
+  <main class="wrap" id="catalog">
+    <section class="hero" aria-labelledby="hero-h">
+      <h1 id="hero-h">Programs and courses</h1>
+      <p class="lede">Every credential AthenIQ awards, the semesters it runs in, and the courses
+        inside it — including the ones written into a program and not built yet, so the
+        catalog and the work behind it say the same thing.</p>
+      <div class="hero-stats" id="stats" aria-live="polite"></div>
+    </section>
+
+    <section class="panel" id="programs" aria-labelledby="programs-h">
+      <div class="panel-head">
+        <h2 id="programs-h">Programs</h2>
+        <span class="counts" id="program-count"></span>
+      </div>
+      <p class="sub">A program is the whole credential: every semester, every course, ending in a
+        degree or a stackable certificate. Pick one to see what it carries.</p>
+      <div class="program-grid" id="program-grid" aria-live="polite"><p class="empty">Loading…</p></div>
+    </section>
+
+    <section class="panel" id="courses" aria-labelledby="courses-h">
+      <div class="panel-head">
+        <h2 id="courses-h">Courses</h2>
+        <div class="head-tools">
+          <label class="search">
+            <span class="sr-only">Filter courses</span>
+            <input id="filter" type="search" placeholder="Filter by code, title or program" autocomplete="off">
+          </label>
+          <span class="counts" id="course-count"></span>
+        </div>
+      </div>
+      <p class="sub"><b>Ready</b> means the course is in the LMS with classrooms to study.
+        <b>Planned</b> means it belongs to a program and has not been built yet — it is still a
+        course this catalog carries.</p>
+      <div class="table-wrap">
+        <table class="ledger" id="course-table">
+          <thead>
+            <tr><th scope="col">Course</th><th scope="col">Program</th><th scope="col">Classrooms</th><th scope="col">Status</th><th scope="col"><span class="sr-only">Open</span></th></tr>
+          </thead>
+          <tbody id="course-rows"><tr><td colspan="5" class="empty">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel" id="generation" aria-labelledby="generation-h" hidden>
+      <div class="panel-head">
+        <h2 id="generation-h">Generation</h2>
+        <div class="head-tools">
+          <button class="btn btn-primary" id="generate-missing" type="button">Generate missing classrooms</button>
+        </div>
+      </div>
+      <p class="sub">What the generator is doing right now. A paused run names the step it stopped
+        at and why; retrying resumes it from there. This is the staff view only.</p>
+      <div class="table-wrap">
+        <table class="ledger">
+          <thead>
+            <tr><th scope="col">Run</th><th scope="col">State</th><th scope="col">Step</th><th scope="col">Detail</th><th scope="col"><span class="sr-only">Action</span></th></tr>
+          </thead>
+          <tbody id="run-rows"><tr><td colspan="5" class="empty">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer class="wrap foot">
+    <p>AthenIQ Institute · <a href="https://atheniq.courses/" rel="noopener">the LMS</a> ·
+      <a href="https://studio.innotel.us/" rel="noopener">Studio</a> ·
+      <a href="https://classroom.innotel.us/" rel="noopener">Classrooms</a></p>
+  </footer>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <script src="portal.js"></script>
+</body>
+</html>

@@ -77,6 +77,33 @@ tutor local launch            # idempotent full deployment on later runs
   a re-import from silently un-gating the tracks — see
   [docs/WorkforceTracks.md](WorkforceTracks.md#gating-a-ladder-the-lms-enforces).
 
+### Where production runs
+
+The live platform is `atheniq.courses`, with Studio on `studio.atheniq.courses` and
+the MFEs on `apps.atheniq.courses`. It runs on the VPS at **`104.238.162.5`** on
+Tutor **22.0.2** with `indigo 22.0.0`, the five `contrib/tutor-atheniq-*` plugins
+and `ceruleansso` — the newest stable of each (Tutor's only newer releases are
+`23.0.0.dev…` nightlies).
+
+It does **not** terminate TLS itself. `ENABLE_WEB_PROXY=false` with
+`CADDY_HTTP_PORT=18080` means Tutor's Caddy answers plain HTTP on `:18080` and the
+estate's NPM edge publishes that as `https://atheniq.courses`, so the certificate and
+the DNS record live at the edge, not on the host the LMS happens to run on. Moving
+the platform between hosts is therefore an NPM change — repoint `forward_host` for
+the `atheniq.courses`, `studio.` and `apps.` proxy hosts at the new box's `:18080` —
+and not a DNS change. Verify afterwards from the new host, not from the browser: its
+LMS tracking log should show the edge IP (`73.68.203.71`) and the old host should
+show no matching requests.
+
+State sits under the tutor root (`/root/.local/share/tutor/data` when Tutor runs as
+root): `mysql` and `mongodb` hold users and courseware, `lms/ora2` and
+`openedx-media` hold submissions and uploads, `meilisearch` holds the search indexes.
+To migrate, dump the `openedx` database only (never `mysql.*`, or the new host
+inherits the old root credential and loses its own), `mongorestore --archive --gzip
+--drop` the Mongo archive, copy the two media trees, and let `tutor local launch`
+rebuild the search indexes — an empty `meilisearch` directory is cheaper to rebuild
+than to copy.
+
 ## Stage 2 — Authentik OIDC applications
 
 Create OIDC applications in the Authentik admin for each public surface:
@@ -1694,6 +1721,186 @@ auto-issues a certificate; the auto-issue chain was re-verified with this
 policy (learner `student.three`, grade 0.9, cert `c5cfe2b5…`, signed by the
 scheduled bridge). Only the structure (chapter → sequential → vertical) is
 required for the outline to render — the policy can be anything.
+
+### 9.10 Transactional mail goes to a real relay, not the local sink
+
+**Status (2026-10):** fixed on the hosted deployment. Every mail the LMS sends
+(password reset, activation, enrollment, notifications, certificate notices)
+was handed to `smtp:8025` — Tutor's in-stack sink — with no credentials and
+`NOTIFICATIONS_DEFAULT_FROM_EMAIL` still `contact@local.openedx.io`. Nothing
+left the host, so nobody ever received one.
+
+The renderenv now submits through the estate's Stalwart server, as an account
+of its own rather than an operator mailbox, and sends under the university's own
+name:
+
+| Setting | Value |
+| --- | --- |
+| `EMAIL_HOST` / `EMAIL_PORT` | `mail.innotel.us` / `587` |
+| `EMAIL_USE_TLS` | `true` (STARTTLS; the certificate is the real one for the name) |
+| `EMAIL_HOST_USER` | `atheniq@innotel.us` (Stalwart `User`, own mailbox) |
+| `EMAIL_HOST_PASSWORD` | an app password, not the account password |
+| `DEFAULT_FROM_EMAIL` | `AthenIQ <contact@atheniq.courses>` |
+| `NOTIFICATIONS_DEFAULT_FROM_EMAIL` | `contact@atheniq.courses` |
+| `CONTACT_EMAIL` | `contact@atheniq.courses` (displayed only) |
+
+The account *authenticates* as `atheniq@innotel.us`; the address it *sends as*
+is `contact@atheniq.courses`. Stalwart's submission listener rejects a
+`MAIL FROM` the authenticated account does not own (`501 5.5.4 You are not
+allowed to send from this address`), so `contact@atheniq.courses` is an
+**alias on that account**, not a mailbox of its own — mail to it lands in the
+same inbox, and the submission check sees one owner. Adding the alias is the
+only step that makes the branded sender legal:
+
+```python
+# x:Account/set on the atheniq account (id c7)
+{"aliases": {"0": {"@type": "Email", "name": "contact",
+                   "domainId": "y",  # atheniq.courses
+                   "enabled": True}}}
+```
+
+### 9.11 The mail survives Gmail and Outlook, not just the local inbox
+
+**Status (2026-10):** an LMS that queues mail is not an LMS that delivers it.
+Three separate things decide whether a learner ever sees a reset link, and only
+the first was in place after 9.10.
+
+**Outbound is a relay, not port 25.** This network cannot open TCP 25 to the
+outside (`142.250.27.27:25` — Gmail's MX — times out from both the mail and the
+LMS host, while 443/587 connect), so Stalwart cannot deliver to a recipient's
+MX directly. It hands everything to an authenticated smarthost instead; watching
+the sockets during a send shows which one:
+
+```
+192.168.1.15:46340  34.22.188.249:587   # in-v3.mailjet.com
+```
+
+Mailjet is the estate's outbound path (`smtp.resend.com:587` is also configured
+in Stalwart as `smarthost`, but the Mailjet route is the one taken). That makes
+Mailjet's sending IPs — not `mail.innotel.us` — the IP a receiver checks SPF
+against.
+
+**The authentication records.** Published for the domain the LMS now sends as:
+
+| Record | Value |
+| --- | --- |
+| `atheniq.courses TXT` (SPF) | `v=spf1 mx include:spf.mailjet.com ip4:73.68.203.71 ~all` |
+| `v1-rsa-20261023._domainkey` / `v1-ed25519-20261023._domainkey` | Stalwart's DKIM keys for the domain |
+| `_dmarc.atheniq.courses` | `v=DMARC1; p=quarantine; pct=100; rua=mailto:postmaster@atheniq.courses` |
+| `_smtp._tls` / `_mta-sts` | TLS-RPT and MTA-STS, as Stalwart renders them |
+
+The SPF include was missing: the live record named only `mx` and the host's own
+address, both of which are false for mail leaving through Mailjet, so every
+message would have carried `spf=fail`. DMARC still passes without it, because
+the DKIM signature is `d=atheniq.courses` and aligns — but a failing SPF is a
+signal filters weigh, and it is a one-line fix. `postmaster@atheniq.courses`
+did not exist either, so the `rua` both DMARC and TLS-RPT report to had nowhere
+to land; the mailbox now exists (no credentials, like the estate's other service
+accounts).
+
+**SPF and DMARC are estate-owned overrides.** `cerulean_publish_zone.py` writes
+Stalwart's generated zone into Cerulean DNS for everything *except* apex/mail
+SPF, DMARC, MX and the CAA `issue` line, which it reports as `override` and
+never touches — the estate keeps its own values there. A change to those records
+is therefore a change in Cerulean DNS, not in Stalwart's zone: replace the TXT
+with `Cerulean.delete_record` + `add_record` (add-first or leave-both would put
+two `v=spf1` strings at one name, which is a permanent error for the domain).
+
+**DMARC stays at `p=quarantine` for now.** The decision is to *not* tighten to
+`p=reject` yet, and the reason is not caution in the abstract: `p=reject` fails
+silently. A message that fails alignment is dropped by the receiver, so the
+symptom a learner sees is a reset link that never arrives, indistinguishable
+from a mail path that is simply slow. Three things are still unsettled enough to
+make that trade bad. The SPF include for Mailjet is new, and Mailjet's IPs — not
+`mail.innotel.us` — are what a receiver checks, so the envelope path has no
+history behind it yet. The `rua` mailbox has only just started existing, so
+there are no aggregate reports to show whether every sender the domain is used
+for aligns; without them `pct=100` is a guess. And the branded sender is an
+*alias* on another account (`contact@atheniq.courses` on `atheniq@innotel.us`),
+which is exactly the shape that makes a MAIL FROM disagree with the account
+before anyone notices.
+
+Revisit when the reports answer the question rather than when the record feels
+old: two to four weeks of `rua` mail showing `spf=pass` *and* `dkim=pass` for
+every stream — LMS reset/activation/notification, certificate notices, and the
+reports themselves — then raise `pct` before switching `p` to `reject`. A middle
+step costs nothing and is reversible; `p=reject` on a domain whose only outbound
+path is a recently-added include is the one change here that cannot be noticed
+by testing, because the failure is the absence of mail.
+
+**The reset link pointed at a host nothing answers.** The authn MFE emails
+`https://{AUTHN_MICROFRONTEND_DOMAIN}{password_reset_confirm}`; the value was
+`apps.atheniq.courses/authn` — a name with no DNS record, because the learner
+apps moved onto the university host and `apps.` went with them. Every reset
+link was dead on arrival. The plugin now rewrites the bare host form as well as
+the `https://` one, so the value is `atheniq.courses/authn` and the link opens
+the MFE's own page.
+
+**The reset button was answered by the static server.** `/account` is proxied to
+the MFE container; the authn app does not send the mail itself, it POSTs the
+address to `/account/password` and the LMS mails the link. The MFE answers that
+POST with `405 Method Not Allowed`, so pressing the button did nothing. The LMS
+site block now takes that one method before the app rule:
+
+```
+@atheniq_password_reset {
+    path /account/password
+    method POST
+}
+handle @atheniq_password_reset {
+    reverse_proxy lms:8000
+}
+```
+
+Only the POST: `GET /account/password` is still the app's page. The rule lives
+in `contrib/tutor-atheniq-hosts` (registered ahead of the `/account*` handle,
+because `handle` directives match in the order they are written) and in the
+rendered `env/apps/caddy/Caddyfile`, which is a read-only bind mount — edit the
+host file, then `caddy reload`, not the copy in the container.
+
+**Verified end to end.** `POST /account/password` for a real learner (`dhunter@innotel.us`)
+from outside the host returned 200 and the LMS logged
+`Password reset initiated` + `Email sent for passwordreset … using
+DjangoEmailChannel`. The message arrived in the mailbox with
+`From: AthenIQ <contact@atheniq.courses>` and a `d=atheniq.courses` DKIM
+signature; its link, `https://atheniq.courses/authn/password_reset_confirm/4-…/?track=pwreset`,
+returned 200 and the MFE's token check answered `{"is_valid": true}`.
+
+**Where it is written.** The LMS is the `atheniq` container at
+`192.168.1.59` — on `i2` since 2026-10-15, and NOT on `i4`, which is where it
+was when this section was first written (the container address table in
+`platform-stack/scripts/check-container-addresses.py` is the authority; read the
+entry that matches the host it is on now). Reach it by that address rather than
+by host name, because the address is pinned inside the container and travels with
+it — that is why the rest of this document names `192.168.1.59` for every one of
+its ports.
+
+The live Tutor tree is
+`/home/tutor/.local/share/tutor` (that is the compose project's working
+directory — `/root/.local/share/tutor` on that host is a stale copy the
+containers do not mount). The values are in
+`env/apps/openedx/config/lms.env.yml` and `cms.env.yml`, and mirrored as
+`EMAIL_*` keys in `config.yml` so a future `tutor config save` renders the same
+relay instead of the sink. The secret is on the LMS host (`i2`) at
+`/etc/stalwart-atheniq-smtp.secret` (0600) and canonically on the mail host at
+`/etc/stalwart/atheniq-smtp.secret` — `mail` (`192.168.1.15`) has been on `i3`
+since 2026-10-15, so a copy read on `i4` is an older one.
+
+Restart the containers by name (`docker restart tutor_local-lms-1 …`). Running
+`docker compose up -d` from `env/local` without `-p tutor_local` derives the
+project name from the directory (`local`) and starts a *second* copy of the
+stack against the same volumes — Tutor's CLI passes the project name, a bare
+compose invocation does not.
+
+**Verified** after restarting `lms`, `cms` and both workers: settings read back
+from both containers, STARTTLS to `mail.innotel.us:587` succeeds from inside
+the LMS container (it resolves to the public address and loops back through the
+WAN), and a `send_mail` from the LMS was accepted, queued and delivered —
+`Queued message submission … from = "atheniq@innotel.us"`, then
+`Message ingested (message-ingest.ham)` with a `250 2.0.0` DSN. After the From
+moved to `contact@atheniq.courses`, the same submission was accepted with the
+branded sender (`250 2.1.0 OK` for `MAIL FROM:<contact@atheniq.courses>`) and
+the delivered message carried both DKIM signatures for `atheniq.courses`.
 
 ## Operations
 

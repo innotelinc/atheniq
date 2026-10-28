@@ -24,6 +24,17 @@ assessments, grading, and learner records.
     Authentik application (`auth.<domain>/application/o/atheniq-lms/`).
   - **Domain/TLS** — set `LMS_HOST`, `CMS_HOST`, and the email/nginx settings so
     Cerulean-provisioned NGINX Proxy Manager hosts terminate TLS and forward.
+  - **Transactional email** — the LMS and Studio submit to the estate Stalwart
+    server (`mail.innotel.us:587`, STARTTLS) as `atheniq@innotel.us` with an app
+    password, and send as `AthenIQ <contact@atheniq.courses>` (an alias on that
+    account — Stalwart refuses a `MAIL FROM` the account does not own). The
+    in-stack sink is no longer used, and Stalwart hands the message to the
+    estate's Mailjet relay, which is why `atheniq.courses` SPF includes
+    `spf.mailjet.com`; the DKIM key `v1-rsa-20261023` is what a receiver
+    verifies. See
+    [Deployment](Deployment.md#910-transactional-mail-goes-to-a-real-relay-not-the-local-sink)
+    and, for delivery itself,
+    [Deployment](Deployment.md#911-the-mail-survives-gmail-and-outlook-not-just-the-local-inbox).
   - **Storage** — point uploaded courseware at ONYX S3-compatible storage via
     AthenIQ `DEFAULT_FILE_STORAGE` settings where media should not live on the
     LMS volume.
@@ -76,6 +87,26 @@ classrooms in courses and links them from AthenIQ units.
 - **Protection:** set `ACCESS_CODE` for site-level gate on shared deployments.
 - **Agent skill:** OpenMAIC ships a standard skill package for OpenClaw and
   other workbenches, so classrooms can be requested from chat channels.
+- **Completion handoff to OnTrak ITS.** The classroom's own progress is not the
+  record of record; ITS holds the training ledger, and a finished lesson is
+  reported there by `scripts/report-classroom-completion.py` (OnTrak Class 2.1):
+
+  ```bash
+  ITS_BASE_URL=https://its.ontrak.technology ONTRAK_API_TOKEN=… \
+    python3 scripts/report-classroom-completion.py \
+      --classroom cls-1042 --learner ada@acme.test --lesson chapter-3 \
+      --course-ref ITSP101 --course-title "IT Support Foundations" \
+      --score 8 --max-score 10
+  ```
+
+  The tool POSTs to `/api/v1/classroom/completions` with
+  `format: ontrak.classroom.completion/v1`, derives the idempotency key
+  `openmaic:<classroom>:<learner>:<lesson>` from the ids (so a retry returns the
+  record ITS already has, not a second one), and prints the server's own `error`
+  and `issues` list on a refusal. `--dry-run` prints the exact body without
+  dialling, and needs no token. ITS is the one-way destination: nothing about the
+  training record is written back into the classroom, and the classroom link still
+  carries no identity or token.
 
 ## Convex (self-hosted backend) — realtime state
 

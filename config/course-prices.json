@@ -3,11 +3,11 @@
   "subscribe_url": "https://subscribe.atheniq.innotel.us",
   "courses": {
     "course-v1:InnotelLabs+TEST101+2026_T1": {
-      "name": "TEST101 — Introduction",
+      "name": "TEST101 — AthenIQ Demo Course",
       "plan": null
     },
     "course-v1:InnotelLabs+ITSP101+2026_T1": {
-      "name": "ITSP101 — IT Support Foundations (certification)",
+      "name": "ITSP101 — IT Support Foundations",
       "plan": "premium"
     },
     "course-v1:InnotelLabs+ITSP102+2026_T1": {
