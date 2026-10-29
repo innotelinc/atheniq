@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en" data-scheme="desk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zeus — VoIP made simple</title>
+<meta name="description" content="Zeus gives you your own phone number, a softphone on every device, SMS, voicemail with AI summaries, fax, and AI voice agents. Plans from $19/month, billed through Innotel.">
+<meta property="og:title" content="Zeus — VoIP made simple">
+<meta property="og:description" content="Your own number, softphone on every device, SMS, voicemail with AI summaries, fax and AI voice agents.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://zeus.innotel.us/">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23fbbf24'/%3E%3Cpath d='M20 22h24L26 42h18' stroke='%230b0d10' stroke-width='5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --accent: #fbbf24;
+    --accent-ink: #0b0d10;
+    --bg: #0b0d10;
+    --surface: #14171c;
+    --surface-2: #1b1f26;
+    --border: #262c35;
+    --text: #f4f7fb;
+    --muted: #a8b2bf;
+    --ok: #34d399;
+    --radius: 16px;
+    --wrap: 1080px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #fbfbf9;
+      --surface: #ffffff;
+      --surface-2: #f4f5f3;
+      --border: #e2e4e0;
+      --text: #12151a;
+      --muted: #5a6470;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    line-height: 1.6; -webkit-font-smoothing: antialiased;
+    background-image: radial-gradient(1000px 520px at 50% -12%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 72%);
+    background-repeat: no-repeat;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { max-width: var(--wrap); margin: 0 auto; padding: 0 24px; }
+  header { border-bottom: 1px solid var(--border); position: sticky; top: 0; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px); z-index: 5; }
+  .bar { display: flex; align-items: center; justify-content: space-between; height: 66px; gap: 16px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: -0.01em; color: var(--text); }
+  .brand:hover { text-decoration: none; }
+  .mark { width: 30px; height: 30px; border-radius: 9px; background: var(--accent); display: grid; place-items: center; color: var(--accent-ink); font-weight: 800; font-size: 17px; }
+  nav { display: flex; align-items: center; gap: 22px; font-size: 14px; }
+  nav a { color: var(--muted); }
+  nav a:hover { color: var(--text); text-decoration: none; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 10px; padding: 11px 18px; font-weight: 650; font-size: 14px; border: 1px solid transparent; transition: filter .15s, background .15s; }
+  .btn:hover { text-decoration: none; filter: brightness(1.08); }
+  .btn-primary { background: var(--accent); color: var(--accent-ink); }
+  .btn-ghost { border-color: var(--border); color: var(--text); background: var(--surface); }
+  .hero { padding: 84px 0 40px; text-align: center; }
+  .kicker { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 38%, transparent); background: color-mix(in srgb, var(--accent) 12%, transparent); border-radius: 999px; padding: 6px 14px; }
+  h1 { font-size: clamp(34px, 6.4vw, 58px); line-height: 1.03; letter-spacing: -0.03em; margin: 22px 0 14px; }
+  h1 em { font-style: normal; color: var(--accent); }
+  .lede { color: var(--muted); font-size: 18px; max-width: 620px; margin: 0 auto; }
+  .hero-cta { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 28px; }
+  .note { color: var(--muted); font-size: 13px; margin-top: 14px; }
+  .strip { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 26px; padding: 22px 0 8px; color: var(--muted); font-size: 13.5px; }
+  .strip span { display: inline-flex; align-items: center; gap: 8px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
+  section.block { padding: 56px 0; }
+  h2 { font-size: clamp(24px, 3.4vw, 34px); letter-spacing: -0.02em; margin: 0 0 8px; }
+  .sub { color: var(--muted); margin: 0 0 30px; max-width: 640px; }
+  .grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; }
+  .card h3 { margin: 0 0 6px; font-size: 17px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14.5px; }
+  .icon { width: 38px; height: 38px; border-radius: 11px; background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); display: grid; place-items: center; font-size: 18px; margin-bottom: 14px; }
+  .plans { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+  .plan { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 26px; display: flex; flex-direction: column; gap: 12px; position: relative; }
+  .plan.popular { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .plan .tag { position: absolute; top: -11px; left: 50%; transform: translateX(-50%); background: var(--accent); color: var(--accent-ink); font-size: 11px; font-weight: 800; padding: 3px 12px; border-radius: 999px; text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; }
+  .plan h3 { margin: 0; font-size: 19px; }
+  .price { font-size: 38px; font-weight: 750; letter-spacing: -0.02em; line-height: 1; }
+  .price small { font-size: 14px; color: var(--muted); font-weight: 500; letter-spacing: 0; }
+  .plan .desc { color: var(--muted); font-size: 14px; margin: 0; }
+  .plan ul { list-style: none; margin: 4px 0 8px; padding: 0; flex: 1; }
+  .plan li { font-size: 14.5px; color: var(--muted); padding: 4px 0; }
+  .plan li::before { content: "✓"; color: var(--accent); font-weight: 700; margin-right: 9px; }
+  .steps { counter-reset: s; display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  .step { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; }
+  .step::before { counter-increment: s; content: counter(s); display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: var(--accent); color: var(--accent-ink); font-weight: 800; margin-bottom: 12px; }
+  .step h3 { margin: 0 0 4px; font-size: 16px; }
+  .step p { margin: 0; color: var(--muted); font-size: 14px; }
+  .fineprint { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 24px; color: var(--muted); font-size: 13.5px; }
+  .fineprint b { color: var(--text); }
+  .cta-band { background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 22%, var(--surface)), var(--surface)); border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border)); border-radius: 22px; padding: 38px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px; }
+  .cta-band h2 { margin: 0 0 6px; }
+  .cta-band p { margin: 0; color: var(--muted); }
+  footer { border-top: 1px solid var(--border); margin-top: 40px; }
+  .foot { display: flex; flex-wrap: wrap; gap: 14px; justify-content: space-between; padding: 26px 0; color: var(--muted); font-size: 13px; }
+  .foot a { color: var(--muted); }
+  .foot a:hover { color: var(--text); }
+  @media (max-width: 640px) {
+    nav .hide-sm { display: none; }
+    .hero { padding-top: 56px; }
+    .cta-band { padding: 26px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap bar">
+    <a class="brand" href="/"><span class="mark">Z</span>Zeus</a>
+    <nav>
+      <a class="hide-sm" href="#features">Features</a>
+      <a class="hide-sm" href="#plans">Pricing</a>
+      <a class="hide-sm" href="#how">How it works</a>
+      <a class="btn btn-primary" href="https://subscribe.innotel.us">Subscribe</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero wrap">
+    <span class="kicker">VoIP made simple</span>
+    <h1>Your own number.<br>On <em>every</em> device.</h1>
+    <p class="lede">
+      Zeus is a business phone system that answers, forwards and transcribes —
+      with a softphone for every desk, SMS, fax, voicemail with AI summaries,
+      and AI voice agents for the calls you never want to miss.
+    </p>
+    <div class="hero-cta">
+      <a class="btn btn-primary" href="#plans">See plans from $19/mo</a>
+      <a class="btn btn-ghost" href="https://subscribe.innotel.us">All Innotel plans</a>
+    </div>
+    <p class="note">One account, one bill — every Innotel service is billed through Magnate.</p>
+    <div class="strip">
+      <span><span class="dot"></span>No hardware required</span>
+      <span><span class="dot"></span>Keep your number, or get a new one</span>
+      <span><span class="dot"></span>Cancel any time</span>
+    </div>
+  </section>
+
+  <section class="block wrap" id="features">
+    <h2>Everything a phone line should be</h2>
+    <p class="sub">A number that works at a desk, on a laptop and on a phone — with the messages, faxes and calls in one place.</p>
+    <div class="grid">
+      <div class="card">
+        <div class="icon">☎</div>
+        <h3>Your own number</h3>
+        <p>Local or toll-free, with call forwarding, simultaneous ring and a softphone extension for every device you own.</p>
+      </div>
+      <div class="card">
+        <div class="icon">✉</div>
+        <h3>SMS that lands in one inbox</h3>
+        <p>Text from the same number your customers call. Threads, history and notifications live in the Zeus portal.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🎙</div>
+        <h3>Voicemail with AI summaries</h3>
+        <p>Every message is transcribed and summarised, so you read the call instead of dialling in to hear it.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🖨</div>
+        <h3>Fax, without the machine</h3>
+        <p>Send and receive faxes from the portal. Documents arrive as PDFs you can forward or file.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🤖</div>
+        <h3>AI voice agents</h3>
+        <p>Route inbound calls to an agent that answers, qualifies and books — then hands the good ones to you.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🔒</div>
+        <h3>Yours, on your infrastructure</h3>
+        <p>Runs on Innotel's own stack with single sign-on, so the phone system is another service you already trust.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="block wrap" id="plans">
+    <h2>Plans</h2>
+    <p class="sub">Prices are billed monthly through <a href="https://subscribe.innotel.us">subscribe.innotel.us</a>. A number is set up in the Zeus portal after checkout.</p>
+    <div class="plans" id="plans-grid">
+      <div class="plan">
+        <h3>Phone</h3>
+        <div class="price">$19<small>/month</small></div>
+        <p class="desc">Your own number with calls, SMS, fax and voicemail — set up in the Zeus portal after checkout.</p>
+        <ul>
+          <li>Your own phone number</li>
+          <li>Softphone extension for every device</li>
+          <li>SMS messaging</li>
+          <li>Voicemail with transcription &amp; AI summaries</li>
+          <li>Fax (send and receive)</li>
+        </ul>
+        <a class="btn btn-primary" href="https://app.magnate.innotel.us/signup?plan=phone">Subscribe to Phone</a>
+      </div>
+      <div class="plan">
+        <h3>AI Agents</h3>
+        <div class="price">$49<small>/month</small></div>
+        <p class="desc">AI voice agent add-on — enables agent routing on the Zeus phone system. $490/year if billed annually.</p>
+        <ul>
+          <li>Inbound DID routing for voice agents</li>
+          <li>AI voice agent seat</li>
+          <li>Workflow Studio access</li>
+        </ul>
+        <a class="btn btn-primary" href="https://app.magnate.innotel.us/signup?plan=agents">Subscribe to AI Agents</a>
+      </div>
+    </div>
+    <p class="note">Prices update live from the billing platform; if they cannot be loaded the table above is the published price list.</p>
+  </section>
+
+  <section class="block wrap" id="how">
+    <h2>Live in about ten minutes</h2>
+    <p class="sub">No installer, no truck roll, no phone company.</p>
+    <div class="steps">
+      <div class="step">
+        <h3>Pick a plan</h3>
+        <p>Subscribe at <a href="https://subscribe.innotel.us">subscribe.innotel.us</a>; checkout is handled by Magnate with the same account you use for every Innotel service.</p>
+      </div>
+      <div class="step">
+        <h3>Choose your number</h3>
+        <p>Bring a number you already own or take a new local one. The Zeus portal walks you through it after checkout.</p>
+      </div>
+      <div class="step">
+        <h3>Sign in and call</h3>
+        <p>Open the portal, add a softphone to each device, and set your voicemail and forwarding. That is the whole setup.</p>
+      </div>
+    </div>
+    <div class="fineprint" style="margin-top:22px">
+      <b>Already a customer?</b> Sign in to the Zeus portal to manage numbers, extensions, voicemail, fax and AI agents —
+      the portal address is on your welcome email. Need help? Write to
+      <a href="mailto:support@innotel.us">support@innotel.us</a>.
+    </div>
+  </section>
+
+  <section class="block wrap">
+    <div class="cta-band">
+      <div>
+        <h2>Put a real phone system on the desk</h2>
+        <p>From $19/month, billed through Innotel. No hardware, no long contract.</p>
+      </div>
+      <a class="btn btn-primary" href="https://subscribe.innotel.us">Get Zeus</a>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <span>© <span id="year">2026</span> Innotel · Zeus</span>
+    <span>
+      <a href="https://innotel.us">Innotel</a> ·
+      <a href="https://subscribe.innotel.us">All plans</a> ·
+      <a href="mailto:support@innotel.us">Support</a>
+    </span>
+  </div>
+</footer>
+
+<script>
+  // Keep the published prices honest: pull the live plan list from the billing
+  // platform and repaint the cards if it differs from what is on the page.
+  (function () {
+    document.getElementById("year").textContent = new Date().getFullYear();
+    var MAGNATE = "https://app.magnate.innotel.us";
+    function money(cents) { var v = cents / 100; return v % 1 === 0 ? String(v) : v.toFixed(2); }
+    fetch(MAGNATE + "/api/plans?service=zeus")
+      .then(function (r) { return r.ok ? r.json() : { plans: [] }; })
+      .then(function (d) {
+        var plans = (d && d.plans) || [];
+        if (!plans.length) return;
+        var cards = document.querySelectorAll("#plans-grid .plan");
+        plans.forEach(function (p, i) {
+          var card = cards[i];
+          if (!card) return;
+          var price = card.querySelector(".price");
+          var amount = p.priceMonthlyCents ? "$" + money(p.priceMonthlyCents) : "";
+          if (amount) price.innerHTML = amount + "<small>/month</small>";
+          if (p.description) card.querySelector(".desc").textContent = p.description;
+          if (p.features && p.features.length) {
+            card.querySelector("ul").innerHTML = p.features.map(function (f) {
+              var s = document.createElement("span");
+              s.textContent = f;
+              return "<li>" + s.innerHTML + "</li>";
+            }).join("");
+          }
+          var cta = card.querySelector(".btn");
+          cta.href = MAGNATE + "/signup?plan=" + encodeURIComponent(p.slug);
+          cta.textContent = "Subscribe to " + p.name;
+        });
+      })
+      .catch(function () { /* the static price list stays */ });
+  })();
+</script>
+</body>
+</html>

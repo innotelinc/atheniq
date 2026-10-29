@@ -104,6 +104,11 @@ SENTENCE_RULES = (
 #: exact string, so none of them can touch an identifier like `movedXBlockParams`.
 STRING_RULES = (
     ('title:"Open edX"', 'title:"AthenIQ"'),
+    # The account activation screen tells the learner to look for an activation
+    # email and prints the address it came from — still
+    # `no-reply@registration.edx.org`, on a page that is otherwise AthenIQ's. A
+    # learner who replies to that address reaches somebody else.
+    ("no-reply@registration.edx.org", "no-reply@atheniq.courses"),
     # The app shell's <title>. It is the one piece of copy a tab shows, and it
     # still named the stock product.
     ("Course Authoring |", "AthenIQ Studio"),
@@ -111,7 +116,7 @@ STRING_RULES = (
     ('alt:"Open edX"', 'alt:"AthenIQ"'),
     ("Building and Running an Open edX Course", "Authoring an AthenIQ Course"),
     ("Open edX Developer\\'s Guide", "AthenIQ Developer Guide"),
-    ("studio.edx.org", "studio.innotel.us"),
+    ("studio.edx.org", "studio.atheniq.courses"),
     ("edX grading system", "AthenIQ grading system"),
     ("edX на Facebook", "AthenIQ на Facebook"),
     ("ב-edX", "ב-AthenIQ"),
@@ -119,7 +124,7 @@ STRING_RULES = (
 
 URL_RULES = (
     ("https://open.edx.org", WORKSPACE.rstrip("/")),
-    ("https://www.edx.org", "https://learn.innotel.us"),
+    ("https://www.edx.org", "https://atheniq.courses"),
 )
 
 #: Keys whose whole value is set, because a token swap would leave them odd.
@@ -150,8 +155,10 @@ TOKEN_RULES = (
     ("Studio Home", "AthenIQ Studio"),
     ("Studio home", "AthenIQ Studio"),
     ("edX", "AthenIQ"),
-    # A value that points at the edX site should point at this platform.
-    ("edx.org", "learn.innotel.us"),
+    # A value that points at the edX site should point at this platform — on the
+    # zone the platform actually answers on. `learn.innotel.us` is a redirect now
+    # (onto atheniq.courses), so nothing here should name it again.
+    ("edx.org", "atheniq.courses"),
 )
 
 #: The Studio home's action list, exactly as the bundle builds it. `p` gates the
