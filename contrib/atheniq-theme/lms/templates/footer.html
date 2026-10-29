@@ -48,20 +48,27 @@
         <p class="atheniq-footer-tagline">LearningOps for the Innotel Platform Stack: programs, classrooms and credentials in one place.</p>
       </div>
 
+      ## The names the platform answers on, at the path each one renders —
+      ## not the ones this footer used to send people to. `apps.learn` no
+      ## longer resolves at all, `lms` never did on this zone, and
+      ## `learn.innotel.us/programs.html` and `ai.lms.innotel.us/…` are
+      ## redirects now: onto a 404, and onto the authoring home. The footer is
+      ## on every page, so each of those was a dead end one click from
+      ## anywhere in the LMS.
       <nav class="atheniq-footer-col" aria-label="${_('Learn')}">
         <h2>${_('Learn')}</h2>
         <ul>
-          <li><a href="https://apps.learn.innotel.us/catalog/">${_('Course catalog')}</a></li>
-          <li><a href="https://apps.learn.innotel.us/learning/">${_('My courses')}</a></li>
-          <li><a href="https://learn.innotel.us/programs.html">${_('Programs')}</a></li>
+          <li><a href="https://atheniq.courses/catalog/">${_('Course catalog')}</a></li>
+          <li><a href="https://atheniq.courses/learning/">${_('My courses')}</a></li>
+          <li><a href="https://atheniq.institute/#programs">${_('Programs')}</a></li>
         </ul>
       </nav>
 
       <nav class="atheniq-footer-col" aria-label="${_('Platform')}">
         <h2>${_('Platform')}</h2>
         <ul>
-          <li><a href="https://ai.lms.innotel.us/programs.html">${_('Platform Services')}</a></li>
-          <li><a href="https://studio.innotel.us/">${_('Studio')}</a></li>
+          <li><a href="https://ai.atheniq.courses/programs.html">${_('Platform Services')}</a></li>
+          <li><a href="https://studio.atheniq.courses/">${_('Studio')}</a></li>
           <li><a href="/help">${_('Help')}</a></li>
         </ul>
       </nav>

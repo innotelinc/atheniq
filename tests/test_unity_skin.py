@@ -259,7 +259,9 @@ class CmsOverlay(unittest.TestCase):
 
     def test_it_keeps_the_platform_entry_point(self):
         self.assertIn("AthenIQ Platform Services", self.text)
-        self.assertIn("ai.lms.innotel.us/programs.html", self.text)
+        # The console answers on the atheniq.courses zone; `ai.lms.innotel.us`
+        # redirects to the authoring home, so it is not an entry point any more.
+        self.assertIn("ai.atheniq.courses/programs.html", self.text)
 
 
 class ThemeScript(unittest.TestCase):
