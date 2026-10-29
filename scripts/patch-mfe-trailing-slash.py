@@ -2,8 +2,8 @@
 """patch-mfe-trailing-slash.py — redirect an MFE path without its slash to the slash.
 
 Every learner MFE is mounted with a router basename of its own path
-(`/learner-dashboard`, `/learning`, `/profile`, ...). A request for
-`/learner-dashboard` therefore normalises to an empty route inside the app: the
+(`/dashboard`, `/learning`, `/profile`, ...). A request for
+`/dashboard` therefore normalises to an empty route inside the app: the
 shell loads, `initialize()` completes, and the router matches nothing, so the
 page stays blank with no error anywhere. `/learner-dashboard/` renders.
 
@@ -31,8 +31,9 @@ import glob
 import pathlib
 import sys
 
-#: The apps the image serves. Kept as one expression so the redirect and the
-#: blocks it shadows cannot drift.
+#: The apps the image serves, by the path each is mounted at. The dashboard is
+#: `dashboard`, not the `learner-dashboard` its bundle was built for: its public
+#: path is moved in `patch-mfe-brand.py` and the old path is a redirect.
 APPS = (
     "account",
     "admin-console",
@@ -40,9 +41,9 @@ APPS = (
     "authoring",
     "catalog",
     "communications",
+    "dashboard",
     "discussions",
     "gradebook",
-    "learner-dashboard",
     "learning",
     "ora-grading",
     "profile",

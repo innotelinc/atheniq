@@ -9,10 +9,29 @@
 # again. Before this file the two proxies carried different cookie secrets and
 # separate Redis databases, which is exactly why the second host asked.
 #
-# WHY `.innotel.us`. The cookie is set for the whole domain, so every AthenIQ
-# host on the estate accepts it. The Open edX services do the same for their own
-# session (`ATHENIQ_SESSION_COOKIE_DOMAIN` in `contrib/tutor-atheniq-hosts`), so
-# the two halves of the platform agree on one idea of "signed in".
+# WHY NO `--cookie-domain`. It was `.innotel.us`, to make the cookie follow the
+# user across the estate — and it did, on the `*.innotel.us` names. On the
+# `*.atheniq.courses` names it could not: a browser refuses a `Set-Cookie` whose
+# `Domain` is not the host's own or its parent, so `ai.atheniq.courses` and
+# `class.atheniq.courses` dropped the CSRF cookie at the door and every sign-in
+# ended in a 403 on `/oauth2/callback`. Without the flag the cookie is host-only,
+# which is valid on every name — `classroom.innotel.us` included — at the price
+# of one sign-in per host, and there are two hosts.
+#
+# WHO GETS IN. Both doors name the same audience — `atheniq-admins` and
+# `AthenIQ LMS`, the group every AthenIQ account is enrolled in — because they
+# guard two halves of one product: the classroom a learner works in, and the
+# portal that lists the programs and courses that classroom belongs to. What a
+# signed-in person may *see* is the app's decision, not the door's: the portal
+# keeps `/admin`, `/console/` and every write behind its own staff list
+# (`PORTAL_ADMIN_GROUPS`), and the generation console behind
+# `GENERATION_ALLOWED_GROUPS`. A door that second-guessed that would only turn a
+# learner's first click into a 403 on `/oauth2/callback` — which is exactly what
+# `--allowed-group=AthenIQ` did here: no such group exists or ever did, so the
+# proxy admitted only the two admins and refused everybody else after a
+# perfectly good sign-in.
+#
+# `--whitelist-domain` keeps both zones, because `rd` may point at either.
 #
 # DEPLOY (on the app host, from this directory):
 #
@@ -29,7 +48,8 @@
 name: atheniq-sso
 
 services:
-  # The classroom (OpenMAIC) — `classroom.innotel.us` → 192.168.1.59:3001.
+  # The classroom (OpenMAIC) — `class.atheniq.courses` → 192.168.1.59:3001.
+  # `classroom.innotel.us` is the same door under its first name.
   classroom-sso:
     image: quay.io/oauth2-proxy/oauth2-proxy:v7.8.2
     container_name: classroom-sso
@@ -53,11 +73,12 @@ services:
       - --skip-provider-button=true
       - --cookie-secure=true
       - --cookie-samesite=lax
-      # The shared identity: one name, one secret, one domain. Changing either
-      # half here breaks the pair, which is why they are adjacent in one file.
+      # The shared identity: one name, one secret, no Domain attribute (see the
+      # header). Changing either half here breaks the pair, which is why they
+      # are adjacent in one file.
       - --cookie-name=_innotel_sso
-      - --cookie-domain=.innotel.us
       - --whitelist-domain=.innotel.us
+      - --whitelist-domain=.atheniq.courses
       - --skip-auth-route=^/api/health$
       - --reverse-proxy=true
       - --set-xauthrequest=true
@@ -78,7 +99,8 @@ services:
     networks:
       - atheniq
 
-  # The generation console — `ai.lms.innotel.us` → 192.168.1.59:8091.
+  # The generation console — `ai.atheniq.courses` → 192.168.1.59:8091. (Its old
+  # name, `ai.lms.innotel.us`, is a 301 to the authoring home on the edge.)
   generation-sso:
     image: quay.io/oauth2-proxy/oauth2-proxy:v7.8.2
     container_name: generation-sso
@@ -96,13 +118,16 @@ services:
       - --email-domain=*
       - --insecure-oidc-allow-unverified-email
       - --allowed-group=atheniq-admins
-      - --allowed-group=AthenIQ
+      - --allowed-group=AthenIQ LMS
+      # Same prompt as the classroom: the pair is one identity, so a person who
+      # has already approved the classroom must not be asked again here.
+      - --approval-prompt=auto
       - --skip-provider-button=true
       - --cookie-secure=true
       - --cookie-samesite=lax
       - --cookie-name=_innotel_sso
-      - --cookie-domain=.innotel.us
       - --whitelist-domain=.innotel.us
+      - --whitelist-domain=.atheniq.courses
       - --reverse-proxy=true
       - --set-xauthrequest=true
       - --pass-user-headers=true

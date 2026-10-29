@@ -363,7 +363,12 @@ make the embed work, and both are easy to miss:
 - **Who may enter.** `classroom-sso` is an oauth2-proxy in front of the app. Its
   `--allowed-group` has to include the group your LMS learners hold (here
   `AthenIQ LMS` as well as `atheniq-admins`), or a signed-in learner is refused
-  after the redirect.
+  after the redirect. `generation-sso`, in front of the portal, names the same
+  two groups for the same reason — a learner reaching the portal is the point of
+  it, and the portal and the console keep their own staff lists for what a person
+  may *see*. A group named here that nobody can hold (the phantom `AthenIQ` that
+  `generation-sso` used to list) admits only the admins and turns everyone else's
+  sign-in into a 403 on `/oauth2/callback`.
 
 Then generate and embed the classrooms from the course repository:
 
@@ -476,7 +481,8 @@ finishing and its recording does not lose it.
 **Who may generate.** The console sits behind an oauth2-proxy and does not trust
 it blindly: every request must carry the identity headers the proxy sets, and
 the caller must hold one of `GENERATION_ALLOWED_GROUPS` (default
-`atheniq-admins,instructors`). No headers is a 401, the wrong groups is a 403,
+`atheniq-admins,instructors`; the unit on this host sets `atheniq-admins`, which
+is the staff group that exists). No headers is a 401, the wrong groups is a 403,
 so a misrouted proxy fails closed instead of publishing an endpoint that spends
 model budget.
 
@@ -497,7 +503,8 @@ a cross-site post.
 oauth2-proxy \
   --provider=oidc --oidc-issuer-url=https://auth.cerulean.innotel.us/application/o/classroom/ \
   --oidc-groups-claim=groups --scope="openid email profile groups" --email-domain='*' \
-  --allowed-group=atheniq-admins --allowed-group=AthenIQ \
+  --allowed-group=atheniq-admins --allowed-group='AthenIQ LMS' \
+  --approval-prompt=auto \
   --set-xauthrequest=true --pass-user-headers=true --cookie-secure=true \
   --reverse-proxy=true --http-address=0.0.0.0:3001 \
   --upstream=http://<atheniq host>:8090
@@ -791,8 +798,8 @@ root to the university host.
 
 ```text
 https://learn.innotel.us/catalog/courses     catalog (MFE)
-https://learn.innotel.us/dashboard           302 -> /learner-dashboard
-https://learn.innotel.us/learner-dashboard    learner dashboard (MFE)
+https://learn.innotel.us/dashboard           learner dashboard (MFE)
+https://learn.innotel.us/learner-dashboard   302 -> /dashboard
 https://learn.innotel.us/authn/login         sign-in (MFE)
 https://learn.innotel.us/login               LMS redirect into /authn/login
 ```
@@ -808,13 +815,25 @@ whole site block proxies to `mfe:8002`. On the university host they match no
 HTML arrives, every script it names does not, and the page is an empty
 `<div id="root">` that never renders.
 
-`/dashboard` is the exception on both counts. The platform links there, but the
-`mfe` container serves the app at `/learner-dashboard` — the base path its chunks
-and router are built against — and `/dashboard` matches no app route, so the
-container answers with its root site shell: 200, `<div id="root">`, nothing
-inside. The plugin redirects `/dashboard` (and `/dashboard/<rest>`) to
-`/learner-dashboard`, so the address bar ends on the path the app believes it is
-on, and proxies `/learner-dashboard*` like any other app.
+`/dashboard` is the exception on both counts, and it is the address the app is
+built for now. The platform links to `/dashboard` (`student_dashboard`, the
+account page, every emailed course link), while the dashboard bundle was compiled
+with `/learner-dashboard` as its public path — its chunks, its router basename
+and the shell's script tags are all built against it — so the app used to render
+only at `/learner-dashboard/` and `/dashboard` had to redirect into it.
+`scripts/patch-mfe-brand.py` moves that public path to `/dashboard/` (three
+baked values per bundle: frontend-platform's `PUBLIC_PATH`, which *is* the
+router's basename; webpack's `__webpack_public_path__`; and the shell's tags),
+`scripts/patch-mfe-dashboard-path.py` moves both edges to match — the `mfe`
+container serves `dist/learner-dashboard` at `/dashboard`, the LMS proxies
+`/dashboard*` — and `/learner-dashboard` is a 302 to the new address for links
+made before the move.
+
+The dashboard's shell also carries one link back out: **AthenIQ Institute**
+(`https://atheniq.institute/`), at the foot of the page. It lives in the shell
+rather than in a bundle because the bundle's header nav is deliberately emptied
+(see the script's docstring), and because the shell is served for every dashboard
+route.
 
 The plugin therefore emits a second matcher beside the app handles:
 `@atheniq_mfe_assets path_regexp '^/(?:[^/]+\.(?:js|css)|site/.*|asset-manifest\.json|static/mfe/.*)$'`,

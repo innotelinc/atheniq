@@ -23,7 +23,13 @@ Environment=PYTHONUNBUFFERED=1
 Environment=OPENMAIC_BASE_URL=http://127.0.0.1:3000
 Environment=GENERATION_BIND=192.168.1.59
 Environment=GENERATION_PORT=8090
-Environment=GENERATION_ALLOWED_GROUPS=atheniq-admins,AthenIQ
+# Staff, and only staff: the door in front of this host admits every AthenIQ
+# account (the portal they land on is theirs), and these two lists are what make
+# the console and its deep tools staff-only. `AthenIQ` used to be named here and
+# in the door's `--allowed-group`; no such group exists in Authentik, so it
+# granted nobody anything and the door refused every non-admin after a good
+# sign-in. A name that cannot be held is not a policy.
+Environment=GENERATION_ALLOWED_GROUPS=atheniq-admins
 Environment=GENERATION_ROOT=/home/tutor/atheniq-generation
 Environment=CLASSROOM_HOST=https://classroom.innotel.us
 # A finished classroom is written into its spec without waiting for the page.

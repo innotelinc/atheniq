@@ -209,6 +209,212 @@ class HeaderNav(unittest.TestCase):
         self.assertEqual(counts.get("header-nav", 0), 0)
 
 
+class HeaderMenu(unittest.TestCase):
+    """The top of the dashboard: Courses and Discover New, and nothing else.
+
+    `mainMenu` is built from three spreads — Courses, Programs, Discover New —
+    and `secondaryMenu` from Help. The two flagged ones become `[]`, so the
+    array literal keeps its shape and the header draws the two that stay.
+    """
+
+    PROGRAMS = ('...(0,m.zj)().ENABLE_PROGRAMS?[{type:"item",href:`${rs.programsUrl()}`,'
+                'content:e($l.program)}]:[]')
+    HELP = ('...(0,m.zj)().SUPPORT_URL?[{type:"item",href:`${(0,m.zj)().SUPPORT_URL}`,'
+            'content:e($l.help)}]:[]')
+
+    def test_programs_goes_and_the_array_stays_an_array(self):
+        source = 'mainMenu:[{type:"item",href:"/",content:e($l.course),isActive:!0},' \
+                 + self.PROGRAMS + '],secondaryMenu:[' + self.HELP + ']'
+        result, counts = patch(source, app="learner-dashboard")
+        self.assertEqual(counts["header-menu"], 2)
+        self.assertIn('mainMenu:[{type:"item",href:"/",content:e($l.course),'
+                      'isActive:!0},...[]]', result)
+        self.assertIn("secondaryMenu:[...[]]", result)
+        for gone in ("programsUrl", "$l.program", "$l.help"):
+            self.assertNotIn(gone, result)
+
+    def test_the_account_menu_is_emptied_whole(self):
+        """Profile, account, order history and sign out: the array goes."""
+        source = ('userMenu:[{heading:"",items:[{type:"item",href:`${(0,m.zj)().ACCOUNT_PROFILE_URL}`,'
+                  'content:e($l.profile)},...(0,m.zj)().ORDER_HISTORY_URL?[{type:"item",'
+                  'href:(0,m.zj)().ORDER_HISTORY_URL,content:e($l.orderHistory)}]:[]]},'
+                  '{heading:"",items:[{type:"item",href:`${(0,m.zj)().LOGOUT_URL}`,'
+                  'content:e($l.signOut)}]}]}))(n,e,r,a)')
+        result, counts = patch(source, app="learner-dashboard")
+        self.assertEqual(counts["header-account-menu"], 1)
+        self.assertEqual(result, "userMenu:[]}))(n,e,r,a)")
+        for gone in ("$l.profile", "$l.orderHistory", "$l.signOut", "LOGOUT_URL"):
+            self.assertNotIn(gone, result)
+
+    def test_an_already_empty_account_menu_is_not_a_change(self):
+        source = 'userMenu:[]}))(n,e,r,a)'
+        result, counts = patch(source, app="learner-dashboard")
+        self.assertEqual(result, source)
+        self.assertNotIn("header-account-menu", counts)
+
+    def test_another_app_keeps_its_account_menu(self):
+        source = 'userMenu:[{heading:"",items:[{type:"item",href:"x",content:e($l.signOut)}]}]'
+        self.assertEqual(patch(source, app="authoring")[0], source)
+
+    def test_another_app_keeps_its_menu(self):
+        source = 'mainMenu:[' + self.PROGRAMS + ']'
+        self.assertEqual(patch(source, app="authoring")[0], source)
+
+    def test_the_console_links_follow_the_console_to_its_new_name(self):
+        """The create actions open the console on the atheniq.courses zone.
+
+        `ai.lms.innotel.us` redirects to the authoring home now, so a button
+        still pointing at it would bounce the author straight back.
+        """
+        source = 'r.push({href:"https://ai.lms.innotel.us/course-create.html"})'
+        result, counts = patch(source, app="authoring")
+        self.assertEqual(result, 'r.push({href:"https://ai.atheniq.courses/course-create.html"})')
+        self.assertEqual(counts["console-url"], 1)
+        self.assertIn("https://ai.atheniq.courses/", brand.WORKSPACE)
+
+    def test_the_nav_is_still_matched_on_the_old_name(self):
+        """The rewrite runs last: the nav anchors hold the name it replaces."""
+        result, counts = patch("p=" + brand.sections_literal(brand.PLATFORM_SECTIONS),
+                               app="learner-dashboard")
+        self.assertEqual(result, "p=[]")
+        self.assertEqual(counts["header-nav"], 1)
+
+    def test_a_second_pass_has_nothing_left_to_reduce(self):
+        source = 'secondaryMenu:[' + self.HELP + ']'
+        once, _ = patch(source, app="learner-dashboard")
+        twice, counts = patch(once, app="learner-dashboard")
+        self.assertEqual(twice, once)
+        self.assertNotIn("header-menu", counts)
+
+
+class Dashboard(unittest.TestCase):
+    """The dashboard's address is `/dashboard`, and it carries one link.
+
+    The public path is baked in the bundle in three places — frontend-platform's
+    `PUBLIC_PATH` (which is the router's basename), webpack's
+    `__webpack_public_path__`, and the shell's script tags — and the app id is
+    the same word without a slash, so the rewrite has to be by path.
+    """
+
+    def test_the_public_path_moves_and_takes_the_basename_with_it(self):
+        source = 'BASE_URL:"",PUBLIC_PATH:"/learner-dashboard/",APP_ID:"learner-dashboard"'
+        result, counts = patch(source, app="learner-dashboard")
+        self.assertIn('PUBLIC_PATH:"/dashboard/"', result)
+        self.assertEqual(counts["dashboard-path"], 1)
+
+    def test_the_webpack_public_path_moves(self):
+        source = 'a.p="/learner-dashboard/"'
+        result, _ = patch(source, app="learner-dashboard")
+        self.assertEqual(result, 'a.p="/dashboard/"')
+
+    def test_the_app_id_is_not_a_path(self):
+        """`APP_ID` and the i18n namespace name the app, not where it sits."""
+        source = '{APP_ID:"learner-dashboard",all:["learner-dashboard"]}'
+        result, counts = patch(source, app="learner-dashboard")
+        self.assertEqual(result, source)
+        self.assertEqual(counts.get("dashboard-path", 0), 0)
+
+    def test_another_app_keeps_its_path(self):
+        source = 'PUBLIC_PATH:"/learner-dashboard/"'
+        result, _ = patch(source, app="learning")
+        self.assertEqual(result, source)
+
+    def test_the_dark_mode_switch_is_turned_off_at_its_flag(self):
+        """Both shapes the app uses: `const e=` and a bare assignment."""
+        source = ('const e=(0,s.zj)().INDIGO_ENABLE_DARK_TOGGLE;'
+                  'm=(0,r.zj)().INDIGO_ENABLE_DARK_TOGGLE;')
+        result, counts = patch(source, app="learner-dashboard")
+        self.assertEqual(result, "const e=(!1);m=(!1);")
+        self.assertEqual(counts["dashboard-dark-toggle"], 2)
+
+    def test_another_app_keeps_the_switch(self):
+        source = 'const e=(0,s.zj)().INDIGO_ENABLE_DARK_TOGGLE;'
+        self.assertEqual(patch(source, app="learning")[0], source)
+
+
+class DashboardOnDisk(unittest.TestCase):
+    """Written, not just computed: the shell and the link are files."""
+
+    def setUp(self):
+        import tempfile
+        self.dir = Path(tempfile.mkdtemp()) / "learner-dashboard"
+        self.dir.mkdir()
+        (self.dir / "index.html").write_text(
+            '<html><head><script defer="defer" '
+            'src="/learner-dashboard/runtime.deadbeef.js"></script></head>'
+            '<body><div id="root"></div></body></html>', encoding="utf-8")
+        (self.dir / "runtime.deadbeef.js").write_text(
+            'a.p="/learner-dashboard/";', encoding="utf-8")
+        (self.dir / "app.deadbeef.js").write_text(
+            'PUBLIC_PATH:"/learner-dashboard/",APP_ID:"learner-dashboard";', encoding="utf-8")
+
+    def test_the_shell_asks_for_its_scripts_at_the_new_address(self):
+        self.assertEqual(brand.main([str(self.dir), "--app", "learner-dashboard"]), 0)
+        html = (self.dir / "index.html").read_text(encoding="utf-8")
+        self.assertNotIn("/learner-dashboard/", html)
+        self.assertIn("/dashboard/runtime.deadbeef.js", html)
+        self.assertIn('a.p="/dashboard/"', (self.dir / "runtime.deadbeef.js").read_text())
+
+    def test_the_stylesheet_asks_for_its_files_at_the_new_address(self):
+        (self.dir / "app.deadbeef.css").write_text(
+            '@font-face{src:url("/learner-dashboard/font.woff2")}', encoding="utf-8")
+        self.assertEqual(brand.main([str(self.dir), "--app", "learner-dashboard"]), 0)
+        css = (self.dir / "app.deadbeef.css").read_text(encoding="utf-8")
+        self.assertIn("/dashboard/font.woff2", css)
+        self.assertNotIn("/learner-dashboard/", css)
+
+    def test_the_institute_pill_is_taken_out_of_the_shell(self):
+        shell = self.dir / "index.html"
+        html = shell.read_text(encoding="utf-8")
+        pill = ('<div id="atheniq-institute" style="max-width:1240px">'
+                '<a href="https://atheniq.institute/" target="_blank" rel="noopener" '
+                'data-atheniq="institute">AthenIQ Institute'
+                '<span aria-hidden="true">&#8599;</span></a></div>')
+        shell.write_text(html.replace("</body>", pill + "</body>"), encoding="utf-8")
+        self.assertEqual(brand.main([str(self.dir), "--app", "learner-dashboard"]), 0)
+        cleaned = shell.read_text(encoding="utf-8")
+        self.assertNotIn("atheniq-institute", cleaned)
+        self.assertNotIn('data-atheniq="institute"', cleaned)
+        # The header rule for the duplicate logo keeps its selector: only the
+        # pill in the body is removed.
+        self.assertIn('a.logo[href*="atheniq.institute"]', cleaned)
+        # The root element and the closing body survive the removal.
+        self.assertIn('<div id="root"></div></body>', cleaned)
+        # A second pass is a no-op: the pill is page markup, not a rewrite.
+        self.assertEqual(brand.main([str(self.dir), "--app", "learner-dashboard"]), 0)
+        self.assertEqual(shell.read_text(encoding="utf-8"), cleaned)
+
+    def test_the_stock_wordmark_is_hidden_in_the_shell(self):
+        """Header = the AthenIQ logo, Courses, Discover New — nothing else."""
+        self.assertEqual(brand.main([str(self.dir), "--app", "learner-dashboard"]), 0)
+        html = (self.dir / "index.html").read_text(encoding="utf-8")
+        self.assertIn('id="atheniq-header"', html)
+        self.assertIn('a.logo[title="Open edX"]', html)
+        # One logo: the copy linking to the institute goes, the home one stays.
+        self.assertIn('a.logo[href*="atheniq.institute"]', html)
+        # The AthenIQ logo is a different anchor and is deliberately not touched.
+        self.assertNotIn('title="AthenIQ"]{display:none', html)
+        self.assertEqual(brand.main([str(self.dir), "--app", "learner-dashboard"]), 0)
+        self.assertEqual((self.dir / "index.html").read_text(encoding="utf-8"), html)
+
+    def test_the_skin_is_linked_from_the_address_the_app_is_served_at(self):
+        css_dir = Path(__file__).resolve().parents[1] / "contrib" / "atheniq-theme" / "mfe"
+        code = brand.main([str(self.dir), "--app", "learner-dashboard",
+                           "--unity-css", str(css_dir)])
+        self.assertEqual(code, 0)
+        html = (self.dir / "index.html").read_text(encoding="utf-8")
+        self.assertIn("/dashboard/atheniq-unity.css", html)
+        self.assertIn("/dashboard/atheniq-unity-dark.css", html)
+
+    def test_a_bundle_that_still_names_the_old_path_fails_the_run(self):
+        """A half-moved dashboard renders nothing; the run must not say it is done."""
+        (self.dir / "chunk.deadbeef.js").write_text(
+            'fetch("/learner-dashboard/programs.json")', encoding="utf-8")
+        self.assertEqual(brand.main([str(self.dir), "--app", "learner-dashboard"]), 0)
+        self.assertNotIn("/learner-dashboard/",
+                         (self.dir / "chunk.deadbeef.js").read_text(encoding="utf-8"))
+
+
 class Rewrite(unittest.TestCase):
     def test_tokens_are_replaced_in_order(self):
         self.assertEqual(brand.rewrite_value("Open edX (legacy)"), "AthenIQ (legacy)")

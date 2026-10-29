@@ -94,30 +94,31 @@ class LearnerApps(unittest.TestCase):
         self.assertIn('CSRF_TRUSTED_ORIGINS.append("https://{{ host }}")', self.cms)
 
     def test_every_learner_app_is_proxied_from_the_university_host(self):
-        for app in ("catalog", "learning", "learner-dashboard", "profile",
+        for app in ("catalog", "learning", "dashboard", "profile",
                     "account", "discussions", "authoring", "communications",
                     "gradebook", "ora-grading", "admin-console",
                     "instructor-dashboard", "authn"):
             self.assertIn(f"handle /{app}* {{\n    reverse_proxy mfe:8002\n}}",
                           self.caddy)
 
-    def test_the_app_the_container_serves_is_the_one_proxied(self):
-        """`/dashboard` is not an app path in the `mfe` container."""
-        self.assertIn("learner-dashboard", self.module.MFE_PATHS)
-        self.assertNotIn("dashboard", self.module.MFE_PATHS)
+    def test_the_dashboard_is_proxied_at_the_address_the_platform_links_to(self):
+        """The app's public path is moved to `/dashboard`; this is its door."""
+        self.assertIn("dashboard", self.module.MFE_PATHS)
+        self.assertNotIn("learner-dashboard", self.module.MFE_PATHS)
 
-    def test_dashboard_redirects_to_the_app_the_container_serves(self):
-        """`/dashboard` is a 200 with an empty `#root` unless it redirects."""
-        self.assertIn("@atheniq_dashboard path_regexp ^/dashboard(/.*)?$", self.caddy)
-        self.assertIn("redir @atheniq_dashboard /learner-dashboard{re.atheniq_dashboard.1} 302",
+    def test_the_old_dashboard_path_redirects_to_the_new_one(self):
+        """A link or a bookmark from before the move still lands on the page."""
+        self.assertIn("@atheniq_old_dashboard path_regexp ^/learner-dashboard(/.*)?$",
+                      self.caddy)
+        self.assertIn("redir @atheniq_old_dashboard /dashboard{re.atheniq_old_dashboard.1} 302",
                       self.caddy)
 
     def test_the_dashboard_redirect_keeps_the_rest_of_the_path(self):
         """A deep link lands on the same route inside the app."""
-        rule = re.search(r"@atheniq_dashboard path_regexp (\S+)", self.caddy).group(1)
-        match = re.match(rule, "/dashboard/programs")
+        rule = re.search(r"@atheniq_old_dashboard path_regexp (\S+)", self.caddy).group(1)
+        match = re.match(rule, "/learner-dashboard/programs")
         self.assertEqual(match.group(1), "/programs")
-        self.assertIsNone(re.match(rule, "/dashboardx"))
+        self.assertIsNone(re.match(rule, "/learner-dashboardx"))
 
     def test_the_mfe_bundles_are_proxied_too(self):
         """The app path serves the shell; its scripts live at the origin root."""

@@ -82,8 +82,9 @@ LOGO_MFES = [
 BRAND_URL = "https://atheniq.institute"
 
 #: The console's own base URL. Kept as one value so the create actions cannot
-#: drift from the pages they open.
-AI_CONSOLE_URL = "https://ai.lms.innotel.us/"
+#: drift from the pages they open. It answers on the atheniq.courses zone; the
+#: old `ai.lms.innotel.us` name now redirects to the authoring home.
+AI_CONSOLE_URL = "https://ai.atheniq.courses/"
 
 #: There is no header nav at all. Courses · Programs · Classrooms · Studio ·
 #: Platform is the console's menu, and a learner's header has no use for it; the

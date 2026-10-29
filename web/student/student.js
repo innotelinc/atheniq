@@ -219,11 +219,11 @@ const renderDetail = () => {
     el("div", { class: "cta-row" },
       el("a", {
         class: "btn btn-primary",
-        href: "https://apps.learn.innotel.us/catalog/",
+        href: "https://atheniq.courses/catalog/",
       }, "Enroll in the LMS"),
       el("a", {
         class: "btn btn-secondary",
-        href: "https://ai.lms.innotel.us/programs.html",
+        href: "https://ai.atheniq.courses/programs.html",
       }, "Open program workspace"),
     ),
     ...doc.semesters.map(semesterBlock),

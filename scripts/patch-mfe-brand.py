@@ -14,14 +14,12 @@ Three kinds of edit happen here.
    become `AthenIQ`, `Studio Home` becomes `AthenIQ Studio`, and the trademark
    notices — which name a company that no longer has anything to do with this
    deployment — are emptied. A handful of keys are set outright because a token
-   swap would read badly (`footer.logo.altText`, the Studio heading).
-
-2. **The header nav is emptied, in every app.** The learner dashboard once got
-two links (Courses, and the catalog — spelled `Catalogue` in the bundles that
-were built before the spelling was fixed) and every app once got the five-item
-workspace menu. Both lists are replaced with `[]`, so no page renders them and
-no rebuild is needed to take them out. Nothing is added back: the pages those
-links opened are reachable from the console and the dashboard itself.
+   swap would read badly (`footer.logo.altText`, the Studio heading).2. **The header nav is emptied, in every app.** The learner dashboard once got
+   two links (Courses, and the catalog — spelled `Catalogue` in the bundles that
+   were built before the spelling was fixed) and every app once got the five-item
+   workspace menu. Both lists are replaced with `[]`, so no page renders them and
+   no rebuild is needed to take them out. Nothing is added back: the pages those
+   links opened are reachable from the console and the dashboard itself.
 
 3. **One structural edit, in the authoring app only.** The Studio home's
    `PageHeader` builds its actions array in the bundle, and it builds exactly
@@ -30,6 +28,18 @@ links opened are reachable from the console and the dashboard itself.
    The anchor below replaces those two pushes with four anchors — the same
    actions, in the same place, on the page where somebody is about to create
    something.
+
+4. **The dashboard is moved to `/dashboard`, and carries one link of its own.**
+   The platform links to `/dashboard` (`student_dashboard`, every emailed course
+   link, the account page) while the MFE was built with `/learner-dashboard` as
+   its public path, so the app only ever rendered there and `/dashboard` had to
+   redirect into it — leaving the shorter address visible for a moment and the
+   app's own address in the bar. The public path is baked in three places
+   (frontend-platform's `PUBLIC_PATH`, which is the router's basename; webpack's
+   `__webpack_public_path__`; and the shell's script tags), so all three are
+   rewritten here and the deployment serves the app at `/dashboard`. The one link
+   added back to a page is at the foot of the dashboard: AthenIQ Institute, the
+   institute that awards the courses.
 
 Every anchor is pinned to the bundle it was written against, so each one is
 **required**: if a rule matches nothing, the build fails and says which one. A
@@ -52,8 +62,17 @@ from collections import Counter
 from pathlib import Path
 
 #: The workspace every create action opens. One constant so the four buttons
-#: cannot drift from the pages they name.
-WORKSPACE = "https://ai.lms.innotel.us/"
+#: cannot drift from the pages they name. The console answers on the
+#: atheniq.courses zone now; the old `ai.lms.innotel.us` name redirects to the
+#: authoring home, so a link left on it would come straight back.
+WORKSPACE = "https://ai.atheniq.courses/"
+
+#: The console's old public name, still baked into the bundles that were built
+#: before the move. Rewritten last, after the header rules have matched the
+#: strings those bundles actually hold (the nav arrays are anchored on it).
+CONSOLE_URL_RULES = (
+    ("https://ai.lms.innotel.us", "https://ai.atheniq.courses"),
+)
 
 #: The four create actions, in the order the platform offers them.
 CREATE_ACTIONS = (
@@ -146,6 +165,24 @@ TOKEN_RULES = (
 #: previous version of the env-config component slotted into the dashboard. Every
 #: bundle is patched to the empty list: a learner's header carries no AthenIQ
 #: menu, and the pages those links opened are reachable from the page itself.
+
+#: The learner dashboard's address. The app name and the path it is served at are
+#: not the same word: the platform and the LMS templates say `/dashboard`, the
+#: MFE image was built for `/learner-dashboard`. The path is what this module
+#: moves; the app name stays, because it is the id the runtime configuration is
+#: fetched by (`APP_ID`, and the i18n namespace beside it).
+DASHBOARD_APP = "learner-dashboard"
+DASHBOARD_ROOT = "dashboard"
+DASHBOARD_PATH_FROM = "/learner-dashboard/"
+DASHBOARD_PATH_TO = "/dashboard/"
+
+
+#: The AthenIQ Institute pill the shell used to carry under the page. It is
+#: taken out: the footer names the institute, and the dashboard is a learner's
+#: course list, not a place that advertises it. Matched by id so a shell that
+#: never had it is left alone.
+INSTITUTE_PILL_RE = re.compile(r'<div id="atheniq-institute".*?</div>', re.S)
+
 
 #: The five the env-config component carried, in its order. Pinned as a literal:
 #: the bundles already built hold this array, and no rebuild is needed to take it
@@ -240,6 +277,75 @@ def _home_actions_js() -> str:
     return 'p&&(()=>{' + pushes + "})()"
 
 
+#: The site shell's header, as the indigo theme builds it. Two things come out:
+#: the product name the theme puts beside the logo (`title`/`alt` on the anchor and
+#: on the image — visible text whenever the estate's own wordmark stands in for
+#: the image the theme shipped), and the light/dark switch, which is rendered only
+#: when `INDIGO_ENABLE_DARK_TOGGLE` is on.
+#:
+#: The switch is turned off at the source rather than hidden: the control also
+#: writes a cookie and reloads the page, so a `display:none` on it would leave a
+#: page-reloading checkbox in the tab order. `=!1` on the feature flag is one
+#: token and the widget renders an empty div.
+SITE_APP = "site"
+SITE_HEADER_RULES = (
+    ('s=(0,k.z)().INDIGO_ENABLE_DARK_TOGGLE', "s=!1"),
+    ('title:"Open edX"', 'title:"AthenIQ"'),
+    ('alt:"Open edX"', 'alt:"AthenIQ"'),
+    ('defaultMessage:"My Open edX"', 'defaultMessage:"AthenIQ"'),
+)
+
+#: The learner dashboard's header is built by the app itself, not by the theme,
+#: so the site's rules find a different shape. Two things still have to come out:
+#:
+#:   - The dark-mode switch. Its flag is read as `(0,runtime.config)().<name>`
+#:     wherever the app asks, so the property read is swapped for a literal
+#:     `(!1)` — valid in every position it appears in (`const x=` and `x=`). The
+#:     control writes a cookie and reloads the page, so turning the flag off at
+#:     the source is what leaves nothing in the tab order; a `display:none` on
+#:     the widget would keep a page-reloading control behind it.
+#:   - The stock wordmark beside the logo. It is the theme's own anchor
+#:     (`a.logo` with `title="Open edX"`), which the plugin's logo slot does not
+#:     always replace in this app; the shell CSS below hides exactly that anchor
+#:     and nothing else — the AthenIQ logo is `a.logo[title="AthenIQ"]`.
+DASHBOARD_TOGGLE_RE = re.compile(
+    r"\(0,[A-Za-z_$][A-Za-z0-9_$]*\.[A-Za-z_$][A-Za-z0-9_$]*\)\(\)\.INDIGO_ENABLE_DARK_TOGGLE")
+
+#: The dashboard's own header menu. `mainMenu` is built from three entries —
+#: Courses, Programs and Discover New — and `secondaryMenu` from Help; the user
+#: menu (profile, account, sign out) is a separate list and stays, because
+#: sign-out lives nowhere else.
+#:
+#: The two that go are spreads gated on a feature flag, so the flag is what is
+#: matched rather than the minified names around it: the shape is
+#: `(0,a.b)().<FLAG>?[{type:"item",…}]:[]`, and the whole expression becomes
+#: `[]` — the spread of an empty list, which leaves the array literal intact.
+HEADER_MENU_ITEM_RE = re.compile(
+    r'\(0,[A-Za-z_$][\w$]*\.[A-Za-z_$][\w$]*\)\(\)\.(?:ENABLE_PROGRAMS|SUPPORT_URL)'
+    r'\?\[\{type:"item",href:[^\]]*?\}\]:\[\]')
+
+#: The account menu — profile, account, order history, sign out. It goes too:
+#: the top is the logo, Courses and Discover New. Sign-out is not lost, it is on
+#: the LMS account page every app links to (`ACCOUNT_SETTINGS_URL`).
+ACCOUNT_MENU_MARKER = "userMenu:["
+#: What a bundle that still carries the menu looks like, for the final check.
+ACCOUNT_MENU_SHAPE = "userMenu:[{"
+
+#: In the shell, not in a bundle: the anchor is rendered by a component the
+#: plugin does not own in this app, and an attribute selector reaches it without
+#: rewriting React. `title` is what distinguishes it from the AthenIQ logo.
+DASHBOARD_HEADER_CSS = (
+    '<style id="atheniq-header">'
+    # The stock wordmark the theme renders beside the logo.
+    '#root header a.logo[title="Open edX"]{display:none!important}'
+    # A second copy of the logo that links away to the institute site: two
+    # `a.logo` anchors, one to `/dashboard` and one to atheniq.institute. The
+    # header keeps the one that goes home; the institute is reachable from the
+    # link at the foot of the page.
+    '#root header a.logo[href*="atheniq.institute"]{display:none!important}'
+    '</style>'
+)
+
 #: i18n value pairs: a dotted key (the i18n namespaces all use dots) mapped to a
 #: JSON string. The value matcher is escape-aware so a value with a quote in it
 #: is replaced whole rather than cut in half.
@@ -313,6 +419,32 @@ def patch_text(text: str, app: str, counts: Counter) -> str:
             counts["edx-links"] += text.count(old)
             text = text.replace(old, new)
 
+    if app == SITE_APP:
+        for old, new in SITE_HEADER_RULES:
+            if old in text:
+                counts["site-header"] += text.count(old)
+                text = text.replace(old, new)
+
+    # The dashboard is served at `/dashboard`; the public path is what the router
+    # uses as its basename, so this one replacement moves both the app's files
+    # and the routes it matches. `learner-dashboard` without the slashes is the
+    # app id and is deliberately left alone.
+    if app == DASHBOARD_APP and DASHBOARD_PATH_FROM in text:
+        counts["dashboard-path"] += text.count(DASHBOARD_PATH_FROM)
+        text = text.replace(DASHBOARD_PATH_FROM, DASHBOARD_PATH_TO)
+
+    if app == DASHBOARD_APP:
+        text, toggles = DASHBOARD_TOGGLE_RE.subn("(!1)", text)
+        if toggles:
+            counts["dashboard-dark-toggle"] += toggles
+        # Programs and Help: the top carries Courses and Discover New only.
+        text, menus = HEADER_MENU_ITEM_RE.subn("[]", text)
+        if menus:
+            counts["header-menu"] += menus
+        text, accounts = empty_array(text, ACCOUNT_MENU_MARKER)
+        if accounts:
+            counts["header-account-menu"] += accounts
+
     # The header carries no AthenIQ nav: every list the bundles know about is
     # emptied. Empty rather than removed because the list is what the component
     # renders — `p.map(...)` over `[]` draws nothing — and the surrounding
@@ -330,6 +462,12 @@ def patch_text(text: str, app: str, counts: Counter) -> str:
         if HOME_LIBRARY_ANCHOR in text:
             counts["home-library-button"] += text.count(HOME_LIBRARY_ANCHOR)
             text = text.replace(HOME_LIBRARY_ANCHOR, "")
+
+    # Last, so the rules above still see the strings the bundle was built with.
+    for old, new in CONSOLE_URL_RULES:
+        if old in text:
+            counts["console-url"] += text.count(old)
+            text = text.replace(old, new)
 
     return text
 
@@ -375,6 +513,32 @@ def imbalance(text: str) -> tuple[int, int, int]:
             text.count("[") - text.count("]"))
 
 
+def empty_array(text: str, marker: str) -> tuple[str, int]:
+    """Replace the array literal that starts right after `marker` with `[]`.
+
+    Counted rather than matched with a regular expression: the account menu
+    holds one nested `items` array per heading and a spread whose absent branch
+    is itself `[]`, so the end of the array is only findable by matching
+    brackets. Idempotent — an array that is already empty is left alone.
+    """
+    start = text.find(marker)
+    if start < 0:
+        return text, 0
+    open_at = start + len(marker) - 1
+    if text.startswith("[]", open_at):
+        return text, 0
+    depth = 0
+    for index in range(open_at, len(text)):
+        char = text[index]
+        if char == "[":
+            depth += 1
+        elif char == "]":
+            depth -= 1
+            if depth == 0:
+                return text[:open_at] + "[]" + text[index + 1:], 1
+    return text, 0
+
+
 def _assert_shape() -> None:
     stock = HOME_ACTIONS_ANCHOR + HOME_LIBRARY_ANCHOR
     replacement = _home_actions_js()
@@ -416,6 +580,53 @@ def harden(css: str) -> str:
     return CUSTOM_PROPERTY_RE.sub(declare, css)
 
 
+def app_root(app: str) -> str:
+    """The URL prefix an app is served at — one app does not sit at its own name."""
+    return DASHBOARD_ROOT if app == DASHBOARD_APP else app
+
+
+def strip_institute(dist: Path, counts: Counter, write: bool) -> None:
+    """Take the institute pill out of the dashboard shell.
+
+    It sat between the app's root and the end of the body, so it rendered under
+    every dashboard route as a bordered link to atheniq.institute. The footer
+    already names the institute; this one is off the page.
+    """
+    shell = dist / "index.html"
+    if not shell.is_file():
+        raise SystemExit(f"patch-mfe-brand: {dist} has no index.html to clean")
+    html = shell.read_text(encoding="utf-8")
+    match = INSTITUTE_PILL_RE.search(html)
+    if match is None:
+        return
+    counts["institute-pill"] += 1
+    if write:
+        shell.write_text(html.replace(match.group(0), "", 1), encoding="utf-8")
+
+
+def brand_shell(dist: Path, counts: Counter, write: bool) -> None:
+    """Put the header rule into the dashboard shell, once."""
+    shell = dist / "index.html"
+    if not shell.is_file():
+        raise SystemExit("patch-mfe-brand: no dashboard shell to brand")
+    html = shell.read_text(encoding="utf-8")
+    existing = re.search(r'<style id="atheniq-header">.*?</style>', html, re.S)
+    if existing and existing.group(0) == DASHBOARD_HEADER_CSS:
+        return
+    if existing:
+        # The block is ours: replace it whole, so a rule added here reaches a
+        # shell an earlier version already branded.
+        counts["dashboard-header-css"] += 1
+        if write:
+            shell.write_text(html.replace(existing.group(0), DASHBOARD_HEADER_CSS, 1),
+                             encoding="utf-8")
+        return
+    counts["dashboard-header-css"] += 1
+    if write:
+        shell.write_text(html.replace("</head>", DASHBOARD_HEADER_CSS + "</head>", 1),
+                         encoding="utf-8")
+
+
 def install_unity(dist: Path, app: str, css_dir: Path, counts: Counter, write: bool) -> None:
     """Put the Unity skin beside the bundle and link it from the shell."""
     for name, target in (("unity-light.css", "atheniq-unity.css"),
@@ -436,7 +647,7 @@ def install_unity(dist: Path, app: str, css_dir: Path, counts: Counter, write: b
     html = shell.read_text(encoding="utf-8")
     if "atheniq-unity.css" in html:
         return
-    links = UNITY_LINK.format(root=f"/{app}/")
+    links = UNITY_LINK.format(root=f"/{app_root(app)}/")
     if "</head>" in html:
         counts["unity:linked"] += 1
         if write:
@@ -482,6 +693,20 @@ def main(argv: list[str]) -> int:
     if args.unity_css is not None:
         install_unity(args.dist, app, args.unity_css, counts, write=not args.report)
 
+    if app == DASHBOARD_APP:
+        # Stylesheets too: the app's own sheet names its fonts and images by the
+        # public path, and those requests would otherwise take a redirect per
+        # file. Kept out of `iter_assets`, which is the text `patch_text` walks.
+        for sheet in sorted(args.dist.glob("*.css")):
+            text = sheet.read_text(encoding="utf-8", errors="ignore")
+            if DASHBOARD_PATH_FROM in text:
+                counts["dashboard-css-path"] += text.count(DASHBOARD_PATH_FROM)
+                if not args.report:
+                    sheet.write_text(text.replace(DASHBOARD_PATH_FROM, DASHBOARD_PATH_TO),
+                                     encoding="utf-8")
+        brand_shell(args.dist, counts, write=not args.report)
+        strip_institute(args.dist, counts, write=not args.report)
+
     for label, number in sorted(counts.items()):
         print(f"  {label:28} {number}")
     print(f"patch-mfe-brand: {app}: {edited} file(s) {'would change' if args.report else 'changed'}")
@@ -502,6 +727,45 @@ def main(argv: list[str]) -> int:
         if leftovers and not args.report:
             print(f"patch-mfe-brand: {leftovers[0]} still carries a learner header "
                   "link after patching — the nav was NOT removed", file=sys.stderr)
+            return 1
+
+        # The same bar for the address. `/learner-dashboard/` left in the shell
+        # or in the bundle's public path is a dashboard that loads at /dashboard
+        # and asks for its own chunks at the old prefix: a page that renders
+        # nothing, on the address this patch exists to make work.
+        # The header menu goes the same way: a bundle that still spreads a
+        # flagged item beside `mainMenu` still draws Programs or Help.
+        unmenued = [a for a in iter_assets(args.dist)
+                    if HEADER_MENU_ITEM_RE.search(a.read_text(encoding="utf-8", errors="ignore"))]
+        if unmenued and args.report and not counts.get("header-menu"):
+            print(f"patch-mfe-brand: {unmenued[0].name} spreads a flagged header item and "
+                  "no rule matched it — the bundle changed and the menu was NOT reduced",
+                  file=sys.stderr)
+            return 1
+        if unmenued and not args.report:
+            print(f"patch-mfe-brand: {unmenued[0].name} still spreads a flagged header "
+                  "item — the menu rule did not match and the top was NOT reduced",
+                  file=sys.stderr)
+            return 1
+
+        accounts = [a for a in iter_assets(args.dist)
+                    if ACCOUNT_MENU_SHAPE in a.read_text(encoding="utf-8", errors="ignore")]
+        if accounts:
+            print(f"patch-mfe-brand: {accounts[0].name} still builds an account menu — "
+                  "the top was NOT reduced to Courses and Discover New", file=sys.stderr)
+            return 1
+
+        stale = [a for a in iter_assets(args.dist)
+                 if DASHBOARD_PATH_FROM in a.read_text(encoding="utf-8", errors="ignore")]
+        if stale and (args.report and not counts.get("dashboard-path")):
+            print(f"patch-mfe-brand: {stale[0]} still names {DASHBOARD_PATH_FROM} and no "
+                  "rule matched it — the public path was NOT moved to "
+                  f"{DASHBOARD_PATH_TO}", file=sys.stderr)
+            return 1
+        if stale and not args.report:
+            print(f"patch-mfe-brand: {stale[0]} still names {DASHBOARD_PATH_FROM} after "
+                  "patching — the app would load at /dashboard and fetch its chunks "
+                  "from the old path", file=sys.stderr)
             return 1
 
     if app == "authoring" and not counts.get("home-actions") \

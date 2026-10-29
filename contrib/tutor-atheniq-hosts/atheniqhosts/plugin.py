@@ -221,7 +221,7 @@ hooks.Filters.ENV_PATCHES.add_item(
 )
 
 MFE_PATHS = (
-    "catalog", "learning", "learner-dashboard", "profile", "account",
+    "catalog", "learning", "dashboard", "profile", "account",
     "discussions", "authoring", "communications", "gradebook", "ora-grading",
     "admin-console", "instructor-dashboard",
     # The LMS redirects /login and /register here; without the proxy the
@@ -239,28 +239,29 @@ hooks.Filters.ENV_PATCHES.add_item(
     )
 )
 
-#: The learner dashboard is the one app whose name in the platform and whose path
-#: in the `mfe` container disagree. Everything links to `/dashboard`
-#: (`student_dashboard`, the account page, every emailed course link), while the
-#: container serves the app at `/learner-dashboard` — its own base path, which is
-#: what its chunks and its router are built against. `/dashboard` matches no app
-#: path there, so the container falls back to its root site shell, whose only
-#: route is `/`: a 200 response, `<div id="root">`, and nothing inside it. A
-#: redirect rather than a rewrite, so the address bar ends up on the path the app
-#: believes it is on and its own links keep working.
-DASHBOARD_FROM = "dashboard"
-DASHBOARD_TO = "learner-dashboard"
+#: The learner dashboard's address. The app is compiled for
+#: `/learner-dashboard` — its chunks, its router basename and the shell's script
+#: tags are all built against it — and the deployment moves that public path to
+#: `/dashboard` (`patch-mfe-brand.py`) so the address the platform links to is
+#: the address the browser stays on. What is left here is the old path: it keeps
+#: working as a redirect, for bookmarks made before the move.
+#:
+#: A redirect rather than a rewrite, in both directions: the app is one
+#: application at one path, and two spellings of it that both render would have
+#: to keep two public paths working forever.
+DASHBOARD_FROM = "learner-dashboard"
+DASHBOARD_TO = "dashboard"
 hooks.Filters.ENV_PATCHES.add_item(
     (
         "caddyfile-lms",
-        "# AthenIQ: /dashboard is the URL the platform links to; the app is served\n"
-        f"# at /{DASHBOARD_TO} in the mfe container.\n"
+        "# AthenIQ: the dashboard is served at /dashboard. The app was built for\n"
+        f"# /{DASHBOARD_FROM}; a link from before the move goes there." "\n"
         # A capture group rather than `uri strip_prefix`: a `redir` reads
         # `{uri}` as the request arrived, so stripping first would still emit
-        # `/learner-dashboard/dashboard`.
-        f"@atheniq_dashboard path_regexp ^/{DASHBOARD_FROM}(/.*)?$\n"
-        "redir @atheniq_dashboard "
-        f"/{DASHBOARD_TO}{{re.atheniq_dashboard.1}} 302",
+        # `/dashboard/learner-dashboard`.
+        f"@atheniq_old_dashboard path_regexp ^/{DASHBOARD_FROM}(/.*)?$\n"
+        "redir @atheniq_old_dashboard "
+        f"/{DASHBOARD_TO}{{re.atheniq_old_dashboard.1}} 302",
     )
 )
 
