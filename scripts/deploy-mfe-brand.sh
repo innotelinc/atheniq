@@ -32,6 +32,11 @@ DRY_RUN="${DRY_RUN:-0}"
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PATCH="$HERE/patch-mfe-brand.py"
+# The shell guard: an expired JWT cookie makes the app's public config call 401 and
+# leaves every page on the error boundary (measured 2026-10-29). It lives in the
+# same `index.html` this script already rewrites, so it is applied here — a rebuilt
+# image loses it exactly as it loses the brand patch.
+STALE_JWT="$HERE/patch-mfe-stale-jwt.py"
 # The Unity skin the patcher installs beside each bundle: the canonical copies
 # from contrib/atheniq-theme, so the MFEs and the console wear one palette.
 UNITY_CSS="${UNITY_CSS:-$HERE/../contrib/atheniq-theme/mfe}"
@@ -57,6 +62,9 @@ for app in $APPS; do
   docker cp "$cid:$dist" "$WORK/$app/dist" >/dev/null
   docker rm "$cid" >/dev/null
   python3 "$PATCH" "$WORK/$app/dist" --app "$app" --unity-css "$UNITY_CSS"
+  if [ -f "$WORK/$app/dist/index.html" ]; then
+    python3 "$STALE_JWT" "$WORK/$app/dist/index.html"
+  fi
   # The patch rewrites compiled JavaScript, so "it ran" is not "it is valid".
   # Every app's bundle is parsed before it is allowed into an image; a one-line
   # brace mistake once shipped a page that rendered nothing.
