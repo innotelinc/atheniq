@@ -195,7 +195,7 @@
           <li>Voicemail with transcription &amp; AI summaries</li>
           <li>Fax (send and receive)</li>
         </ul>
-        <a class="btn btn-primary" href="https://app.magnate.innotel.us/signup?plan=phone">Subscribe to Phone</a>
+        <a class="btn btn-primary" href="https://magnate.innotel.us/signup?plan=phone">Subscribe to Phone</a>
       </div>
       <div class="plan">
         <h3>AI Agents</h3>
@@ -206,7 +206,7 @@
           <li>AI voice agent seat</li>
           <li>Workflow Studio access</li>
         </ul>
-        <a class="btn btn-primary" href="https://app.magnate.innotel.us/signup?plan=agents">Subscribe to AI Agents</a>
+        <a class="btn btn-primary" href="https://magnate.innotel.us/signup?plan=agents">Subscribe to AI Agents</a>
       </div>
     </div>
     <p class="note">Prices update live from the billing platform; if they cannot be loaded the table above is the published price list.</p>
@@ -263,7 +263,7 @@
   // platform and repaint the cards if it differs from what is on the page.
   (function () {
     document.getElementById("year").textContent = new Date().getFullYear();
-    var MAGNATE = "https://app.magnate.innotel.us";
+    var MAGNATE = "https://magnate.innotel.us";
     function money(cents) { var v = cents / 100; return v % 1 === 0 ? String(v) : v.toFixed(2); }
     fetch(MAGNATE + "/api/plans?service=zeus")
       .then(function (r) { return r.ok ? r.json() : { plans: [] }; })
