@@ -99,6 +99,10 @@
     .product p { color: var(--ink-soft); font-size: 14.5px; max-width: 62ch; }
     .product .status { font-size: 12px; font-weight: 660; letter-spacing: 0.08em; text-transform: uppercase; color: var(--brand); white-space: nowrap; }
     .product a { text-decoration: none; font-weight: 660; font-size: 14px; white-space: nowrap; }
+    .prototypes { margin-top: 38px; padding-top: 28px; border-top: 1px solid var(--line); }
+    .prototypes .proto-head { display: grid; grid-template-columns: 200px 1fr; gap: 28px; align-items: baseline; padding-bottom: 6px; }
+    .proto-head .eyebrow { margin: 0; }
+    .proto-head .note { color: var(--ink-soft); font-size: 14px; max-width: 62ch; }
 
     .split { display: grid; grid-template-columns: 1fr 1fr; gap: 54px; align-items: start; }
     .principles { display: grid; gap: 0; border-top: 1px solid var(--line); }
@@ -130,6 +134,7 @@
       .grid-3 { grid-template-columns: 1fr; }
       .product { grid-template-columns: 1fr; gap: 8px; }
       .product .status, .product a { justify-self: start; }
+      .prototypes .proto-head { grid-template-columns: 1fr; gap: 8px; }
       .split { grid-template-columns: 1fr; gap: 34px; }
       .contact .wrap { grid-template-columns: 1fr; }
       .nav a:not(.nav-cta) { display: none; }
@@ -235,7 +240,7 @@
             <p class="eyebrow">Products</p>
             <h2 id="products-title">Everything we run, and what is next.</h2>
           </div>
-          <p>Most of these are live services with real learners, real numbers and an on-call rotation behind them. The rest are open source with their source and their limits written down beside them — Warden, Cantus and SCIF ship from GitHub, and their README says what is not built yet.</p>
+          <p>Most of these are live services with real learners, real numbers and an on-call rotation behind them. The rest are open source with their source and their limits written down beside them — Warden, Cantus and the prototypes below ship from GitHub, and their README says what is not built yet.</p>
         </div>
 
         <div class="product">
@@ -252,12 +257,6 @@
           <h3>Cerulean</h3>
           <p>Certificate and DNS management through one API: zone records, certificate issuance, and proxy-host provisioning. Cerulean is how our own domains — and our partners’ — get from a zone file to a working TLS endpoint without a ticket, and it is the identity and trust layer the rest of the family signs in against.</p>
           <a href="https://cerulean.innotel.us/">cerulean.innotel.us →</a>
-        </div>
-        <div class="product">
-          <h3>Sage</h3>
-          <p>A course-taking agent that sits in the lecture rather than beside it: it listens to the room, watches the screen, the board or a mirrored phone, reads the material it was given, and answers quizzes, tests and essays in the learner’s own register — with the working and the confidence that earn the mark. Three layers shape every reply: a formed student voice, your settings, and memory it wrote itself between classes. Self-hosted on plain Node with no dependencies, installable to a phone, and driven by our own gateway. iOS still will not let a web page capture another app, so screen mirroring and the relay are written down rather than pretended away.</p>
-          <a href="https://sage.innotel.tech/">sage.innotel.tech →</a>
-          <span class="status">Live</span>
         </div>
         <div class="product">
           <h3>ONYX</h3>
@@ -300,12 +299,6 @@
           <a href="https://github.com/innotelinc/warden/releases">github.com/innotelinc/warden — releases →</a>
         </div>
         <div class="product">
-          <h3>SCIF Privacy</h3>
-          <p>Messaging where the server never holds a readable message: keys are made and each message sealed on the device (ECDH P-256, HKDF-SHA-256, AES-256-GCM), and the API stores only ciphertext, public keys and account metadata — losing the passphrase means losing the history, with no server-side recovery. Written down as it is: an early, unaudited prototype whose README lists exactly what it does not do.</p>
-          <a href="https://github.com/innotelinc/scif">github.com/innotelinc/scif →</a>
-          <span class="status">Prototype</span>
-        </div>
-        <div class="product">
           <h3>Distro</h3>
           <p>Tenancy for AI app building: accounts, one gateway key per person, a quota and a spend cap on every account, a credits ledger, usage and fourteen-day spend rollups, and the operator console an admin works in. Distro is the layer every model turn in Genie passes through.</p>
           <a href="https://admin.distro.innotel.us/">admin.distro.innotel.us →</a>
@@ -315,10 +308,24 @@
           <p>A browser agent console for building with AI: describe the change, watch it work in a real browser, and keep the preview on your own subdomain. Genie runs on Distro’s tenancy and our own gateway, so every model call is metered and capped.</p>
           <a href="https://genie.innotel.us/">genie.innotel.us →</a>
         </div>
-        <div class="product">
-          <h3>Sage</h3>
-          <p>A course-taking agent for the classroom: it listens to the lecture, watches the slides, reads the material, then answers quizzes and writes essays in your voice — and reviews its own notes between classes to change how it works. Self-hosted on plain Node with no dependencies, installable to the home screen, with its key metered through the same gateway as the rest of the family.</p>
-          <a href="https://sage.innotel.tech/">sage.innotel.tech →</a>
+        <div class="prototypes" id="prototypes">
+          <div class="proto-head">
+            <p class="eyebrow">Prototype listing</p>
+            <p class="note">Early, open and honest about it: each of these ships with the source and a README that lists exactly what is not built yet. They are here rather than above because we are still hardening them.</p>
+          </div>
+          <div class="product">
+            <h3>SCIF Privacy</h3>
+            <p>Messaging where the server never holds a readable message: keys are made and each message sealed on the device (ECDH P-256, HKDF-SHA-256, AES-256-GCM), and the API stores only ciphertext, public keys and account metadata — losing the passphrase means losing the history, with no server-side recovery. An early, unaudited prototype whose README lists exactly what it does not do.</p>
+            <a href="https://github.com/innotelinc/scif">github.com/innotelinc/scif →</a>
+            <span class="status">Prototype</span>
+          </div>
+          <div class="product">
+            <h3>Sage</h3>
+            <p>A course-taking agent that sits in the lecture rather than beside it: it listens to the room, watches the screen, the board or a mirrored phone, reads the material it was given, and answers quizzes, tests and essays in the learner’s own register — with the working and the confidence that earn the mark. Three layers shape every reply: a formed student voice, your settings, and memory it wrote itself between classes. Self-hosted on plain Node with no dependencies, installable to a phone, and driven by our own gateway. iOS still will not let a web page capture another app, so screen mirroring and the relay are written down rather than pretended away. Sold as timed gateway sessions rather than a seat — see the subscription page.</p>
+            <a href="https://sage.innotel.tech/">sage.innotel.tech →</a>
+            <a href="https://subscribe.innotel.us/sage">Sessions →</a>
+            <span class="status">Prototype</span>
+          </div>
         </div>
       </div>
     </section>
