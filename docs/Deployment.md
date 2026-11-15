@@ -2006,3 +2006,17 @@ password and authenticator. Two steps before publishing it: add
 `https://registrar.atheniq.institute/oauth2/callback` to that Authentik application
 redirect URIs, then point the proxy host at `192.168.1.73:8092` instead of `:8090`.
 Skipping the first step answers every visit with a 403 from the provider.
+
+**Behind the SSO door.** `deploy/compose/atheniq-sso.yml` carries a `registrar-sso`
+pair - oauth2-proxy plus its own Redis - that puts the console behind Authentik:
+it listens on `192.168.1.73:8092` and forwards to the console on `:8090`, and the
+proxy host points at `:8092`. Authentik holds an application `atheniq-registrar`
+(provider `AthenIQ Registrar`) whose redirect URI is
+`https://registrar.atheniq.institute/oauth2/callback`, bound to the group
+`atheniq-admins`; the proxy allows the same group. It is an outer door, not a
+replacement - the console still asks for its own password and authenticator, so a
+person signs in twice: once to Authentik, once to the console.
+
+The session store is not optional. This IdP returns a long group list, the
+cookie store splits it across several cookies, and the front proxy answers 502 on
+the oversized request. Redis keeps the session server-side instead.
