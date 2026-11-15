@@ -51,6 +51,7 @@ services:
         required: false
     environment:
       - PORT=3100
+      - HOSTNAME=0.0.0.0
     ports:
       - "${CONSOLE_BIND:-0.0.0.0}:${CONSOLE_PORT:-8090}:3100"
     volumes:
