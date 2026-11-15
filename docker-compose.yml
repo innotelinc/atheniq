@@ -54,7 +54,7 @@ services:
     ports:
       - "${CONSOLE_BIND:-0.0.0.0}:${CONSOLE_PORT:-8090}:3100"
     volumes:
-      - ./data/console:/app/data
+      - console-data:/app/data
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3100/api/health"]
       interval: 30s
@@ -310,3 +310,4 @@ services:
 volumes:
   openmaic-postgres-data:
   convex-data:
+  console-data:
