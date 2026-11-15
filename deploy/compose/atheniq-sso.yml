@@ -201,6 +201,9 @@ services:
       - --pass-user-headers=true
       - --session-store-type=redis
       - --redis-connection-url=redis://:${SSO_REDIS_PASSWORD}@127.0.0.1:6380/0
+      # These three stay open to the internet: /login so signing out has somewhere
+      # to land, /verify and its API because an employer checking a certificate
+      # has no school account at all.
       - --skip-auth-route=^/api/health$
       - --skip-auth-route=^/login(/|$)
       - --skip-auth-route=^/verify(/|$)
