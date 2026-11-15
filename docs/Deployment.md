@@ -1953,3 +1953,47 @@ the delivered message carried both DKIM signatures for `atheniq.courses`.
   certificates, commits) from [docs/Architecture.md](Architecture.md#security-boundaries)
   apply to every deployment. In particular, AthenIQ never signs certificates
   itself â€” Signara does â€” and no `.env`, key, or token is ever committed.
+
+## Stage 4 — Registrar console (`console/`)
+
+`console/` is the portal that administers the institute: staff accounts, courses,
+credentials, integrations and provisioning. It is an ordinary Next.js app with its
+own lockfile, and it ships from this repository as an image, so the deployment does
+not depend on a workstation staying awake.
+
+```bash
+# from the repository root, on the host that should serve the portal
+cp console/.env.example console/.env      # then fill it in
+docker compose up -d --build console      # builds the image, starts it on :8090
+curl -s localhost:8090/api/health         # 200 once the app answers
+```
+
+`console/.env` is read when it exists and the service still starts without one; an
+unconfigured console answers `/api/health` and asks for a sign-in. The settings that
+matter on a first boot:
+
+| Variable | Why it is needed |
+| --- | --- |
+| `AUTH_SECRET` | signs the console's own session cookie; generate it, never reuse it |
+| `AUTH_PASSWORD`, `AUTH_EMAIL`, `AUTH_NAME` | the bootstrap account; the registrar changes the password from **Security** afterwards |
+| `CONSOLE_ORIGIN` | the public origin the console builds links and cookies against |
+| `MAIL_SMTP_*`, `MAIL_FROM` | mail for password resets, staff invitations and the health digest |
+| `DIGEST_TOKEN`, `DIGEST_TO` | lets a scheduler call `POST /api/health/digest` without a session |
+| `SIGNARA_*` | certificate signing; `/api/health` reports the key as unconfigured until it is set |
+| `VAULTWARDEN_URL` | password-vault provisioning from the staff page |
+| `OMNIROUTE_BASE_URL`, `OMNIROUTE_API_KEY` | the generation console's model gateway, if that page is used |
+
+State lives in the `console-data` volume mounted at `/app/data` (`store.json`), which
+is why the service survives a recreate and why the volume — not a bind mount — is what
+carries it: a bind mount arrives root-owned and the app runs as uid 100.
+
+**Publishing it.** TLS and the public name belong to the edge. Point the
+`registrar.atheniq.institute` proxy host in NPM at `<host>:8090` over HTTP, exactly as
+the other hosts in this file do; the console binds plain HTTP and expects the proxy to
+terminate. Moving the portal between hosts is that one proxy-host change, not a DNS
+change.
+
+**Health.** `/api/health` returns 200 with a `healthy` flag and a per-integration
+breakdown; a fresh install reports `healthy: false` with the Signara key "muted"
+because no signing key has been recorded yet. That is configuration, not a fault, and
+the console's own healthcheck only asks whether the process serves.
