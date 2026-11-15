@@ -1,0 +1,229 @@
+# One sign-in for AthenIQ.
+#
+# WHY TWO PROXIES AND ONE IDENTITY. `oauth2-proxy` serves exactly one upstream,
+# so the console (8090) and the classroom (3000) cannot be one process. What they
+# *can* share — and what this file makes them share — is everything that decides
+# who you are: the same Authentik client, the same cookie secret, the same cookie
+# name on the same domain, and one Redis session store. A session opened at the
+# classroom is therefore valid at the console, and the second host does not ask
+# again. Before this file the two proxies carried different cookie secrets and
+# separate Redis databases, which is exactly why the second host asked.
+#
+# WHY NO `--cookie-domain`. It was `.innotel.us`, to make the cookie follow the
+# user across the estate — and it did, on the `*.innotel.us` names. On the
+# `*.atheniq.courses` names it could not: a browser refuses a `Set-Cookie` whose
+# `Domain` is not the host's own or its parent, so `ai.atheniq.courses` and
+# `class.atheniq.courses` dropped the CSRF cookie at the door and every sign-in
+# ended in a 403 on `/oauth2/callback`. Without the flag the cookie is host-only,
+# which is valid on every name — the retired `classroom.innotel.us` included — at the price
+# of one sign-in per host, and there are two hosts.
+#
+# WHO GETS IN. Both doors name the same audience — `atheniq-admins` and
+# `AthenIQ LMS`, the group every AthenIQ account is enrolled in — because they
+# guard two halves of one product: the classroom a learner works in, and the
+# portal that lists the programs and courses that classroom belongs to. What a
+# signed-in person may *see* is the app's decision, not the door's: the portal
+# keeps `/admin`, `/console/` and every write behind its own staff list
+# (`PORTAL_ADMIN_GROUPS`), and the generation console behind
+# `GENERATION_ALLOWED_GROUPS`. A door that second-guessed that would only turn a
+# learner's first click into a 403 on `/oauth2/callback` — which is exactly what
+# `--allowed-group=AthenIQ` did here: no such group exists or ever did, so the
+# proxy admitted only the two admins and refused everybody else after a
+# perfectly good sign-in.
+#
+# `--whitelist-domain` keeps both zones, because `rd` may point at either.
+#
+# DEPLOY (on the app host, from this directory):
+#
+#   docker compose --env-file .env.atheniq-sso -f atheniq-sso.yml up -d
+#
+# The values are in Cerulean Vault at `cerulean/openmaic`. They are not written
+# here; `${VAR:?}` makes a half-resolved env file stop the deploy instead of
+# starting the only door with an empty secret.
+#
+# WHAT IT MUST NOT DO. The classroom app itself stays bound to loopback, so this
+# proxy is the only way in; the console keeps its own bind for the same reason.
+# Both `/healthz` paths stay inside their doors: a liveness probe must reach the
+# app, and everything else stays behind the sign-in.
+name: atheniq-sso
+
+services:
+  # The classroom (OpenMAIC) — `class.atheniq.courses` → 192.168.1.59:3001.
+  # `classroom.innotel.us` is the retired first name; the edge should 301 it
+  # here, because OpenMAIC refuses a request whose origin is not the new host.
+  classroom-sso:
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.8.2
+    container_name: classroom-sso
+    restart: unless-stopped
+    environment:
+      - OAUTH2_PROXY_CLIENT_ID=${OAUTH2_PROXY_CLIENT_ID:?resolve it from the vault (cerulean/openmaic)}
+      - OAUTH2_PROXY_CLIENT_SECRET=${OAUTH2_PROXY_CLIENT_SECRET:?resolve it from the vault (cerulean/openmaic)}
+      - OAUTH2_PROXY_COOKIE_SECRET=${OAUTH2_PROXY_COOKIE_SECRET:?resolve it from the vault (cerulean/openmaic)}
+      - OAUTH2_PROXY_REDIS_CONNECTION_URL=${OAUTH2_PROXY_REDIS_CONNECTION_URL:?resolve it from the vault (cerulean/openmaic)}
+    command:
+      - --provider=oidc
+      - --oidc-issuer-url=https://auth.cerulean.innotel.us/application/o/classroom/
+      - --oidc-groups-claim=groups
+      - --scope=openid email profile groups
+      - --approval-prompt=auto
+      # Authentik sets email_verified: false; the door is --allowed-group.
+      - --email-domain=*
+      - --insecure-oidc-allow-unverified-email
+      - --allowed-group=atheniq-admins
+      - --allowed-group=AthenIQ LMS
+      - --skip-provider-button=true
+      - --cookie-secure=true
+      - --cookie-samesite=lax
+      # The shared identity: one name, one secret, no Domain attribute (see the
+      # header). Changing either half here breaks the pair, which is why they
+      # are adjacent in one file.
+      - --cookie-name=_innotel_sso
+      - --whitelist-domain=.innotel.us
+      - --whitelist-domain=.atheniq.courses
+      - --skip-auth-route=^/api/health$
+      - --reverse-proxy=true
+      - --set-xauthrequest=true
+      - --pass-user-headers=true
+      - --pass-access-token=false
+      - --pass-authorization-header=false
+      # Server-side sessions: a long group list overflows a 4 KB cookie.
+      - --session-store-type=redis
+      - --upstream-timeout=600s
+      - --flush-interval=1s
+      - --upstream=http://openmaic-openmaic-1:3000
+      - --http-address=0.0.0.0:3001
+      - --silence-ping-logging=true
+    ports:
+      - "192.168.1.59:3001:3001"
+    depends_on:
+      - atheniq-sso-sessions
+    networks:
+      - atheniq
+
+  # The generation console — `ai.atheniq.courses` → 192.168.1.59:8091. (Its old
+  # name, `ai.lms.innotel.us`, is a 301 to the authoring home on the edge.)
+  generation-sso:
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.8.2
+    container_name: generation-sso
+    restart: unless-stopped
+    environment:
+      - OAUTH2_PROXY_CLIENT_ID=${OAUTH2_PROXY_CLIENT_ID:?resolve it from the vault (cerulean/openmaic)}
+      - OAUTH2_PROXY_CLIENT_SECRET=${OAUTH2_PROXY_CLIENT_SECRET:?resolve it from the vault (cerulean/openmaic)}
+      - OAUTH2_PROXY_COOKIE_SECRET=${OAUTH2_PROXY_COOKIE_SECRET:?resolve it from the vault (cerulean/openmaic)}
+      - OAUTH2_PROXY_REDIS_CONNECTION_URL=${OAUTH2_PROXY_REDIS_CONNECTION_URL:?resolve it from the vault (cerulean/openmaic)}
+    command:
+      - --provider=oidc
+      - --oidc-issuer-url=https://auth.cerulean.innotel.us/application/o/classroom/
+      - --oidc-groups-claim=groups
+      - --scope=openid email profile groups
+      - --email-domain=*
+      - --insecure-oidc-allow-unverified-email
+      - --allowed-group=atheniq-admins
+      - --allowed-group=AthenIQ LMS
+      # Same prompt as the classroom: the pair is one identity, so a person who
+      # has already approved the classroom must not be asked again here.
+      - --approval-prompt=auto
+      - --skip-provider-button=true
+      - --cookie-secure=true
+      - --cookie-samesite=lax
+      - --cookie-name=_innotel_sso
+      - --whitelist-domain=.innotel.us
+      - --whitelist-domain=.atheniq.courses
+      - --reverse-proxy=true
+      - --set-xauthrequest=true
+      - --pass-user-headers=true
+      - --session-store-type=redis
+      - --skip-auth-route=^/healthz$
+      - --upstream=http://192.168.1.59:8090
+      - --http-address=0.0.0.0:4180
+      - --silence-ping-logging=true
+    ports:
+      - "192.168.1.59:8091:4180"
+    depends_on:
+      - atheniq-sso-sessions
+    networks:
+      - atheniq
+
+  # The registrar console - `registrar.atheniq.institute` -> 192.168.1.73:8090.
+  #
+  # This is the outer door only. The console keeps its own sign-in (password plus
+  # authenticator) and this proxy does not replace it: what it adds is that only
+  # people in the AthenIQ groups reach the console's login page at all, on the same
+  # Authentik session the classroom and the generation console already use.
+  #
+  # BEFORE FIRST START: the Authentik application behind
+  # `auth.cerulean.innotel.us/application/o/classroom/` must list
+  # `https://registrar.atheniq.institute/oauth2/callback` among its redirect URIs.
+  # Without it the provider refuses the callback and every visit answers 403.
+  registrar-sso:
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.8.2
+    container_name: registrar-sso
+    restart: unless-stopped
+    environment:
+      - OAUTH2_PROXY_CLIENT_ID=${OAUTH2_PROXY_CLIENT_ID:?resolve it from the vault (cerulean/openmaic)}
+      - OAUTH2_PROXY_CLIENT_SECRET=${OAUTH2_PROXY_CLIENT_SECRET:?resolve it from the vault (cerulean/openmaic)}
+      - OAUTH2_PROXY_COOKIE_SECRET=${OAUTH2_PROXY_COOKIE_SECRET:?resolve it from the vault (cerulean/openmaic)}
+      - OAUTH2_PROXY_REDIS_CONNECTION_URL=${OAUTH2_PROXY_REDIS_CONNECTION_URL:?resolve it from the vault (cerulean/openmaic)}
+    command:
+      - --provider=oidc
+      - --oidc-issuer-url=https://auth.cerulean.innotel.us/application/o/classroom/
+      - --oidc-groups-claim=groups
+      - --scope=openid email profile groups
+      - --email-domain=*
+      - --insecure-oidc-allow-unverified-email
+      - --allowed-group=atheniq-admins
+      - --allowed-group=AthenIQ LMS
+      - --approval-prompt=auto
+      - --skip-provider-button=true
+      - --cookie-secure=true
+      - --cookie-samesite=lax
+      - --cookie-name=_innotel_sso
+      - --whitelist-domain=.innotel.us
+      - --whitelist-domain=.atheniq.courses
+      - --whitelist-domain=.atheniq.institute
+      - --reverse-proxy=true
+      - --set-xauthrequest=true
+      - --pass-user-headers=true
+      - --session-store-type=redis
+      - --skip-auth-route=^/api/health$
+      - --upstream=http://192.168.1.73:8090
+      - --http-address=0.0.0.0:4180
+      - --silence-ping-logging=true
+    ports:
+      - "192.168.1.73:8092:4180"
+    depends_on:
+      - atheniq-sso-sessions
+    networks:
+      - atheniq
+
+  # One session store for both doors. Deliberately the same instance: a session
+  # written by one proxy is read by the other, which is what makes the pair one
+  # sign-in rather than two that happen to look alike.
+  atheniq-sso-sessions:
+    image: redis:7-alpine
+    container_name: atheniq-sso-sessions
+    restart: unless-stopped
+    environment:
+      - ATHENIQ_SSO_REDIS_PASSWORD=${CLASSROOM_SSO_REDIS_PASSWORD:?resolve it from the vault (cerulean/openmaic)}
+    command:
+      - sh
+      - -c
+      - |
+        if [ -z "$$ATHENIQ_SSO_REDIS_PASSWORD" ]; then
+          echo "atheniq-sso-sessions: ATHENIQ_SSO_REDIS_PASSWORD is empty; refusing to start." >&2
+          exit 2
+        fi
+        exec redis-server \
+          --requirepass "$$ATHENIQ_SSO_REDIS_PASSWORD" \
+          --save "" \
+          --appendonly no \
+          --maxmemory-policy noeviction
+    networks:
+      - atheniq
+
+networks:
+  # The OpenMAIC stack's network, so the classroom is reachable by name and the
+  # console (a host service, reached by its LAN address) needs nothing special.
+  atheniq:
+    name: openmaic_default
+    external: true
