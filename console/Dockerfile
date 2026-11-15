@@ -21,6 +21,7 @@ FROM node:22-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production     NEXT_TELEMETRY_DISABLED=1     PORT=3100
 RUN addgroup -S console && adduser -S -G console console
+RUN mkdir -p /app/data && chown -R console:console /app/data
 COPY --from=build --chown=console:console /app/.next/standalone ./
 COPY --from=build --chown=console:console /app/.next/static ./.next/static
 USER console
