@@ -1997,3 +1997,12 @@ change.
 breakdown; a fresh install reports `healthy: false` with the Signara key "muted"
 because no signing key has been recorded yet. That is configuration, not a fault, and
 the console's own healthcheck only asks whether the process serves.
+
+**Behind the SSO door (optional).** `deploy/compose/atheniq-sso.yml` carries a
+`registrar-sso` service that puts the console behind the same Authentik session as
+the classroom: it listens on `192.168.1.73:8092` and forwards to the console on
+`:8090`. It is an outer door, not a replacement - the console still asks for its own
+password and authenticator. Two steps before publishing it: add
+`https://registrar.atheniq.institute/oauth2/callback` to that Authentik application
+redirect URIs, then point the proxy host at `192.168.1.73:8092` instead of `:8090`.
+Skipping the first step answers every visit with a 403 from the provider.
