@@ -27,6 +27,40 @@
 name: atheniq
 
 services:
+
+  # ------------------------------------------------------------------
+  # Registrar console - `registrar.atheniq.institute`.
+  #
+  # `console/` administers the institute: staff accounts, integrations and
+  # provisioning. It keeps its own settings in `console/.env` (see
+  # `console/.env.example`), so the service reads that file when it is present
+  # and still starts without one. TLS and the public name belong to the edge
+  # (NPM), which is why this listens on plain HTTP - on 8090, the port
+  # `deploy/compose/atheniq-sso.yml` already assumes for the console.
+  # ------------------------------------------------------------------
+  console:
+    build:
+      context: ./console
+    image: atheniq-console:${CONSOLE_VERSION:-local}
+    container_name: atheniq-console
+    restart: unless-stopped
+    mem_limit: 512m
+    memswap_limit: 512m
+    env_file:
+      - path: ./console/.env
+        required: false
+    environment:
+      - PORT=3100
+      - HOSTNAME=0.0.0.0
+    ports:
+      - "${CONSOLE_BIND:-0.0.0.0}:${CONSOLE_PORT:-8090}:3100"
+    volumes:
+      - console-data:/app/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3100/login"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
   # ------------------------------------------------------------------
   # OpenMAIC persistence Postgres — server-backed classroom sessions.
   # Consumed by the OpenMAIC app (deployed from its upstream repo with
@@ -277,3 +311,4 @@ services:
 volumes:
   openmaic-postgres-data:
   convex-data:
+  console-data:

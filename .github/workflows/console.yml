@@ -1,0 +1,53 @@
+name: Console
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'console/**'
+      - '.github/workflows/console.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'console/**'
+      - '.github/workflows/console.yml'
+
+concurrency:
+  group: console-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Typecheck, build and image
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: console
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+      # Build-time placeholders only: `next build` imports the app's modules,
+      # which read these at module scope. No real credential belongs here.
+      AUTH_SECRET: ci-placeholder-not-a-secret
+      AUTH_PASSWORD: ci-placeholder-not-a-secret
+      AUTH_EMAIL: registrar@example.invalid
+      CONSOLE_ORIGIN: http://localhost:3100
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: console/package-lock.json
+
+      - name: Install the lockfile exactly
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Build the image
+        run: docker build -t atheniq-console:ci .

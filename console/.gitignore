@@ -1,0 +1,13 @@
+node_modules/
+.next/
+out/
+data/
+.env
+.env.local
+# Hand-off files for mail credentials and host access; never committed.
+smtp-secret.txt
+stalwart-host.txt
+*.log
+.freebuff/scratch/
+next-env.d.ts
+*.tsbuildinfo
