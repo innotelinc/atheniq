@@ -203,6 +203,8 @@ services:
       - --redis-connection-url=redis://:${SSO_REDIS_PASSWORD}@127.0.0.1:6380/0
       - --skip-auth-route=^/api/health$
       - --skip-auth-route=^/login(/|$)
+      - --skip-auth-route=^/verify(/|$)
+      - --skip-auth-route=^/api/verify(/|$)
       - --upstream=http://127.0.0.1:8090
       - --http-address=0.0.0.0:8092
       - --silence-ping-logging=true
