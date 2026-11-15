@@ -124,7 +124,7 @@ class Config:
             console_url=env.get("PORTAL_CONSOLE") or "http://127.0.0.1:8090",
             admin_groups=groups,
             lms_url=env.get("PORTAL_LMS") or "https://atheniq.courses",
-            classroom_url=env.get("PORTAL_CLASSROOM") or "https://classroom.innotel.us",
+            classroom_url=env.get("PORTAL_CLASSROOM") or "https://class.atheniq.courses",
         )
 
 

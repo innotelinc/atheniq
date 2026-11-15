@@ -440,7 +440,7 @@ class LessonTests(Fixture):
         self.assertIn('url_name="l1_check"', chapter)
         lesson = read(os.path.join(olx, "html", "l1_html.html"))
         self.assertIn("Firms combine inputs", lesson)
-        self.assertIn("https://classroom.innotel.us/classroom/stage-test1", lesson)
+        self.assertIn("https://class.atheniq.courses/classroom/stage-test1", lesson)
         # A lesson with no quiz has no check, rather than an empty one.
         self.assertNotIn('url_name="l2_check"', read(os.path.join(olx, "chapter", "l2.xml")))
 

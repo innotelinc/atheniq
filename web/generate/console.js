@@ -277,7 +277,7 @@ const runCard = (run) => {
     card.append(el("div", { class: "err" }, `not recorded: ${run.recordError}`));
   }
   if (run.classroomId) {
-    const host = (state.me && state.me.classroomHost) || "https://classroom.innotel.us";
+    const host = (state.me && state.me.classroomHost) || "https://class.atheniq.courses";
     actions.push(el("a", {
       class: "btn btn-secondary", target: "_blank", rel: "noopener",
       href: `${host}/classroom/${run.classroomId}`,

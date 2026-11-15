@@ -347,7 +347,7 @@ const el = (tag, props = {}, ...children) => {
     resultDetails.innerHTML = `
       <p><strong>Title:</strong> ${brief.title}</p>
       <p><strong>Run ID:</strong> ${apiAnswer.runId}</p>
-      <p><strong>Classroom:</strong> <a href="${state.classroomHost}/classroom/${apiAnswer.runId}" target="_blank" rel="noopener">Open classroom.innotel.us/${apiAnswer.runId}</a></p>
+      <p><strong>Classroom:</strong> <a href="${state.classroomHost}/classroom/${apiAnswer.runId}" target="_blank" rel="noopener">Open the classroom</a></p>
       ${apiAnswer.classroomId ? `<p><strong>Classroom ID recorded:</strong> ${apiAnswer.classroomId}</p>` : ''}
     `;
 

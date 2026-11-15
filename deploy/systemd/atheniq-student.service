@@ -11,7 +11,7 @@ Environment=PYTHONUNBUFFERED=1
 Environment=STUDENT_BIND=192.168.1.59
 Environment=STUDENT_PORT=8092
 Environment=STUDENT_ROOT=/home/tutor/atheniq-generation
-Environment=CLASSROOM_HOST=https://classroom.innotel.us
+Environment=CLASSROOM_HOST=https://class.atheniq.courses
 ExecStart=/usr/bin/python3 /home/tutor/atheniq-generation/scripts/student-portal.py
 Restart=on-failure
 RestartSec=5

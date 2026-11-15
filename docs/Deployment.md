@@ -261,8 +261,8 @@ Leaving the value empty keeps Tutor's per-host default; setting it sends one
 cookie to every name under the domain, which is why it is configuration rather
 than a plugin default.
 
-This unifies the Open edX services only. `ai.lms.innotel.us` and
-`classroom.innotel.us` sit behind their own `oauth2-proxy` instances with their
+This unifies the Open edX services only. `ai.atheniq.courses` and
+`class.atheniq.courses` sit behind their own `oauth2-proxy` instances with their
 own Authentik clients, and two proxies with different clients cannot share a
 cookie. One cookie across those needs one proxy in front of all of them (the
 `cerulean-npm-sso` pattern, `--cookie-domain=.innotel.us`), not a second client. Build only the apps that need it: `tutor images
@@ -327,7 +327,7 @@ make the embed work, and both are easy to miss:
   `services/OpenMAIC/.env` and rebuild:
 
   ```
-  ALLOWED_FRAME_ANCESTORS=https://learn.innotel.us https://apps.learn.innotel.us https://lms.innotel.us https://apps.lms.innotel.us https://atheniq.innotel.us
+  ALLOWED_FRAME_ANCESTORS=https://learn.innotel.us https://apps.learn.innotel.us https://lms.innotel.us https://apps.lms.innotel.us https://atheniq.innotel.us https://atheniq.courses https://www.atheniq.courses https://apps.atheniq.courses https://studio.atheniq.courses
   docker compose build openmaic && docker compose up -d openmaic
   ```
 

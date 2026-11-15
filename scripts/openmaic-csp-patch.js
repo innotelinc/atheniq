@@ -25,6 +25,12 @@ const ADD = [
   'https://lms.innotel.us',
   'https://apps.lms.innotel.us',
   'https://atheniq.innotel.us',
+  'https://atheniq.courses',
+  'https://www.atheniq.courses',
+  'https://learn.atheniq.courses',
+  'https://catalog.atheniq.courses',
+  'https://apps.atheniq.courses',
+  'https://studio.atheniq.courses',
 ];
 
 const manifest = JSON.parse(fs.readFileSync(MANIFEST, 'utf8'));

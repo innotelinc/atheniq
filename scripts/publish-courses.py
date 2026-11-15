@@ -393,7 +393,7 @@ def _assessment_html(entry: dict) -> str:
 
 
 def _classroom_url(stage_id: str) -> str:
-    host = os.environ.get("CLASSROOM_HOST", "https://classroom.innotel.us").rstrip("/")
+    host = os.environ.get("CLASSROOM_HOST", "https://class.atheniq.courses").rstrip("/")
     return f"{host}/classroom/{stage_id}"
 
 
@@ -417,7 +417,7 @@ def _lesson_html(entry: dict, lesson: dict, index: int) -> str:
             "<p>Run this lesson as a multi-agent classroom: an AI teacher, AI "
             "classmates, and the scenario from the lesson — with you in the room.</p>\n"
             f'<p><a href="{url}" target="_blank" rel="noopener">Open “{title}” at '
-            'classroom.innotel.us</a></p>\n'
+            'class.atheniq.courses</a></p>\n'
             f'<iframe src="{url}" title="{title} — OpenMAIC classroom" width="100%"\n'
             '  height="680" loading="lazy" allow="microphone; camera; fullscreen"\n'
             '  allowfullscreen\n'

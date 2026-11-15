@@ -15,7 +15,7 @@
 # `Domain` is not the host's own or its parent, so `ai.atheniq.courses` and
 # `class.atheniq.courses` dropped the CSRF cookie at the door and every sign-in
 # ended in a 403 on `/oauth2/callback`. Without the flag the cookie is host-only,
-# which is valid on every name — `classroom.innotel.us` included — at the price
+# which is valid on every name — the retired `classroom.innotel.us` included — at the price
 # of one sign-in per host, and there are two hosts.
 #
 # WHO GETS IN. Both doors name the same audience — `atheniq-admins` and
@@ -49,7 +49,8 @@ name: atheniq-sso
 
 services:
   # The classroom (OpenMAIC) — `class.atheniq.courses` → 192.168.1.59:3001.
-  # `classroom.innotel.us` is the same door under its first name.
+  # `classroom.innotel.us` is the retired first name; the edge should 301 it
+  # here, because OpenMAIC refuses a request whose origin is not the new host.
   classroom-sso:
     image: quay.io/oauth2-proxy/oauth2-proxy:v7.8.2
     container_name: classroom-sso

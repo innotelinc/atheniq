@@ -73,7 +73,7 @@ Configuration (environment):
                                how a deployment that starts a whole course
                                at once runs)
     GENERATION_ROOT            repository root holding courses/ and web/ (default: this repo)
-    CLASSROOM_HOST             public classroom host for links (default https://classroom.innotel.us)
+    CLASSROOM_HOST             public classroom host for links (default https://class.atheniq.courses)
 
 Python is stdlib only, like every other script here: no dependency to install on
 the box that runs it.
@@ -293,7 +293,7 @@ class Config:
     max_requirement: int = DEFAULT_MAX_REQUIREMENT
     submits_per_hour: int = 10
     root: str = REPO
-    classroom_host: str = "https://classroom.innotel.us"
+    classroom_host: str = "https://class.atheniq.courses"
     #: How often the service records finished classrooms on its own, in seconds.
     #: 0 is "only when the page polls": the sweeper exists so a classroom is
     #: written back while nobody is looking, which is the whole point of doing it
@@ -326,7 +326,7 @@ class Config:
             max_requirement=int(env.get("GENERATION_MAX_REQUIREMENT", DEFAULT_MAX_REQUIREMENT)),
             submits_per_hour=int(env.get("GENERATION_SUBMITS_PER_HOUR", "10")),
             root=env.get("GENERATION_ROOT", REPO),
-            classroom_host=env.get("CLASSROOM_HOST", "https://classroom.innotel.us").rstrip("/"),
+            classroom_host=env.get("CLASSROOM_HOST", "https://class.atheniq.courses").rstrip("/"),
             autorecord_seconds=int(env.get("GENERATION_AUTORECORD_SECONDS", "0")),
             state_path=env.get("GENERATION_STATE", ""),
             publish_courses=env.get("GENERATION_PUBLISH", "1").strip().lower()

@@ -262,7 +262,7 @@ services:
       GENERATION_PORT: ${GENERATION_PORT:-8090}
       GENERATION_ALLOWED_GROUPS: ${GENERATION_ALLOWED_GROUPS:-atheniq-admins,instructors}
       GENERATION_ROOT: /srv/repo
-      CLASSROOM_HOST: ${CLASSROOM_HOST:-https://classroom.innotel.us}
+      CLASSROOM_HOST: ${CLASSROOM_HOST:-https://class.atheniq.courses}
     volumes:
       - ./scripts:/srv/repo/scripts:ro
       - ./web:/srv/repo/web:ro

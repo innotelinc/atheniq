@@ -35,7 +35,7 @@ ZONE = "innotel.us"
 APEX = ZONE + "."
 HOST = "ai.lms." + ZONE
 UPSTREAM = ("192.168.1.59", 8091)  # the console's oauth2-proxy
-MODEL_HOST_ID = 214  # classroom.innotel.us — another SSO proxy in front of an app
+MODEL_HOST_ID = 214  # class.atheniq.courses — another SSO proxy in front of an app
 DRY = os.environ.get("DRY_RUN") == "1"
 
 env = {}

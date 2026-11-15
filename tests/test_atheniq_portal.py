@@ -112,7 +112,7 @@ class CatalogCase(unittest.TestCase):
             root=cls.root, bind="127.0.0.1", port=0, view="both",
             console_url=f"http://127.0.0.1:{cls.console.server_address[1]}",
             admin_groups=("atheniq-admins",),
-            lms_url="https://atheniq.courses", classroom_url="https://classroom.innotel.us")
+            lms_url="https://atheniq.courses", classroom_url="https://class.atheniq.courses")
 
     @classmethod
     def tearDownClass(cls):
@@ -170,7 +170,7 @@ class ViewsCase(unittest.TestCase):
             root=cls.root, bind="127.0.0.1", port=0, view="learner",
             console_url=f"http://127.0.0.1:{cls.console.server_address[1]}",
             admin_groups=("atheniq-admins",),
-            lms_url="https://atheniq.courses", classroom_url="https://classroom.innotel.us")
+            lms_url="https://atheniq.courses", classroom_url="https://class.atheniq.courses")
         cls.server = PORTAL.make_server(config)
         cls.port = cls.server.server_address[1]
         threading.Thread(target=cls.server.serve_forever, daemon=True).start()

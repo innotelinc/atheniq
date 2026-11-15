@@ -1,7 +1,7 @@
 # OnTrak Class — roadmap (AthenIQ classroom host)
 
 > **Re-baselined at 2.0 (2026-10-24).** OnTrak Class is the family's classroom
-> product: the OpenMAIC host at `classroom.innotel.us`, generated from an OnTrak
+> product: the OpenMAIC host at `class.atheniq.courses`, generated from an OnTrak
 > course and linked from the training app by `Course.classroomUrl` /
 > `Cohort.classroomUrl`. The shipped host is **2.0.0**; the next minor milestones
 > are 2.1–2.4, and the next majors are 3.0 and 4.0. The portfolio view is
@@ -21,7 +21,7 @@ with no install.
 
 ## 2. 2.0.0 — shipped baseline `[x]`
 
-- `[x]` **The classroom host** at `classroom.innotel.us` (OpenMAIC), behind the
+- `[x]` **The classroom host** at `class.atheniq.courses` (OpenMAIC), behind the
   family's Cerulean sign-in. `/api/health` is the one unauthenticated path, so the
   portal's light probes the lesson server rather than a sign-in redirect.
 - `[x]` **Generated multi-agent lessons** — slides, quizzes, interactive HTML

@@ -63,7 +63,7 @@ import urllib.request
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 COURSES_DIR = os.path.join(REPO, "courses")
 DEFAULT_BASE_URL = "http://127.0.0.1:3000"
-CLASSROOM_HOST = "https://classroom.innotel.us"
+CLASSROOM_HOST = "https://class.atheniq.courses"
 
 # The gateway is the deployment's only model provider, and these are the slots
 # a generation run reads its models from.
@@ -434,7 +434,7 @@ def inject_block(doc, classroom, stage_id):
         f'  <p>Run this chapter as a multi-agent classroom on OpenMAIC: an AI teacher,\n'
         f'  AI classmates, and the scenario from the lesson — with you in the room.</p>\n'
         f'  <p><a href="{url}" target="_blank" rel="noopener">Open “{title}” at\n'
-        f'  classroom.innotel.us</a></p>\n'
+        f'  class.atheniq.courses</a></p>\n'
         f'  <iframe src="{url}" title="{title} — OpenMAIC classroom" width="100%"\n'
         f'    height="680" loading="lazy" allow="microphone; camera; fullscreen"\n'
         f'    allowfullscreen\n'

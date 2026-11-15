@@ -31,7 +31,7 @@ Environment=GENERATION_PORT=8090
 # sign-in. A name that cannot be held is not a policy.
 Environment=GENERATION_ALLOWED_GROUPS=atheniq-admins
 Environment=GENERATION_ROOT=/home/tutor/atheniq-generation
-Environment=CLASSROOM_HOST=https://classroom.innotel.us
+Environment=CLASSROOM_HOST=https://class.atheniq.courses
 # A finished classroom is written into its spec without waiting for the page.
 # 0 disables the sweeper; the page's own poll still records.
 Environment=GENERATION_AUTORECORD_SECONDS=20

@@ -29,7 +29,7 @@ Configuration (environment):
     STUDENT_PORT     port to listen on (default 8092)
     STUDENT_ROOT     repository root holding programs/, courses/ and web/
     CLASSROOM_HOST   public classroom host for links
-                     (default https://classroom.innotel.us)
+                     (default https://class.atheniq.courses)
 
 Python is stdlib only, like every other script in this tree.
 """
@@ -75,7 +75,7 @@ class Config:
     bind: str = "127.0.0.1"
     port: int = 8092
     root: str = REPO
-    classroom_host: str = "https://classroom.innotel.us"
+    classroom_host: str = "https://class.atheniq.courses"
 
     @classmethod
     def from_env(cls, env=None):
@@ -85,7 +85,7 @@ class Config:
             port=int(env.get("STUDENT_PORT", "8092")),
             root=env.get("STUDENT_ROOT", REPO),
             classroom_host=env.get("CLASSROOM_HOST",
-                                   "https://classroom.innotel.us").rstrip("/"),
+                                   "https://class.atheniq.courses").rstrip("/"),
         )
 
 
