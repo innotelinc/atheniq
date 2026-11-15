@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { SESSION_COOKIE, authEnabled, verifySession } from "@/lib/session";
+import { SESSION_COOKIE, SSO_SIGNED_OUT_COOKIE, authEnabled, verifySession } from "@/lib/session";
+import { ssoEnabled, ssoIdentity } from "@/lib/sso";
 import { normalizeDomain, publicHosts } from "@/lib/branding";
 
 /**
@@ -66,6 +67,17 @@ export async function middleware(request: NextRequest) {
 
   if (pathname.startsWith("/api/")) {
     return NextResponse.json({ ok: false, error: "Sign in to use the console." }, { status: 401 });
+  }
+
+  // The proxy in front already authenticated this browser against Authentik, so
+  // trade its identity for a console session rather than asking for the password
+  // again. The route re-checks the account, its group and its domain.
+  const signedOut = request.cookies.get(SSO_SIGNED_OUT_COOKIE)?.value === "1";
+  if (ssoEnabled() && !signedOut && ssoIdentity(request)) {
+    const sso = request.nextUrl.clone();
+    sso.pathname = "/api/auth/sso";
+    sso.search = `?next=${encodeURIComponent(pathname + search)}`;
+    return NextResponse.redirect(sso);
   }
 
   const login = request.nextUrl.clone();

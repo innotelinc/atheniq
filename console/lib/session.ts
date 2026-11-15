@@ -15,6 +15,12 @@ export const SESSION_TTL_SECONDS = 12 * 60 * 60;
 
 /** Short-lived proof that the password step passed, held until the TOTP step. */
 export const CHALLENGE_COOKIE = "atheniq_login";
+/**
+ * Set when someone signs out behind the SSO proxy. Without it the very next
+ * page load would be signed straight back in by the identity the proxy still
+ * holds, which would make signing out do nothing.
+ */
+export const SSO_SIGNED_OUT_COOKIE = "atheniq_sso_signed_out";
 export const LOGIN_NEXT_COOKIE = "atheniq_login_next";
 export const CHALLENGE_TTL_SECONDS = 10 * 60;
 

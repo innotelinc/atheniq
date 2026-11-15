@@ -2020,3 +2020,23 @@ person signs in twice: once to Authentik, once to the console.
 The session store is not optional. This IdP returns a long group list, the
 cookie store splits it across several cookies, and the front proxy answers 502 on
 the oversized request. Redis keeps the session server-side instead.
+
+### Signing in once
+
+With that door in place, set `SSO_TRUST_HEADERS=on` in the console environment and
+`SSO_GROUP=atheniq-admins` beside it. The proxy forwards who the person is in
+`X-Forwarded-Email` and `X-Forwarded-Groups`, and the console accepts that as its
+own sign-in: staff who authenticated to Authentik land on the page they asked for
+instead of the password form. The account must still exist under Staff, be active,
+sit on a registered domain and hold that group. The authenticator step is skipped
+for these sign-ins because Authentik has already run the school sign-in.
+
+This is only safe while the proxy is the console port only client. Publish the
+console on `127.0.0.1:8090`, never on the network address: anyone who could reach
+the port directly could claim any address in those headers.
+
+Signing out clears the console session and leaves a marker cookie, so the next
+page load is not signed straight back in by the identity the proxy still holds.
+The login page then offers "Sign in with single sign-on" for a deliberate return.
+`SSO_SIGN_OUT` says where the browser goes afterwards; the default ends the proxy
+session and returns to `/login`.
