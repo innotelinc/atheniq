@@ -1,0 +1,18 @@
+{
+  "appId": "6835960485",
+  "bundleId": "institute.atheniq.app",
+  "teamId": "BH7WW2BR39",
+  "version": "1.0.0",
+  "locale": "en-US",
+  "copyright": "2026 Innotel Labs",
+  "primaryCategory": "EDUCATION",
+  "name": "AthenIQ",
+  "subtitle": "Courses, progress, credentials",
+  "privacyPolicyUrl": "https://registrar.atheniq.institute/privacy",
+  "supportUrl": "https://atheniq.institute",
+  "marketingUrl": "https://atheniq.institute",
+  "keywords": "courses,learning,college,credits,certificate,study,registrar,students",
+  "promotionalText": "Enroll in a course, study offline, and carry your progress and certificates on your phone.",
+  "description": "AthenIQ is the student app for AthenIQ Institute courses. Browse the catalog, read lessons, download them for offline study, and keep your progress in one place.\n\nWHAT YOU CAN DO\n\n· Browse the catalog and open any course that is free to start\n· Enroll in a course and read every lesson on the phone\n· Download a course for study without a connection\n· Follow your progress, credits and completed lessons\n· Collect certificates as courses finish, ready to show an employer\n· Pay for a priced course by transfer: the app issues a reference, the registrar confirms it, and the course opens\n\nFOR REGISTRARS\n\nStaff accounts sign in and see the payment queue and certificate requests that cannot wait for a desk, so a learner is not blocked while someone is away from a computer.\n\nHOW IT WORKS\n\nCourses are taught by AthenIQ Institute and recorded in the console the school already uses. The app is a client for that record: what you see is what your registrar sees.",
+  "whatsNew": "First release: the catalog, lessons, offline downloads, progress, certificates, and the registrar's queue."
+}

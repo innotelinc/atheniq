@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
  * Enrolling an authenticator from a signed-in session.
  *
  * The login-time `/api/auth/totp/begin` route belongs to the password challenge
- * and only exists mid-sign-in, so an account that skipped enrolment could not
+ * and only exists mid-sign-in, so an account that skipped enrollment could not
  * add a code afterwards. This is the same ceremony for someone already in:
  * POST without a code mints the secret, POST with a code enables it and returns
  * the recovery codes once.

@@ -7,7 +7,7 @@ import { generateTotpSecret, otpauthUri } from "@/lib/totp";
 export const dynamic = "force-dynamic";
 
 /**
- * Start enrolment: mint a secret for the account that passed the password step
+ * Start enrollment: mint a secret for the account that passed the password step
  * and hand back its otpauth URI. The secret is stored but stays disabled until
  * a code from the authenticator confirms it, so a half-finished setup never
  * locks anyone out.

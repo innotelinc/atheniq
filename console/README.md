@@ -1,9 +1,13 @@
-# AthenIQ — Course & School Management Console
+# AthenIQ — Registrar console
 
-The registrar console behind [atheniq.institute](https://atheniq.institute) and
-[atheniq.courses](https://atheniq.courses): create and generate courses, publish
-them with their price and catalog placement, manage degree plans, and award
-certificates and degrees through Signara.
+The staff side of AthenIQ Institute, the school that publishes
+[atheniq.institute](https://atheniq.institute): create and generate courses,
+publish them with their price and catalog placement, manage degree plans, run
+the front-facing website, and award certificates and degrees through Signara.
+
+It is staff-only. A student never opens it — applications and admissions
+questions go to the public site, and the classroom a student signs in to is
+[atheniq.courses](https://atheniq.courses).
 
 It is a self-hosted Next.js app (Node, no external services required) that speaks
 the same shapes the AthenIQ platform already publishes — runtime keys
@@ -17,29 +21,25 @@ npm run dev        # http://localhost:3100
 
 ### Hosting
 
-The console is published at `https://registrar.atheniq.institute` through the
-Cerulean stack on `192.168.1.71`:
+The console answers on `registrar.atheniq.institute`; the institute's public
+website is `atheniq.institute`. One repository builds both sides now, so there
+is no second app to keep in step.
 
-- **DNS** — Technitium, zone `atheniq.institute`. A 300-second A record for
-  `registrar` points at the edge's public address, `73.68.203.71` (the same
-  address the apex uses).
-- **TLS and proxying** — Nginx Proxy Manager host 331 holds a Let's Encrypt
-  certificate for the name (renewed automatically) and forwards to
-  `http://192.168.1.17:3100`, the console host on the LAN, with WebSocket
-  upgrades enabled. TLS is forced; HTTP redirects.
-- **Production build behind the edge** — that upstream is `npm run build` then
-  `npm run start` on port 3100, not `next dev`; restart `npm start` after a
-  deploy so the new build is served.
+- **This repository owns the app.** The compose file's `console` service builds
+  `./console`; `.github/workflows/console.yml` typechecks, builds and images it,
+  and `console/deploy/rebuild-on-host.sh` compiles it on the console host when
+  that host has less memory than `next build` wants.
+- **The door in front is the registrar proxy.**
+  `deploy/compose/atheniq-registrar-sso.yml` (`oauth2-proxy` on :8092 plus its
+  Redis) sits in front of the console on :8090 and admits the `atheniq-admins`
+  group. Routes the public legitimately needs — `/login`, `/verify`, `/pay`,
+  `/privacy`, `/request-access`, the site at `/site` and the mobile API — are
+  skipped there and in `middleware.ts`.
+- **Staff only.** Every other page and API route needs a staff session; there is
+  no learner account, enrolment or admissions path in this app at all.
 - **Console address** — `CONSOLE_ORIGIN` (default
   `https://registrar.<brand domain>`) is the origin alert email links back to;
-  the brand domain itself serves the public site, so `/staff` links must not use
-  it.
-- **Security headers** — host 331 sets HSTS (one year, `includeSubDomains`),
-  `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`,
-  `Permissions-Policy` and `Cross-Origin-Opener-Policy` through the
-  headers-more module's `more_set_headers`. A plain server-level `add_header`
-  would not reach the browser: NPM's `proxy.conf` sets one inside `location /`,
-  and a location-level `add_header` suppresses server-level inheritance.
+  the brand domain serves the public site, so `/staff` links must not use it.
 
 `next.config.mjs` still lists the origin in `allowedDevOrigins`, so HMR and
 server actions keep working when developing against the hostname with
@@ -136,6 +136,135 @@ a revocation is visible on the public verification page.
 uses: valid, revoked, or not yet issued, with the award record, evidence hash and
 signed PDF.
 
+## The app (`mobile/`)
+
+A React Native app (Expo, TypeScript) for iPhone: the catalog, the lessons, the
+progress and the certificate, plus the registrar's queue for the decisions that
+cannot wait for a desk.
+
+```bash
+cd mobile
+npm install
+npx expo start          # then scan the QR code with Expo Go, or press i on a Mac
+npx expo start --web    # a browser preview without Xcode
+```
+
+### TestFlight
+
+The iPhone build is made by **iOS TestFlight**
+(`.github/workflows/ios-testflight.yml`) on GitHub's macOS runners: Xcode
+creates the archive, signs it, exports the `.ipa` and uploads it to App Store
+Connect, which is what puts it into TestFlight. No Expo cloud and no EAS — the
+Xcode project is generated from `app.json` inside the job, and the JavaScript
+bundle is built by Xcode itself.
+
+It runs from the Actions tab or on an `ios-v*` tag — never on every commit,
+because a macOS runner and a store upload cost money and reach real people.
+
+The workflow is pinned to team `BH7WW2BR39` and app `6835960485`. Three
+repository secrets make it work, all from a **Team** API key under App Store
+Connect → Users and Access → Integrations (App Manager or Admin role — Xcode
+asks Apple for the distribution certificate, and narrower roles are refused):
+
+| Secret | What it is |
+| --- | --- |
+| `ASC_KEY_ID` | the key's 8–10 character ID |
+| `ASC_ISSUER_ID` | the issuer UUID on the same page |
+| `ASC_PRIVATE_KEY` | the whole `.p8` file, BEGIN/END lines included |
+
+Before the first run:
+
+- The app record `6835960485` must use the bundle identifier
+  `institute.atheniq.app`; an upload whose bundle ID does not match its record
+  is rejected.
+- The App ID in the developer portal needs **Push Notifications** enabled, or
+  the archive fails on the `aps-environment` entitlement.
+- No certificate or profile is uploaded: Xcode creates the distribution
+  certificate and provisioning profile from the API key during the export.
+  That is also why the key needs App Manager or Admin.
+
+Each run stamps the build number from the GitHub run number — App Store Connect
+rejects a repeated build number — and leaves the marketing version alone unless
+you type one into "Marketing version". `ITSAppUsesNonExemptEncryption` is
+already `false` in `app.json`, so uploaded builds skip the export compliance
+question. Builds appear in TestFlight once Apple has processed them; assign a
+build to an internal group in App Store Connect to hand it to testers.
+
+### App Store draft submission
+
+`scripts/asc-submission.mjs` creates the App Store Connect version in **Prepare
+for Submission** and writes its metadata from `mobile/store/submission.json`:
+name, subtitle, privacy policy, description, keywords, support and marketing
+URLs, category, and — when a build has finished processing — the build itself.
+Reviewing the copy in a pull request beats retyping it into a web form.
+
+```bash
+node scripts/asc-submission.mjs                      # print the plan, touch nothing
+node scripts/asc-submission.mjs --apply --attach-build
+```
+
+It uses the same three secrets as TestFlight (`ASC_KEY_ID`, `ASC_ISSUER_ID`,
+`ASC_PRIVATE_KEY`, or `ASC_KEY_PATH` for a local run), and the same job is
+available as **Actions → App Store draft submission**, which keeps the key out
+of any terminal.
+
+What it deliberately leaves alone: it never submits for review, and it does not
+upload screenshots — those need a simulator, so they are a workflow of their own.
+The privacy policy URL it writes is
+`https://registrar.atheniq.institute/privacy`: the marketing host serves a
+static page and not this app, so the policy is published publicly on the console
+(`app/privacy/page.tsx`, exempt from the proxy like `/pay`). Both `/privacy` and
+`/_next/` are in that proxy's `--skip-auth-route` list, so a reviewer's browser
+loads the page and its bundle without a sign-in.
+
+### App Store screenshots
+
+`scripts/asc-screenshots.mjs` replaces the 6.9-inch iPhone screenshot set on the
+draft version: it finds the open version, ensures the `APP_IPHONE_69` set on the
+`en-US` localization, deletes what is there and uploads the new files in name
+order. It refuses a PNG that is not 1320×2868, because Apple rejects the set
+later and less clearly.
+
+The images come from **App Store screenshots**
+(`.github/workflows/ios-screenshots.yml`) on a macOS runner: it builds the app
+Release for the simulator — a Debug build would open to a blank screen with no
+Metro server — boots an iPhone 16 Pro Max, pins the status bar to 9:41 and a full
+battery, walks the app through the catalog, a course, My learning and the
+sign-up screen with its `atheniq://` links, and captures 1320×2868 PNGs. It also
+attaches them to the run, so the set survives a failed upload.
+
+Account is deliberately not in the set: the simulator has no session, so that
+screen reads "Not signed in". The sign-up screen is the honest picture of where
+a new learner starts.
+
+### Release order
+
+With the three secrets in place, the workflows run in this order — screenshots
+and the build both hang off the draft version, so they cannot go first:
+
+1. **Actions → iOS TestFlight** — archives, signs and uploads the `.ipa`; the
+   build shows up in App Store Connect once Apple has processed it.
+2. **Actions → App Store draft submission** — creates the `1.0.0` version with
+   its metadata and attaches the newest processed build.
+3. **Actions → App Store screenshots** — captures and uploads the 6.9-inch set.
+4. In App Store Connect: answer the **age rating**, then **Submit for review**.
+
+## Rebuilding on the console host
+The console host (192.168.1.73) has 1.28 GB of RAM and no swap — it is an Incus
+container, so `swapon` is refused — and `next build` inside `docker build` is
+killed there. `deploy/rebuild-on-host.sh` builds on the host anyway: the compile
+runs in a Node container with a capped heap (`BUILD_HEAP_MB`, default 768) and
+then `Dockerfile.runtime` packages the result, with
+`Dockerfile.runtime.dockerignore` deliberately keeping `.next` in the context.
+
+```bash
+# on the console host, from an extracted source tree
+./deploy/rebuild-on-host.sh .
+cd /usr/src/atheniq-console && docker compose up -d
+```
+
+`Dockerfile` remains the single-stage build for machines with memory to spare.
+
 ## Configuration
 
 Everything is set in **Integrations** (`/integrations`) and stored server-side in
@@ -212,14 +341,14 @@ data/                   store, published bundles, certificates (gitignored)
   console is open, which is the local-development default. For SSO, keep
   Authentik / oauth2-proxy in front as well — it only adds a layer.
 - **Two-factor and domain-locked accounts.** Two-factor is required by
-  default: an unenrolled account is walked through enrolment at its first
+  default: an unenrolled account is walked through enrollment at its first
   sign-in — a QR code, the setup key and the `otpauth://` URI, then eight
   single-use recovery codes once a code confirms the app. Any TOTP app works;
   in Vaultwarden or Bitwarden, scan the code or paste the key into a login
   item's authenticator field. `/security` offers the same **Set up
   authenticator** flow to a signed-in account, and `AUTH_REQUIRE_2FA=off` makes
-  the password sufficient until the person enrols. Set `AUTH_REQUIRE_2FA=on` to force enrolment at the first sign-in
-  instead, and a freshly reset account then re-enrols the same way. Staff emails must end with a registered domain
+  the password sufficient until the person enrolls. Set `AUTH_REQUIRE_2FA=on` to force enrollment at the first sign-in
+  instead, and a freshly reset account then re-enrolls the same way. Staff emails must end with a registered domain
   (`STAFF_EMAIL_DOMAINS`, editable on the Staff page as the sign-in policy),
   enforced both when an account is created and when it signs in; subdomains
   count, look-alike domains do not. Registrars can reset an account's
@@ -247,7 +376,7 @@ data/                   store, published bundles, certificates (gitignored)
 - **Access requests.** `/request-access` is public: someone on a registered
   domain asks for an account and chooses a password, which is stored hashed
   until a registrar approves the request on the Staff page. Approval creates a
-  publisher account that enrols two-factor at its first sign-in; declining
+  publisher account that enrolls two-factor at its first sign-in; declining
   leaves no account behind. `/staff` keeps the last eight decisions with who
   made them.
 - **Registrar alerts.** With mail configured (either SMTP submission via
@@ -312,7 +441,7 @@ data/                   store, published bundles, certificates (gitignored)
   digest (needs `MAIL_SMTP_*` or `MAIL_API_KEY`, plus `MAIL_FROM`; `DIGEST_TOKEN` lets a scheduler
   POST `/api/health/digest?token=…`).
 - **The public website.** `/website` (registrars) owns the front-facing site:
-  name, tagline, logo image or monogram, logo placement, accent colour, support
+  name, tagline, logo image or monogram, logo placement, accent color, support
   address, domain and the section toggles. `/site` is the live preview, and any
   host in `PUBLIC_SITE_HOSTS` (default `atheniq.institute`) is rewritten to it
   with no staff session. The site is derived, never copied: published courses,

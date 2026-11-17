@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { authEnabled, safeNext } from "@/lib/session";
-import { ssoEnabled } from "@/lib/sso";
 import { getDb } from "@/lib/store";
 import { PasskeySignIn } from "@/components/PasskeySignIn";
 
 export const dynamic = "force-dynamic";
+
+export const metadata = { title: "Sign in — AthenIQ" };
 
 const ERRORS: Record<string, string> = {
   required: "Enter the console password.",
@@ -12,10 +13,6 @@ const ERRORS: Record<string, string> = {
   domain: "That account is not on a registered domain, so it cannot sign in.",
   expired: "That sign-in attempt expired. Sign in again.",
   locked: "Too many refused attempts for that address. Wait a few minutes and try again.",
-  sso_unknown:
-    "That single sign-on account has no console account here. Ask a registrar to add your address.",
-  sso_group:
-    "That single sign-on account is not in the group this console allows. Ask for the AthenIQ admin group.",
 };
 
 export default async function LoginPage({
@@ -65,11 +62,6 @@ export default async function LoginPage({
               </button>
               {twoFactor && (
                 <span className="tiny muted">A six-digit authenticator code follows the password.</span>
-              )}
-              {ssoEnabled() && (
-                <a className="btn" href={`/api/auth/sso/start?next=${encodeURIComponent(next)}`}>
-                  Sign in with single sign-on
-                </a>
               )}
             </form>
           ) : (

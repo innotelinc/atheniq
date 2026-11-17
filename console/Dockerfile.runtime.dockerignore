@@ -1,0 +1,14 @@
+# Everything the runtime image does not need — but NOT .next: the whole point of
+# this image is to package the build the host just made.
+node_modules
+mobile
+data
+.git
+.freebuff
+deploy
+scripts
+docs
+*.log
+*.tar.gz
+tsconfig.tsbuildinfo
+.env

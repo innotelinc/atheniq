@@ -145,6 +145,7 @@ self-hosted backend are in [docs/Deployment.md](docs/Deployment.md) and
 ```
 atheniq/
 ├── docs/                      # Architecture, Integrations, Deployment, stack role
+├── console/                   # Registrar console — the staff app, and its mobile client
 ├── web/landing/               # Static GitHub Pages landing page (AthenIQ)
 ├── web/innotel/               # Innotel Labs company site — served at innotel.us
 ├── web/workforce/             # AthenIQ Workforce — served at workforce.<domain> (FAST AI)

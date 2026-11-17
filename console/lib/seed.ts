@@ -199,7 +199,7 @@ const PLAN_SEEDS: PlanSeed[] = [
     totalCredits: 75,
     tuitionPerCreditCents: 32500,
     accreditation:
-      "Nursing graduates must meet the licensure requirements of the state or country in which they intend to practise. Clinical placement, immunisations and a background check are required before practicum.",
+      "Nursing graduates must meet the licensure requirements of the state or country in which they intend to practice. Clinical placement, immunisations and a background check are required before practicum.",
     semesters: [
       {
         focus: "Science Foundations",
@@ -320,7 +320,7 @@ const WORKFORCE_COURSES: WorkforceCourse[] = [
     amountCents: null,
     summary:
       "Run a SOC shift: monitoring, identity and access, defensive controls, and incident response.",
-    chapters: ["The security operations centre", "Identity and access", "Defensive controls", "Incident response"],
+    chapters: ["The security operations center", "Identity and access", "Defensive controls", "Incident response"],
     tracks: ["it-support"],
   },
   {
@@ -596,16 +596,19 @@ export const DEFAULT_SETTINGS: Settings = {
     logoUrl: "",
     logoText: "",
     logoPlacement: "left",
-    accent: "#10b981",
-    supportEmail: process.env.CERT_SIGNER_EMAIL || "dhunter@innotel.us",
+    accent: "#178f68",
+    // The published admissions desk, not whoever signs certificates: the brand
+    // block is what the public site prints, and the site's own pages now name
+    // admissions@ and registrar@ explicitly.
+    supportEmail: process.env.ADMISSIONS_EMAIL || "admissions@atheniq.institute",
     poweredBy: true,
     domain: process.env.PUBLIC_SITE_DOMAIN || "atheniq.institute",
   },
   site: {
     published: true,
-    headline: "A university built around the work you already do.",
+    headline: "A university for the work that’s coming.",
     intro:
-      "AthenIQ Institute teaches the judgement behind the tools: short, applied courses, degree plans with a clear credit path, and credentials signed at the source so an employer can check them in seconds.",
+      "Earn an online bachelor’s or associate degree in business, criminal justice or nursing — taught in small, AI-native classrooms, assessed by faculty, and finished with a credential you can verify.",
     showPrices: true,
     showPrograms: true,
     showVerify: true,
@@ -624,8 +627,8 @@ export const DEFAULT_SETTINGS: Settings = {
       .split(",")
       .map((domain) => domain.trim().toLowerCase())
       .filter(Boolean),
-    // Required by default: an unenrolled account enrols at its first sign-in.
-    // AUTH_REQUIRE_2FA=off makes the password sufficient until it enrols.
+    // Required by default: an unenrolled account enrolls at its first sign-in.
+    // AUTH_REQUIRE_2FA=off makes the password sufficient until it enrolls.
     require2fa: (process.env.AUTH_REQUIRE_2FA || "on").toLowerCase() !== "off",
   },
 };
@@ -1042,6 +1045,8 @@ export function buildSeed(): Database {
     accessRequests: [],
     authLog: [],
     loginSessions: [],
+    enrollments: [],
+    purchases: [],
     courses: Array.from(courses.values()),
     programs,
     tracks,

@@ -196,7 +196,7 @@ export default async function SecurityPage() {
               <div className="banner warn mt">
                 <div>
                   <div className="banner-title">Accounts without a second factor</div>
-                  {unenrolled.map((member) => `${member.name} (${member.email})`).join(", ")} — they enrol at their
+                  {unenrolled.map((member) => `${member.name} (${member.email})`).join(", ")} — they enroll at their
                   next sign-in; nobody can skip it while two-factor is required.
                 </div>
               </div>

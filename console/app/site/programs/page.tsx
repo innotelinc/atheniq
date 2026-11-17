@@ -1,9 +1,16 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { getDb } from "@/lib/store";
 import { programTuition, publicPrograms } from "@/lib/public-site";
 import { brandOf } from "@/lib/branding";
 
 export const dynamic = "force-dynamic";
+
+/** A tab in someone's browser should say which plan page they are on. */
+export async function generateMetadata(): Promise<Metadata> {
+  const brand = brandOf(getDb().settings);
+  return { title: `Degree programs — ${brand.siteName}` };
+}
 
 export default function SiteProgramsPage() {
   const db = getDb();

@@ -1,0 +1,208 @@
+name: App Store screenshots
+
+# Captures the 6.9-inch iPhone screenshot set Apple requires before a version can
+# be submitted, and (when the App Store Connect key is present) writes it into
+# the draft version. Runs on a macOS runner because the set has to come from a
+# real iOS simulator: 1320×2868, what an iPhone 16 Pro Max captures.
+#
+# The app is built Release, not Debug: a Debug build loads its JavaScript from a
+# Metro server that is not running on the runner, so it would open to a blank
+# screen.
+#
+# Order matters — screenshots hang off the draft version:
+#   1. iOS TestFlight                       (build reaches App Store Connect)
+#   2. App Store draft submission           (creates the version + metadata)
+#   3. App Store screenshots                (this workflow)
+#   4. age rating and the review submission, in App Store Connect
+on:
+  workflow_dispatch:
+    inputs:
+      upload:
+        description: "Upload the set to App Store Connect"
+        type: boolean
+        default: true
+
+concurrency:
+  group: ios-screenshots
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  screenshots:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    env:
+      TEAM_APP_ID: "6835960485"
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select the newest Xcode
+        run: |
+          latest=$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)
+          if [ -n "$latest" ]; then sudo xcode-select -s "$latest"; fi
+          xcodebuild -version
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: console/mobile/package-lock.json
+
+      - name: Install JavaScript dependencies
+        working-directory: console/mobile
+        run: npm ci
+
+      - name: Generate the Xcode project
+        working-directory: console/mobile
+        run: npx expo prebuild --platform ios --no-install
+
+      - name: Install CocoaPods
+        working-directory: console/mobile/ios
+        run: pod install --repo-update
+
+      - name: Build for the simulator
+        working-directory: console/mobile/ios
+        run: |
+          set -euo pipefail
+          workspace=$(ls -d *.xcworkspace | head -1)
+          scheme="${workspace%.xcworkspace}"
+          echo "workspace=$workspace scheme=$scheme"
+          xcodebuild build \
+            -workspace "$workspace" \
+            -scheme "$scheme" \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath "$RUNNER_TEMP/dd" \
+            CODE_SIGNING_ALLOWED=NO \
+            | tee "$RUNNER_TEMP/sim-build.log" | tail -30
+
+      # A 6.9-inch device is the whole point: any other iPhone captures a size
+      # Apple will not accept in this slot.
+      - name: Boot a 6.9-inch simulator
+        id: sim
+        run: |
+          set -euo pipefail
+          udid=""
+          name=""
+          for candidate in "iPhone 17 Pro Max" "iPhone 16 Pro Max"; do
+            udid=$(xcrun simctl list devices available | grep -F "$candidate (" | head -1 | sed -E 's/.*\(([0-9A-Fa-f-]{36})\).*/\1/')
+            if [ -n "$udid" ]; then name="$candidate"; break; fi
+          done
+          if [ -z "$udid" ]; then
+            runtime=$(xcrun simctl list runtimes | grep -F iOS | tail -1 | sed -E 's/.*(com\.apple\.CoreSimulator\.SimRuntime\.iOS-[0-9-]+).*/\1/')
+            devicetype=$(xcrun simctl list devicetypes | grep -F "iPhone 16 Pro Max" | head -1 | sed -E 's/.*(com\.apple\.CoreSimulator\.SimDeviceType\.[A-Za-z0-9.-]+).*/\1/')
+            test -n "$runtime" -a -n "$devicetype"
+            udid=$(xcrun simctl create "AthenIQ screenshots" "$devicetype" "$runtime")
+            name="created iPhone 16 Pro Max"
+          fi
+          echo "device $name ($udid)"
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+          xcrun simctl boot "$udid" 2>/dev/null || true
+          xcrun simctl bootstatus "$udid" -b
+          open -a Simulator
+          xcrun simctl ui "$udid" appearance dark || true
+          # A store screenshot showing 3% battery and no signal reads as broken.
+          xcrun simctl status_bar "$udid" override \
+            --time "9:41" --dataNetwork wifi --wifiMode active --wifiBars 3 \
+            --cellularMode active --cellularBars 4 --batteryState charged --batteryLevel 100
+
+      - name: Capture
+        id: capture
+        env:
+          UDID: ${{ steps.sim.outputs.udid }}
+          API_BASE: https://registrar.atheniq.institute
+        run: |
+          set -euo pipefail
+          app=$(find "$RUNNER_TEMP/dd/Build/Products/Release-iphonesimulator" -maxdepth 1 -name '*.app' | head -1)
+          test -n "$app"
+          echo "app $app"
+          xcrun simctl install "$UDID" "$app"
+          xcrun simctl launch "$UDID" institute.atheniq.app
+          mkdir -p screenshots
+
+          shot() {
+            name="$1"; route="$2"; settle="${3:-6}"
+            xcrun simctl openurl "$UDID" "atheniq://$route"
+            sleep "$settle"
+            xcrun simctl io "$UDID" screenshot --type=png "screenshots/$name"
+            echo "captured $name"
+          }
+
+          # The app opens on the catalog, so wait for the network before the first
+          # frame rather than photographing a spinner.
+          sleep 8
+          xcrun simctl io "$UDID" screenshot --type=png screenshots/01-courses.png
+
+          # A real course page: the catalog is public, so take the first id.
+          course=$(curl -fsS "$API_BASE/api/mobile/v1/catalog" | node -e '
+            let body = "";
+            process.stdin.on("data", (chunk) => (body += chunk)).on("end", () => {
+              const json = JSON.parse(body);
+              const catalog = json.data?.courses || json.courses || [];
+              process.stdout.write(String(catalog[0]?.id || ""));
+            });
+          ' || true)
+          if [ -n "$course" ]; then
+            shot 02-course.png "/course/$course" 8
+          else
+            echo "::warning::The catalog returned no course; the course page is missing from the set."
+          fi
+          shot 03-my-learning.png "/learning" 6
+          # Not Account: a fresh simulator has no session, so that screen would
+          # read "Not signed in" in the listing. Where someone starts is worth
+          # showing; the account screen is not.
+          shot 04-sign-up.png "/sign-up" 6
+
+          # Identical files mean a deep link did not navigate and the set is the
+          # same screen four times; that is worth failing on, not shipping.
+          unique=$(md5 -q screenshots/*.png | sort -u | wc -l | tr -d ' ')
+          total=$(ls screenshots/*.png | wc -l | tr -d ' ')
+          if [ "$unique" -ne "$total" ]; then
+            echo "::error::Only $unique of $total screenshots differ — a deep link did not navigate. Check the atheniq:// routes (course, learning, sign-up)."
+            exit 1
+          fi
+
+          # Apple rejects a size mismatch deep in the upload; catch it here.
+          for file in screenshots/*.png; do
+            size=$(sips -g pixelWidth -g pixelHeight "$file" | awk '/pixel/ {printf "%s", $2}')
+            echo "$file ${size}"
+          done
+          first=$(sips -g pixelWidth -g pixelHeight screenshots/01-courses.png | awk '/pixelWidth/ {print $2}')
+          second=$(sips -g pixelHeight screenshots/01-courses.png | awk '/pixelHeight/ {print $2}')
+          if [ "$first" != "1320" ] || [ "$second" != "2868" ]; then
+            echo "::error::Captured ${first}x${second}; the 6.9-inch set needs 1320x2868. The simulator was ${{ steps.sim.outputs.udid }}."
+            exit 1
+          fi
+
+      - name: Upload to App Store Connect
+        if: github.event_name != 'workflow_dispatch' || github.event.inputs.upload == 'true'
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: |
+          missing=""
+          [ -z "$ASC_KEY_ID" ] && missing="$missing ASC_KEY_ID"
+          [ -z "$ASC_ISSUER_ID" ] && missing="$missing ASC_ISSUER_ID"
+          [ -z "$ASC_PRIVATE_KEY" ] && missing="$missing ASC_PRIVATE_KEY"
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository secret(s):$missing. The screenshots are attached to this run; add the key to upload them."
+            exit 1
+          fi
+          node console/scripts/asc-screenshots.mjs --dir screenshots --apply
+
+      - name: Keep the screenshots and the build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-screenshots
+          path: |
+            screenshots/*.png
+            ${{ runner.temp }}/sim-build.log
+          if-no-files-found: ignore

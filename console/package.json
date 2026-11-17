@@ -2,12 +2,13 @@
   "name": "atheniq-console",
   "version": "1.0.0",
   "private": true,
-  "description": "AthenIQ — course, school and credential management console",
+  "description": "AthenIQ \u2014 course, school and credential management console",
   "scripts": {
     "dev": "next dev -p 3100",
     "build": "next build",
     "start": "next start -p 3100",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:mobile-api": "node scripts/mobile-api-test.mjs"
   },
   "dependencies": {
     "@types/nodemailer": "^8.0.2",

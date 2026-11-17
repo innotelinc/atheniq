@@ -15,7 +15,7 @@ interface Setup {
  * Add an authenticator code to this account. The secret is shown once and can
  * be pasted into any TOTP app — Vaultwarden/Bitwarden accepts it on a login
  * item's "Authenticator key" field — and the code confirms the app and the
- * server share the same clock before enrolment is switched on.
+ * server share the same clock before enrollment is switched on.
  */
 export function TotpEnroller() {
   const router = useRouter();

@@ -24,16 +24,16 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!session.draft) return fail("This session has no draft yet.", 409);
 
   const rules = reviseDraft(session.draft, instruction);
-  const modelled = await reviseWithModel(db.settings.ai, session.draft, instruction);
-  const nextDraft = modelled.draft ?? rules.draft;
-  const engine = modelled.draft ? "model" : "rules";
-  const changes = modelled.draft
+  const modeled = await reviseWithModel(db.settings.ai, session.draft, instruction);
+  const nextDraft = modeled.draft ?? rules.draft;
+  const engine = modeled.draft ? "model" : "rules";
+  const changes = modeled.draft
     ? [`Applied the instruction with ${db.settings.ai.model || "the configured model"}.`]
     : rules.changes;
 
   const at = nowIso();
   const before = session.draft;
-  const delta = summarise(before, nextDraft);
+  const delta = summarize(before, nextDraft);
 
   const updated = await mutate((database) => {
     const target = database.sessions.find((s) => s.id === id) as GenSession;
@@ -60,10 +60,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return target;
   });
 
-  return ok({ session: updated, engine, modelError: modelled.error });
+  return ok({ session: updated, engine, modelError: modeled.error });
 }
 
-function summarise(before: NonNullable<GenSession["draft"]>, after: NonNullable<GenSession["draft"]>): string {
+function summarize(before: NonNullable<GenSession["draft"]>, after: NonNullable<GenSession["draft"]>): string {
   const notes: string[] = [];
   if (before.title !== after.title) notes.push(`Retitled to “${after.title}”.`);
   if (before.credits !== after.credits) notes.push(`${after.credits} credits.`);

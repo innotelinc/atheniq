@@ -1,10 +1,25 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { brandOf } from "@/lib/branding";
+import { ADMISSIONS_EMAIL } from "@/lib/legal";
 import { getDb } from "@/lib/store";
 import { priceLabel } from "@/lib/public-site";
 
 export const dynamic = "force-dynamic";
+
+/** A course page in a search result should say which course it is. */
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const db = getDb();
+  const brand = brandOf(db.settings);
+  const course = db.courses.find(
+    (item) => item.status === "published" && (item.slug === slug || item.id === slug),
+  );
+  // A missing course goes to not-found, which brings its own title.
+  if (!course) return {};
+  return { title: `${course.title.replace(`${course.code} — `, "")} — ${brand.siteName}` };
+}
 
 export default async function PublicCoursePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -43,7 +58,7 @@ export default async function PublicCoursePage({ params }: { params: Promise<{ s
           <div className="enroll-meta">
             {course.term.replace("_", " ")} · {course.credits} credits
           </div>
-          <a className="btn-primary block" href={`mailto:${brand.supportEmail}?subject=${encodeURIComponent(`Enrollment — ${course.code}`)}`}>
+          <a className="btn-primary block" href={`mailto:${ADMISSIONS_EMAIL}?subject=${encodeURIComponent(`Enrollment — ${course.code}`)}`}>
             Ask about enrollment
           </a>
           <span className="tiny">

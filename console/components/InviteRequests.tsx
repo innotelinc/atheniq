@@ -42,7 +42,7 @@ export function InviteRequests({ requests }: { requests: PendingRequest[] }) {
       const vault = result.data?.vault;
       const password = result.data?.vaultPassword;
       setNotice(
-        `${request.name} can now sign in with the password they chose and enrol two-factor.` +
+        `${request.name} can now sign in with the password they chose and enroll two-factor.` +
           (vault && password
             ? ` Vault account ${vault.email} created at ${vault.url} — temporary password: ${password} (shown once).`
             : result.data?.vaultError

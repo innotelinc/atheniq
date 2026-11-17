@@ -1,0 +1,54 @@
+name: App Store draft submission
+
+# Creates the "Prepare for Submission" version for the iPhone app and writes its
+# metadata, using the same three App Store Connect secrets as the TestFlight
+# job. Runs on a plain Linux runner: this only talks to Apple's API, it does not
+# build anything. Deliberately manual — it edits the store listing.
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: "Write to App Store Connect (off = print the plan only)"
+        type: boolean
+        default: true
+      attach_build:
+        description: "Attach the newest processed build to the draft"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  draft:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check the credentials are present
+        run: |
+          missing=""
+          [ -z "$ASC_KEY_ID" ] && missing="$missing ASC_KEY_ID"
+          [ -z "$ASC_ISSUER_ID" ] && missing="$missing ASC_ISSUER_ID"
+          [ -z "$ASC_PRIVATE_KEY" ] && missing="$missing ASC_PRIVATE_KEY"
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository secret(s):$missing. Reuse the Team API key that already ships Mintmark: App Store Connect → Users and Access → Integrations."
+            exit 1
+          fi
+
+      - name: Draft the submission
+        run: |
+          set -euo pipefail
+          flags=""
+          [ "${{ github.event.inputs.apply }}" = "true" ] && flags="$flags --apply"
+          [ "${{ github.event.inputs.attach_build }}" = "true" ] && flags="$flags --attach-build"
+          node console/scripts/asc-submission.mjs $flags

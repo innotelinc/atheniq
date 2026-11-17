@@ -1,0 +1,5 @@
+# Shell scripts run on Linux hosts, so they must keep LF endings even when the
+# working copy is checked out on Windows. Without this, git archive ships CRLF
+# and the host answers "/bin/sh^M: bad interpreter".
+*.sh text eol=lf
+Dockerfile* text eol=lf

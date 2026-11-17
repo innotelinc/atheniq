@@ -136,6 +136,48 @@ export interface Learner {
   email: string;
   programId: string | null;
   enrolledAt: string;
+  /** scrypt hash for app sign-in; absent on learners the registrar created. */
+  passwordHash?: string | null;
+  lastSeenAt?: string | null;
+  /** Expo push token for the device this learner last signed in on. */
+  pushToken?: string | null;
+}
+
+export type EnrollmentAccess = "open" | "pending_payment" | "paid" | "granted";
+
+/** One learner's run through one course, taken in the app. */
+export interface Enrollment {
+  id: string;
+  learnerId: string;
+  courseId: string;
+  courseKey: string;
+  enrolledAt: string;
+  lastSeenAt: string;
+  completedLessonIds: string[];
+  /** Written answers for quiz, exam, project and discussion lessons. */
+  responses: Record<string, string>;
+  completedAt: string | null;
+  /** Whether lessons are open yet: paid courses start pending. */
+  access: EnrollmentAccess;
+  purchaseId?: string | null;
+}
+
+/** A priced course the learner says they paid for, awaiting the registrar. */
+export interface Purchase {
+  id: string;
+  learnerId: string;
+  courseId: string;
+  courseKey: string;
+  amountCents: number;
+  /** Printed to the learner and quoted in the claim. */
+  reference: string;
+  status: "pending" | "claimed" | "confirmed" | "declined";
+  note: string;
+  createdAt: string;
+  decidedAt: string | null;
+  decidedBy: string | null;
+  /** True when a registrar opened the course without a payment. */
+  granted: boolean;
 }
 
 export interface Completion {
@@ -337,7 +379,7 @@ export interface VaultLink {
 }
 
 export interface StaffTotp {
-  /** base32 secret; null until enrolment starts. */
+  /** base32 secret; null until enrollment starts. */
   secret: string | null;
   enabled: boolean;
   enrolledAt: string | null;
@@ -499,7 +541,10 @@ export interface Activity {
     | "settings.updated"
     | "site.updated"
     | "key.rotated"
-    | "digest.sent";
+    | "digest.sent"
+    | "learner.enrolled"
+    | "learner.completed"
+    | "course.purchased";
   message: string;
   ref: string;
   actor?: ActorRef | null;
@@ -512,6 +557,8 @@ export interface Database {
   programs: Program[];
   tracks: Track[];
   learners: Learner[];
+  enrollments: Enrollment[];
+  purchases: Purchase[];
   completions: Completion[];
   credentials: Credential[];
   sessions: GenSession[];

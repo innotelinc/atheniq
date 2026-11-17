@@ -1,7 +1,7 @@
 import type { BrandSettings, LogoPlacement, Settings } from "./types";
 
 /**
- * The public site is white-label: every name, mark, colour and domain it shows
+ * The public site is white-label: every name, mark, color and domain it shows
  * comes from these settings, not from the code. The console keeps its own
  * AthenIQ chrome — this is the school's face.
  */
@@ -65,7 +65,7 @@ export function publicHosts(): string[] {
     .filter(Boolean);
 }
 
-/** Inline custom properties so the public site can be re-coloured per tenant. */
+/** Inline custom properties so the public site can be re-colored per tenant. */
 export function brandVars(brand: BrandSettings): Record<string, string> {
   return {
     "--brand": brand.accent,

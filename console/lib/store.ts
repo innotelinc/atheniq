@@ -36,6 +36,13 @@ function readFromDisk(): Database | null {
     if (!Array.isArray(parsed.settings.auth.allowedDomains)) {
       parsed.settings.auth.allowedDomains = DEFAULT_SETTINGS.auth.allowedDomains;
     }
+    if (!Array.isArray(parsed.enrollments)) parsed.enrollments = [];
+    // Runs written before paid enrollments existed were open by definition.
+    for (const enrollment of parsed.enrollments) {
+      if (!enrollment.access) enrollment.access = "open";
+      enrollment.purchaseId = enrollment.purchaseId ?? null;
+    }
+    if (!Array.isArray(parsed.purchases)) parsed.purchases = [];
     if (!Array.isArray(parsed.staff)) parsed.staff = [];
     if (!Array.isArray(parsed.accessRequests)) parsed.accessRequests = [];
     if (!Array.isArray(parsed.authLog)) parsed.authLog = [];

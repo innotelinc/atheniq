@@ -36,7 +36,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     password?: string;
     disabled?: boolean;
     reset2fa?: boolean;
-    /** Drop every passkey on the account, forcing a fresh enrolment. */
+    /** Drop every passkey on the account, forcing a fresh enrollment. */
     revokePasskeys?: boolean;
     /** Fresh authenticator code, when the acting registrar has one enrolled. */
     code?: string;

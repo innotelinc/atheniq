@@ -26,8 +26,11 @@ export default async function WebsitePage() {
           <span className={`chip ${db.settings.site.published ? "ok" : "warn"}`}>
             {db.settings.site.published ? "Public site live" : "Public site offline"}
           </span>
+          <a className="btn small ghost" href={`https://${brand.domain}/`} target="_blank" rel="noreferrer">
+            {brand.domain}
+          </a>
           <a className="btn small ghost" href="/site" target="_blank" rel="noreferrer">
-            Open preview
+            Preview as edited
           </a>
         </div>
       </Topbar>
@@ -38,7 +41,7 @@ export default async function WebsitePage() {
           title="atheniq.institute"
           subtitle={`Derived from the platform, not maintained twice: ${published.length} published courses, ${
             db.programs.filter((program) => program.status === "active").length
-          } active programs and every signed credential appear automatically. Brand it once here, then re-skin it per client — the same console becomes their school.`}
+          } active programs and every signed credential appear automatically. Brand it once here, then re-skin it per client — the same console becomes their school. Staff only: the site itself is public, and admissions and student accounts are handled there, not in this console.`}
         />
 
         <WebsiteForm settings={db.settings} />

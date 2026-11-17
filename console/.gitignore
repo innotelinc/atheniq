@@ -11,3 +11,12 @@ stalwart-host.txt
 .freebuff/scratch/
 next-env.d.ts
 *.tsbuildinfo
+
+# scratch
+.freebuff
+
+# local screenshots
+docs/*.png
+
+# deployment archives
+*.tar.gz

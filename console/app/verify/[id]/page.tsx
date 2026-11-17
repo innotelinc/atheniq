@@ -1,13 +1,20 @@
 import Link from "next/link";
 import { getDb } from "@/lib/store";
 import { shortDate } from "@/lib/format";
+import { currentStaff } from "@/lib/current-staff";
 import { Badge, Card, PageHead, Topbar, Crumbs } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = { title: "Credential verification — AthenIQ" };
+
 export default async function VerifyResultPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const db = getDb();
+  // The registrar's own view of this record is behind the console session.
+  // A visitor checking a certificate has no account, so the link is left out
+  // rather than handed over as a sign-in wall.
+  const staff = await currentStaff();
   const credential = db.credentials.find(
     (c) => c.verifyId === id || c.id === id || c.verifyId.startsWith(id),
   );
@@ -77,9 +84,11 @@ export default async function VerifyResultPage({ params }: { params: Promise<{ i
                   <a className="btn" href={`/api/credentials/${credential.id}/certificate?download=1`}>
                     Download the signed PDF
                   </a>
-                  <Link className="btn ghost" href={`/credentials/${credential.id}`}>
-                    Registrar view
-                  </Link>
+                  {staff ? (
+                    <Link className="btn ghost" href={`/credentials/${credential.id}`}>
+                      Registrar view
+                    </Link>
+                  ) : null}
                 </div>
               </Card>
             </div>

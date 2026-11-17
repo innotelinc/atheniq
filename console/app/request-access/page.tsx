@@ -4,6 +4,8 @@ import { AccessRequestForm } from "@/components/AccessRequestForm";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = { title: "Request staff access — AthenIQ" };
+
 /** Public: anyone on a registered domain can ask for an account. */
 export default function RequestAccessPage() {
   const db = getDb();

@@ -1,9 +1,16 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { getDb } from "@/lib/store";
 import { priceLabel, publicCourses } from "@/lib/public-site";
 import { brandOf } from "@/lib/branding";
 
 export const dynamic = "force-dynamic";
+
+/** The shop window for the catalog, not the landing headline in the layout. */
+export async function generateMetadata(): Promise<Metadata> {
+  const brand = brandOf(getDb().settings);
+  return { title: `Course catalog — ${brand.siteName}` };
+}
 
 export default function SiteCoursesPage() {
   const db = getDb();

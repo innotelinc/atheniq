@@ -150,7 +150,7 @@ function buildModule(topic: string, index: number, total: number, level: number)
     id: `m${index + 1}`,
     title: isLast && total > 3 ? "Capstone and assessment" : `${label}: ${topic}`,
     summary: isLast
-      ? `Pull the course together: a scoped project on ${topic.toLowerCase()}, a defence of the choices made, and the graded final.`
+      ? `Pull the course together: a scoped project on ${topic.toLowerCase()}, a defense of the choices made, and the graded final.`
       : `${label} — what ${topic.toLowerCase()} requires at this stage, worked through on cases the learner brings from their own role.`,
     lessons,
     assessment: isLast
@@ -320,22 +320,22 @@ const INTENTS: Intent[] = [
     },
   },
   {
-    match: /\b(capstone|final project|portfolio|defence|defense)\b/i,
-    changes: ["Added a capstone module with a scoped project and a defence."],
+    match: /\b(capstone|final project|portfolio|defen[cs]e)\b/i,
+    changes: ["Added a capstone module with a scoped project and a defense."],
     apply: (draft) => {
       const next = clone(draft);
       if (!next.modules.some((m) => /capstone/i.test(m.title))) {
         next.modules.push({
           id: "capstone",
-          title: "Capstone: scoped project and defence",
+          title: "Capstone: scoped project and defense",
           summary:
-            "A single project, scoped with the instructor, that shows the method end to end, plus a short defence of the choices made.",
+            "A single project, scoped with the instructor, that shows the method end to end, plus a short defense of the choices made.",
           lessons: [
             { id: "capstone-l1", title: "Scope the capstone", type: "discussion", minutes: 45 },
             { id: "capstone-l2", title: "Build and iterate", type: "project", minutes: 240 },
-            { id: "capstone-l3", title: "Defence", type: "exam", minutes: 45 },
+            { id: "capstone-l3", title: "Defense", type: "exam", minutes: 45 },
           ],
-          assessment: "Capstone project and defence (graded against the published rubric)",
+          assessment: "Capstone project and defense (graded against the published rubric)",
         });
       }
       return renumber(next);
@@ -475,7 +475,7 @@ export function reviseDraft(draft: CourseDraft, instruction: string): RevisionRe
     changes.push("Added a learning outcome tied to the new capability.");
   }
 
-  // Nothing recognised: treat the instruction as new subject matter.
+  // Nothing recognized: treat the instruction as new subject matter.
   if (changes.length === 0) {
     const subject = deriveTopic(instruction) || instruction.trim();
     next.modules.push({

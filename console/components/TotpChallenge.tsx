@@ -17,7 +17,7 @@ interface VerifyResult {
 }
 
 /**
- * Step two of sign-in. Enrolment shows the secret for an authenticator app and
+ * Step two of sign-in. Enrollment shows the secret for an authenticator app and
  * requires a working code before the account is marked protected; after that
  * the same screen asks for the code (or a recovery code).
  */

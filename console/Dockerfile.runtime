@@ -1,0 +1,19 @@
+# Runtime image for a build produced on the host.
+#
+# The console host has 1.28 GB of RAM, which is not enough for `next build`
+# inside a container — the compiler is killed. `deploy/rebuild-on-host.sh` runs
+# the build in a heap-capped Node container instead, then packages the result
+# with this file. Same runtime, no compilation here.
+FROM node:22-alpine
+WORKDIR /app
+RUN apk add --no-cache wget
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev && npm cache clean --force
+COPY next.config.mjs ./
+COPY .next ./.next
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    PORT=3100 \
+    HOSTNAME=0.0.0.0
+EXPOSE 3100
+CMD ["npx", "next", "start", "-p", "3100"]

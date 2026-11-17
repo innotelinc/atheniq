@@ -6,6 +6,8 @@ import { Badge, Card, PageHead, Topbar, Crumbs } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = { title: "Verify a credential — AthenIQ" };
+
 export default async function VerifyPage({
   searchParams,
 }: {
@@ -25,9 +27,6 @@ export default async function VerifyPage({
     <>
       <Topbar>
         <Crumbs items={[{ label: db.settings.brand.siteName }, { label: "Verification" }]} />
-        <Link className="btn small ghost" href="/credentials">
-          Credential center
-        </Link>
       </Topbar>
 
       <div className="content">

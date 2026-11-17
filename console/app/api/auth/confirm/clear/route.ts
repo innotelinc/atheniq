@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 /**
  * Forget the remembered confirmation now instead of waiting for it to lapse.
  * Ending it early only makes the console ask again, so there is nothing extra to
- * authorise beyond being signed in; the act still goes on the trail, because it
+ * authorize beyond being signed in; the act still goes on the trail, because it
  * shortens how long this browser can make access changes without a fresh code.
  */
 export async function POST() {
