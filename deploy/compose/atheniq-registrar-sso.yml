@@ -108,6 +108,12 @@ services:
       # hydrated. Assets hold no data of their own; each page still decides for
       # itself who may see what.
       - --skip-auth-route=^/_next/
+      # The storefront (/site, /site/courses, /site/programs and their pages) is
+      # the school's public website. A learner paying from the phone taps
+      # "AthenIQ Institute" on /pay inside the app's browser, which has no
+      # session — the proxy sent that tap to the identity provider instead of
+      # the site.
+      - --skip-auth-route=^/site($|[/?])
       # The app cannot walk an Authentik redirect; it signs in with bearer tokens.
       - --skip-auth-route=^/api/mobile($|[/?])
       - --upstream=http://127.0.0.1:8090
