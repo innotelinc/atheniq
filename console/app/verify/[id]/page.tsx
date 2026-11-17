@@ -81,7 +81,7 @@ export default async function VerifyResultPage({ params }: { params: Promise<{ i
                     and issued to the learner record. The evidence hash binds the certificate to the completion
                     data it was signed over.
                   </p>
-                  <a className="btn" href={`/api/credentials/${credential.id}/certificate?download=1`}>
+                  <a className="btn" href={`/verify/${credential.verifyId}/certificate?download=1`}>
                     Download the signed PDF
                   </a>
                   {staff ? (
