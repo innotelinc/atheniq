@@ -214,6 +214,13 @@ services:
       - --skip-auth-route=^/pay($|[/?])
       # The App Store privacy policy URL: reviewers open it signed out.
       - --skip-auth-route=^/privacy($|[/?])
+      # The public pages are ordinary React pages, and their bundle is not part of
+      # the exemption: skipping /privacy alone handed a signed-out visitor the
+      # HTML and a 302 to the IdP for every /_next/static chunk, so the policy,
+      # /login, /pay and /verify all rendered unstyled and never hydrated. Assets
+      # carry no data of their own — every page that uses them decides for itself
+      # who may see what once it runs — so the whole asset path is exempt.
+      - --skip-auth-route=^/_next/
       - --upstream=http://127.0.0.1:8090
       - --http-address=0.0.0.0:8092
       - --silence-ping-logging=true
