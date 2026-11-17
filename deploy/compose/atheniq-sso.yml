@@ -212,6 +212,8 @@ services:
       - --skip-auth-route=^/api/mobile($|[/?])
       # CHECKOUT_URL points here: the public page that quotes a payment reference.
       - --skip-auth-route=^/pay($|[/?])
+      # The App Store privacy policy URL: reviewers open it signed out.
+      - --skip-auth-route=^/privacy($|[/?])
       - --upstream=http://127.0.0.1:8090
       - --http-address=0.0.0.0:8092
       - --silence-ping-logging=true
