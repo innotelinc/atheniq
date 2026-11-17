@@ -90,30 +90,11 @@ export async function PUT(request: Request) {
       if (b.domain !== undefined) s.brand.domain = normalizeDomain(str(b.domain)) || s.brand.domain;
     }
 
-    if (body.site) {
-      const site = body.site;
-      if (site.published !== undefined) {
-        const next = Boolean(site.published);
-        if (next !== s.site.published) {
-          s.site.published = next;
-          if (next) s.site.lastPublishedAt = new Date().toISOString();
-          logActivity(
-            db,
-            "site.updated",
-            next ? "Published the public website" : "Took the public website offline",
-            "site",
-            actor,
-          );
-        }
-      }
-      if (site.headline !== undefined) s.site.headline = str(site.headline) || s.site.headline;
-      if (site.intro !== undefined) s.site.intro = str(site.intro);
-      s.site.showPrices = bool(site.showPrices, s.site.showPrices);
-      s.site.showPrograms = bool(site.showPrograms, s.site.showPrograms);
-      s.site.showVerify = bool(site.showVerify, s.site.showVerify);
-      if (site.ctaLabel !== undefined) s.site.ctaLabel = str(site.ctaLabel) || s.site.ctaLabel;
-      if (site.ctaHref !== undefined) s.site.ctaHref = str(site.ctaHref) || s.site.ctaHref;
-    }
+    // `body.site` is accepted and ignored. The website is a static tree
+    // published by deploy/update-landing.sh, so there is nothing here to
+    // publish, hide, re-headline or take offline — quietly accepting the block
+    // would log a publish that never happened.
+
 
     if (body.auth) {
       if (Array.isArray(body.auth.allowedDomains)) {

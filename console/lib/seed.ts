@@ -597,13 +597,14 @@ export const DEFAULT_SETTINGS: Settings = {
     logoText: "",
     logoPlacement: "left",
     accent: "#178f68",
-    // The published admissions desk, not whoever signs certificates: the brand
-    // block is what the public site prints, and the site's own pages now name
-    // admissions@ and registrar@ explicitly.
+    // The published admissions desk, not whoever signs certificates: the
+    // console sends an applicant here, and the website prints the same address.
     supportEmail: process.env.ADMISSIONS_EMAIL || "admissions@atheniq.institute",
     poweredBy: true,
     domain: process.env.PUBLIC_SITE_DOMAIN || "atheniq.institute",
   },
+  // Retired with /site: the console renders no website now, but the shape stays
+  // so stored records and old exports keep parsing.
   site: {
     published: true,
     headline: "A university for the work that’s coming.",

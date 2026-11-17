@@ -250,7 +250,7 @@ export interface Credential {
 
 export type LogoPlacement = "left" | "center" | "right";
 
-/** Everything the public site shows as *your* school — white-label surface. */
+/** What this school is called and how it is marked, wherever the console speaks for it. */
 export interface BrandSettings {
   siteName: string;
   tagline: string;
@@ -267,6 +267,12 @@ export interface BrandSettings {
   domain: string;
 }
 
+/**
+ * Retired with /site. The console no longer renders or publishes a website —
+ * that is a static tree, `web/landing/`, published by a deploy script — but the
+ * shape stays so stored records and old exports keep parsing. No page edits
+ * these, and the integrations API ignores a caller that sends them.
+ */
 export interface SiteSettings {
   published: boolean;
   headline: string;
