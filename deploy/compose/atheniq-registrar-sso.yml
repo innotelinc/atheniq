@@ -96,6 +96,12 @@ services:
       - --skip-auth-route=^/pay($|[/?])
       # The App Store privacy policy URL: reviewers open it signed out.
       - --skip-auth-route=^/privacy($|[/?])
+      # The access-request form — the console's only self-service way in for
+      # someone with no account — and the endpoint it posts to. Both are public
+      # in middleware.ts; the proxy redirecting the form made the page the
+      # sign-in screen tells people to use unreachable.
+      - --skip-auth-route=^/request-access($|[/?])
+      - --skip-auth-route=^/api/access-requests($|[/?])
       # …and its bundle. The public pages are ordinary React pages, so exempting
       # the path alone handed a signed-out visitor the HTML and a 302 to the IdP
       # for every /_next/static chunk — the page rendered unstyled and never
