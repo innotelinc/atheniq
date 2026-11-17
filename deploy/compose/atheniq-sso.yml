@@ -208,6 +208,10 @@ services:
       - --skip-auth-route=^/login($|[/?])
       - --skip-auth-route=^/verify($|[/?])
       - --skip-auth-route=^/api/verify($|[/?])
+      # The app cannot walk an Authentik redirect; it signs in with bearer tokens.
+      - --skip-auth-route=^/api/mobile($|[/?])
+      # CHECKOUT_URL points here: the public page that quotes a payment reference.
+      - --skip-auth-route=^/pay($|[/?])
       - --upstream=http://127.0.0.1:8090
       - --http-address=0.0.0.0:8092
       - --silence-ping-logging=true
