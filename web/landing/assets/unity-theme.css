@@ -52,21 +52,23 @@
 :root {
   color-scheme: light;
 
-  --canvas: #f7f6fb;
+  /* Spring: a sky-blue canvas with a leaf-green brand — the same pair the
+     AthenIQ storefront wears, so both hosts read as one school. */
+  --canvas: #f2fbfc;
   --surface: #ffffff;
-  --surface-muted: #f1effa;
-  --surface-sunken: #ebe7f6;
-  --line: #e4e0f0;
-  --line-strong: #cec8e3;
+  --surface-muted: #e8f6f6;
+  --surface-sunken: #dceff2;
+  --line: #d3e9ed;
+  --line-strong: #b7d7de;
 
-  --ink: #191430;
-  --ink-soft: #4b4468;
-  --ink-faint: #6d6789;
+  --ink: #072430;
+  --ink-soft: #375c67;
+  --ink-faint: #648692;
 
-  --brand: #5f3fe6;
-  --brand-soft: #ece8ff;
+  --brand: #178f68;
+  --brand-soft: #dff5ea;
   --brand-ink: #ffffff;
-  --brand-ring: #b9a8f7;
+  --brand-ring: #8fd8bf;
 
   --ok: #146c2e;
   --ok-soft: #e4f6e8;
@@ -92,8 +94,8 @@
   --tone-class: #4f46e5;
   --tone-unity: #0891b2;
 
-  --shadow-card: 0 1px 2px rgb(25 20 48 / 5%), 0 10px 30px -14px rgb(25 20 48 / 18%);
-  --shadow-pop: 0 8px 28px -8px rgb(25 20 48 / 26%);
+  --shadow-card: 0 1px 2px rgb(7 42 51 / 5%), 0 10px 30px -14px rgb(7 42 51 / 18%);
+  --shadow-pop: 0 8px 28px -8px rgb(7 42 51 / 26%);
 
   /*
    * ── Liquid glass ───────────────────────────────────────────────────────
@@ -155,21 +157,21 @@
   :root:not([data-mode="light"]) {
     color-scheme: dark;
 
-    --canvas: #100c22;
-    --surface: #1a1433;
-    --surface-muted: #221a40;
-    --surface-sunken: #151029;
-    --line: #332a55;
-    --line-strong: #453a6e;
+    --canvas: #05191d;
+    --surface: #0b272c;
+    --surface-muted: #10343a;
+    --surface-sunken: #082024;
+    --line: #1c4650;
+    --line-strong: #2a5f6b;
 
-    --ink: #f5f3ff;
-    --ink-soft: #c3bce0;
-    --ink-faint: #9a92bd;
+    --ink: #eaf9f9;
+    --ink-soft: #a7c9cf;
+    --ink-faint: #7c9ea6;
 
-    --brand: #9b83ff;
-    --brand-soft: #2a2154;
-    --brand-ink: #14102a;
-    --brand-ring: #5b46a8;
+    --brand: #4ad4a4;
+    --brand-soft: #0f3b32;
+    --brand-ink: #032018;
+    --brand-ring: #2a7c66;
 
     --ok: #5ed37a;
     --ok-soft: #16301f;
@@ -203,21 +205,21 @@
 :root[data-mode="dark"] {
   color-scheme: dark;
 
-  --canvas: #100c22;
-  --surface: #1a1433;
-  --surface-muted: #221a40;
-  --surface-sunken: #151029;
-  --line: #332a55;
-  --line-strong: #453a6e;
+  --canvas: #05191d;
+  --surface: #0b272c;
+  --surface-muted: #10343a;
+  --surface-sunken: #082024;
+  --line: #1c4650;
+  --line-strong: #2a5f6b;
 
-  --ink: #f5f3ff;
-  --ink-soft: #c3bce0;
-  --ink-faint: #9a92bd;
+  --ink: #eaf9f9;
+  --ink-soft: #a7c9cf;
+  --ink-faint: #7c9ea6;
 
-  --brand: #9b83ff;
-  --brand-soft: #2a2154;
-  --brand-ink: #14102a;
-  --brand-ring: #5b46a8;
+  --brand: #4ad4a4;
+  --brand-soft: #0f3b32;
+  --brand-ink: #032018;
+  --brand-ring: #2a7c66;
 
   --ok: #5ed37a;
   --ok-soft: #16301f;
