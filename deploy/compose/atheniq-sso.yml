@@ -32,6 +32,8 @@
 # perfectly good sign-in.
 #
 # `--whitelist-domain` keeps both zones, because `rd` may point at either.
+# The registrar door is not here. It runs beside the console, on its own
+# host and its own network, in `deploy/compose/atheniq-registrar-sso.yml`.
 #
 # DEPLOY (on the app host, from this directory):
 #
@@ -143,90 +145,6 @@ services:
       - atheniq-sso-sessions
     networks:
       - atheniq
-
-  # The registrar console - registrar.atheniq.institute -> 127.0.0.1:8092.
-  #
-  # The console is not on this stack's network, so this pair travels with it: the
-  # proxy and its own Redis both run beside the console and reach it on loopback.
-  #
-  # Authentik side, already in place: application `atheniq-registrar` (provider
-  # `AthenIQ Registrar`) with the redirect URI
-  # https://registrar.atheniq.institute/oauth2/callback, bound to the group
-  # `atheniq-admins`. The console is not the classroom and must not borrow its
-  # client: that application carries the classroom's entitlement policy.
-  #
-  # The proxy is the outer door only. The console keeps its own sign-in (password
-  # plus authenticator); this adds that only admins reach that page at all.
-  #
-  # Redis is required rather than optional: this IdP returns enough groups to
-  # exceed the 4 kB cookie budget, and the cookie store splits the session into
-  # several cookies that the front proxy then refuses.
-  registrar-sso-sessions:
-    image: redis:7-alpine
-    container_name: registrar-sso-sessions
-    restart: unless-stopped
-    command: >
-      redis-server
-      --port 6380
-      --bind 127.0.0.1
-      --requirepass ${SSO_REDIS_PASSWORD}
-      --save ""
-      --appendonly no
-      --maxmemory-policy noeviction
-    env_file: ./atheniq-console-sso.env
-    network_mode: host
-
-  registrar-sso:
-    image: quay.io/oauth2-proxy/oauth2-proxy:v7.8.2
-    container_name: registrar-sso
-    restart: unless-stopped
-    env_file: ./atheniq-console-sso.env
-    command:
-      - --provider=oidc
-      - --oidc-issuer-url=https://auth.cerulean.innotel.us/application/o/atheniq-registrar/
-      - --oidc-groups-claim=groups
-      - --scope=openid email profile groups
-      - --email-domain=*
-      - --insecure-oidc-allow-unverified-email
-      - --allowed-group=atheniq-admins
-      - --approval-prompt=auto
-      - --skip-provider-button=true
-      - --cookie-secure=true
-      - --cookie-samesite=lax
-      - --cookie-name=_atheniq_registrar_sso
-      - --cookie-refresh=1h
-      - --whitelist-domain=.atheniq.institute
-      - --reverse-proxy=true
-      - --set-xauthrequest=true
-      - --pass-user-headers=true
-      - --session-store-type=redis
-      - --redis-connection-url=redis://:${SSO_REDIS_PASSWORD}@127.0.0.1:6380/0
-      # These three stay open to the internet: /login so signing out has somewhere
-      # to land, /verify and its API because an employer checking a certificate
-      # has no school account at all.
-      - --skip-auth-route=^/api/health($|[/?])
-      - --skip-auth-route=^/login($|[/?])
-      - --skip-auth-route=^/verify($|[/?])
-      - --skip-auth-route=^/api/verify($|[/?])
-      # The app cannot walk an Authentik redirect; it signs in with bearer tokens.
-      - --skip-auth-route=^/api/mobile($|[/?])
-      # CHECKOUT_URL points here: the public page that quotes a payment reference.
-      - --skip-auth-route=^/pay($|[/?])
-      # The App Store privacy policy URL: reviewers open it signed out.
-      - --skip-auth-route=^/privacy($|[/?])
-      # The public pages are ordinary React pages, and their bundle is not part of
-      # the exemption: skipping /privacy alone handed a signed-out visitor the
-      # HTML and a 302 to the IdP for every /_next/static chunk, so the policy,
-      # /login, /pay and /verify all rendered unstyled and never hydrated. Assets
-      # carry no data of their own — every page that uses them decides for itself
-      # who may see what once it runs — so the whole asset path is exempt.
-      - --skip-auth-route=^/_next/
-      - --upstream=http://127.0.0.1:8090
-      - --http-address=0.0.0.0:8092
-      - --silence-ping-logging=true
-    depends_on:
-      - registrar-sso-sessions
-    network_mode: host
 
   # One session store for both doors. Deliberately the same instance: a session
   # written by one proxy is read by the other, which is what makes the pair one

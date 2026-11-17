@@ -186,6 +186,13 @@ make check-commits
 make check-compose
 ```
 
+The SSO doors deploy from this repository, never from a hand-edited copy on a
+host. `./deploy/apply-registrar-sso.sh root@192.168.1.73` copies
+`deploy/compose/atheniq-registrar-sso.yml` over that host's
+`docker-compose.yml`, validates it against the host's own env file, and
+recreates the two containers — the classroom host runs `atheniq-sso.yml` the
+same way, from this directory. A skip route or a proxy flag is written once.
+
 ## Roadmap
 
 | Milestone | State | What it covers |

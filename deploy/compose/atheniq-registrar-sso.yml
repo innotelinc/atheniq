@@ -1,0 +1,112 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# atheniq-registrar-sso.yml — the door in front of the registrar console.
+#
+# This file is the only copy of that door. It is deployed verbatim to the host
+# that runs it, as `/usr/src/atheniq-console-sso/docker-compose.yml`, by
+# `deploy/apply-registrar-sso.sh`. Nobody edits the host's copy: a hand edit
+# there is how the `/_next/` skip route once reached production and no
+# repository at all.
+#
+# WHY IT IS NOT IN atheniq-sso.yml. That file is the classroom host's: two
+# proxies and the Redis they share, all on the OpenMAIC network. This pair runs
+# beside the console instead — the console is not on that network, so the proxy
+# and its own Redis stay on loopback here. The two stacks share only the
+# Authentik client they name.
+#
+# WHY `name:`. The project name decides which containers compose thinks it
+# owns. The host's pair already carries the label `atheniq-console-sso` (the
+# directory's name), so naming it here makes `up -d` recreate those containers
+# rather than fail on a container-name conflict.
+#
+# WHY `console-sso.env`. That is the file the host actually has, beside this
+# one, holding the four proxy values (client id, client secret, cookie secret,
+# redis password). `.env` beside it carries SSO_REDIS_PASSWORD, which the
+# `redis-connection-url` below interpolates. Neither file is in this repository,
+# and neither is touched by the deploy script.
+#
+# DEPLOY (from the repository root)
+#
+#   ./deploy/apply-registrar-sso.sh root@192.168.1.73
+#
+# Authentik side, already in place: application `atheniq-registrar` (provider
+# `AthenIQ Registrar`) with the redirect URI
+# https://registrar.atheniq.institute/oauth2/callback, bound to the group
+# `atheniq-admins`. The console is not the classroom and must not borrow its
+# client: that application carries the classroom's entitlement policy.
+#
+# The proxy is the outer door only. The console keeps its own sign-in (password
+# plus authenticator); this adds that only admins reach that page at all.
+#
+# Redis is required rather than optional: this IdP returns enough groups to
+# exceed the 4 kB cookie budget, and the cookie store splits the session into
+# several cookies that the front proxy then refuses.
+# ═══════════════════════════════════════════════════════════════════════════
+name: atheniq-console-sso
+
+services:
+  registrar-sso-sessions:
+    image: redis:7-alpine
+    container_name: registrar-sso-sessions
+    restart: unless-stopped
+    command: >
+      redis-server
+      --port 6380
+      --bind 127.0.0.1
+      --requirepass ${SSO_REDIS_PASSWORD}
+      --save ""
+      --appendonly no
+      --maxmemory-policy noeviction
+    env_file: ./console-sso.env
+    network_mode: host
+
+  registrar-sso:
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.8.2
+    container_name: registrar-sso
+    restart: unless-stopped
+    env_file: ./console-sso.env
+    command:
+      - --provider=oidc
+      - --oidc-issuer-url=https://auth.cerulean.innotel.us/application/o/atheniq-registrar/
+      - --oidc-groups-claim=groups
+      - --scope=openid email profile groups
+      # Authentik sets email_verified: false; the door is --allowed-group.
+      - --email-domain=*
+      - --insecure-oidc-allow-unverified-email
+      - --allowed-group=atheniq-admins
+      - --approval-prompt=auto
+      - --skip-provider-button=true
+      - --cookie-secure=true
+      - --cookie-samesite=lax
+      - --cookie-name=_atheniq_registrar_sso
+      - --cookie-refresh=1h
+      - --whitelist-domain=.atheniq.institute
+      - --reverse-proxy=true
+      - --set-xauthrequest=true
+      - --pass-user-headers=true
+      - --session-store-type=redis
+      - --redis-connection-url=redis://:${SSO_REDIS_PASSWORD}@127.0.0.1:6380/0
+      # Open to the internet on purpose: /login so signing out has somewhere to
+      # land, /verify and its API because an employer checking a certificate has
+      # no school account at all, /pay because CHECKOUT_URL points at the page
+      # that quotes a payment reference.
+      - --skip-auth-route=^/api/health($|[/?])
+      - --skip-auth-route=^/login($|[/?])
+      - --skip-auth-route=^/verify($|[/?])
+      - --skip-auth-route=^/api/verify($|[/?])
+      - --skip-auth-route=^/pay($|[/?])
+      # The App Store privacy policy URL: reviewers open it signed out.
+      - --skip-auth-route=^/privacy($|[/?])
+      # …and its bundle. The public pages are ordinary React pages, so exempting
+      # the path alone handed a signed-out visitor the HTML and a 302 to the IdP
+      # for every /_next/static chunk — the page rendered unstyled and never
+      # hydrated. Assets hold no data of their own; each page still decides for
+      # itself who may see what.
+      - --skip-auth-route=^/_next/
+      # The app cannot walk an Authentik redirect; it signs in with bearer tokens.
+      - --skip-auth-route=^/api/mobile($|[/?])
+      - --upstream=http://127.0.0.1:8090
+      - --http-address=0.0.0.0:8092
+      - --silence-ping-logging=true
+    depends_on:
+      - registrar-sso-sessions
+    network_mode: host
