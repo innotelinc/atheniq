@@ -1110,7 +1110,7 @@ Canonical hosts for a reference deployment:
 | --- | --- |
 | `innotel.us` | Innotel Labs company site — the `innotel` compose service serving `web/innotel/` |
 | `www.<zone>` | Same site on the same NPM host (certificate SAN covers both names) |
-| `atheniq.<domain>` | Product landing page — the `landing` compose service serving `web/landing/` |
+| `atheniq.<domain>` | Product landing page — the `landing` compose service serving `web/landing/` from a git checkout (NPM proxy host 206) |
 | `workforce.<domain>` | Workforce development site (FAST AI) — the `workforce` compose service serving `web/workforce/` |
 | `learn.<domain>` | Tutor LMS — `LMS_HOST`, the canonical name |
 | `apps.learn.<domain>` | Learner MFEs (`apps.<LMS_HOST>`) |
@@ -1151,11 +1151,32 @@ than issuing or creating anything new.
 `atheniq.<domain>` is the product's own name and it has to answer with the
 product: `web/landing/` is the site (index, `/catalog/`, `/courses/*`), and the
 `landing` service in [`docker-compose.yml`](../docker-compose.yml) serves that
-directory straight out of the repo with Caddy's file server on
-`LANDING_BIND:LANDING_PORT` (`192.168.1.59:8085` on this deployment). NPM
-publishes it under the name with Cerulean's `atheniq.<domain>` certificate, and
-the zone already carries the CNAME. The pages' canonical and Open Graph URLs are
-the product domain rather than the GitHub Pages preview CI also publishes.
+directory straight out of a git checkout with Caddy's file server on
+`LANDING_BIND:LANDING_PORT`. The pages' canonical and Open Graph URLs are the
+product domain rather than the GitHub Pages preview CI also publishes.
+
+**Which proxy host answers it.** The edge's **Nginx Proxy Manager proxy host
+206** (`server_name atheniq.institute www.atheniq.institute;`) is the door; the
+Cerulean certificate for the name belongs to it, and the zone's apex record
+points at the edge. Anything written here about the apex is about the upstream
+that host 206 forwards to, not about a second NPM host.
+
+**The origin is a checkout, updated by one command.** Host 206 used to forward
+to `104.238.162.5:8085`, a Vultr box carrying a **hand-copied** `web/landing`
+tree: no history, no record of which commit was live, and a publish meant
+copying files onto it again. It now forwards to the checkout on the console host
+(`192.168.1.73:8085`, a plain `git clone` of this repository), where the files on
+disk are the files the school sees. Publishing is:
+
+```bash
+deploy/update-landing.sh        # in the checkout: pull, recreate, check
+```
+
+The script fast-forwards `main` and recreates the `landing` container, then
+checks the origin answers; there is no build step. Its `.env` beside
+docker-compose.yml holds `LANDING_BIND` / `LANDING_PORT` for that host. The Vultr
+copy is retired: its container is stopped, and the tree it served is left there
+only as a backup, never as an origin.
 
 **Realized (2026-10):** `atheniq`, `learn`, `apps.learn`, `lms`, `apps.lms`,
 `studio`, `classroom`, `ai.lms` (the generation console, its own
@@ -1954,7 +1975,7 @@ the delivered message carried both DKIM signatures for `atheniq.courses`.
   apply to every deployment. In particular, AthenIQ never signs certificates
   itself — Signara does — and no `.env`, key, or token is ever committed.
 
-## Stage 4 � Registrar console (`console/`)
+## Stage 4 � Registrar console (`console/`)
 
 `console/` is the portal that administers the institute: staff accounts, courses,
 credentials, integrations and provisioning. It is an ordinary Next.js app with its
@@ -1984,7 +2005,7 @@ matter on a first boot:
 | `OMNIROUTE_BASE_URL`, `OMNIROUTE_API_KEY` | the generation console's model gateway, if that page is used |
 
 State lives in the `console-data` volume mounted at `/app/data` (`store.json`), which
-is why the service survives a recreate and why the volume � not a bind mount � is what
+is why the service survives a recreate and why the volume � not a bind mount � is what
 carries it: a bind mount arrives root-owned and the app runs as uid 100.
 
 **Publishing it.** TLS and the public name belong to the edge. Point the
