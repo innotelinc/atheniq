@@ -80,7 +80,7 @@ services:
       - --cookie-name=_innotel_sso
       - --whitelist-domain=.innotel.us
       - --whitelist-domain=.atheniq.courses
-      - --skip-auth-route=^/api/health$
+      - --skip-auth-route=^/api/health($|[/?])
       - --reverse-proxy=true
       - --set-xauthrequest=true
       - --pass-user-headers=true
@@ -133,7 +133,7 @@ services:
       - --set-xauthrequest=true
       - --pass-user-headers=true
       - --session-store-type=redis
-      - --skip-auth-route=^/healthz$
+      - --skip-auth-route=^/healthz($|[/?])
       - --upstream=http://192.168.1.59:8090
       - --http-address=0.0.0.0:4180
       - --silence-ping-logging=true
@@ -204,10 +204,10 @@ services:
       # These three stay open to the internet: /login so signing out has somewhere
       # to land, /verify and its API because an employer checking a certificate
       # has no school account at all.
-      - --skip-auth-route=^/api/health$
-      - --skip-auth-route=^/login(/|$)
-      - --skip-auth-route=^/verify(/|$)
-      - --skip-auth-route=^/api/verify(/|$)
+      - --skip-auth-route=^/api/health($|[/?])
+      - --skip-auth-route=^/login($|[/?])
+      - --skip-auth-route=^/verify($|[/?])
+      - --skip-auth-route=^/api/verify($|[/?])
       - --upstream=http://127.0.0.1:8090
       - --http-address=0.0.0.0:8092
       - --silence-ping-logging=true
