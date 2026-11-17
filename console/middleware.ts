@@ -39,8 +39,20 @@ const PUBLIC_PATHS = [
   /^\/favicon\.ico$/,
 ];
 
-/** The old duplicate site's paths. They belong to atheniq.institute now. */
-const SITE_ALIAS = /^\/site(\/|$)/;
+/**
+ * Where the old duplicate site's URLs land on the real one. The website is not
+ * a copy of the console, so these are not a path strip: `/catalog/` is the one
+ * course list, programs are a section of the front page, and the privacy policy
+ * — the URL Apple opens — stays on this host, because the site publishes no
+ * legal text. 307 rather than 308: the mapping is ours to correct, and a
+ * permanent redirect would stay in browsers after we did.
+ */
+const SITE_MOVES: { pattern: RegExp; path: string; here?: boolean }[] = [
+  { pattern: /^\/site\/courses(\/|$)/, path: "/catalog/" },
+  { pattern: /^\/site\/programs(\/|$)/, path: "/#programs" },
+  { pattern: /^\/site\/privacy(\/|$)/, path: "/privacy", here: true },
+  { pattern: /^\/site(\/|$)/, path: "/" },
+];
 
 /**
  * Pages a visitor reaches without a session that are not the website: sign-in,
@@ -66,10 +78,12 @@ export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
   // The storefront used to live here. The website is atheniq.institute, so a
-  // link to /site/courses is a link to the site's /courses.
-  if (SITE_ALIAS.test(pathname)) {
-    const rest = pathname.replace(/^\/site/, "") || "/";
-    return NextResponse.redirect(new URL(`${rest}${search}`, publicSiteOrigin()), 308);
+  // link to /site/courses is a link to the site's catalog.
+  const move = SITE_MOVES.find((entry) => entry.pattern.test(pathname));
+  if (move) {
+    const target = new URL(move.path, move.here ? request.nextUrl.origin : publicSiteOrigin());
+    if (!move.here) target.search = search;
+    return NextResponse.redirect(target, 307);
   }
 
   // Signed in, these paths render inside the console as before; the root layout
