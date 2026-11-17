@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getDb } from "@/lib/store";
 import { money } from "@/lib/mobile-commerce";
 import { LEGAL_EMAIL } from "@/lib/legal";
+import { publicSiteOrigin } from "@/lib/branding";
 
 export const dynamic = "force-dynamic";
 
@@ -94,9 +95,9 @@ export default async function PayPage({
           )}
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Link className="btn" href="/site">
+            <a className="btn" href={`${publicSiteOrigin()}/`}>
               AthenIQ Institute
-            </Link>
+            </a>
             {course ? (
               <Link className="btn" href={`/verify`}>
                 Verify a credential

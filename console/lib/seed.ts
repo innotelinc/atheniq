@@ -613,7 +613,7 @@ export const DEFAULT_SETTINGS: Settings = {
     showPrograms: true,
     showVerify: true,
     ctaLabel: "Explore the catalog",
-    ctaHref: "/site/courses",
+    ctaHref: "/catalog/",
     lastPublishedAt: null,
   },
   mail: {

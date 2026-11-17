@@ -1178,6 +1178,33 @@ docker-compose.yml holds `LANDING_BIND` / `LANDING_PORT` for that host. The Vult
 copy is retired: its container is stopped, and the tree it served is left there
 only as a backup, never as an origin.
 
+#### One-time setup of that origin (per host)
+
+Two minutes on a host with Docker, and this is the last time the site is set up
+by hand. After it, every publish is `deploy/update-landing.sh`.
+
+```bash
+git clone https://github.com/innotelinc/atheniq.git /usr/src/atheniq-site
+cd /usr/src/atheniq-site
+printf 'LANDING_BIND=192.168.1.73\nLANDING_PORT=8085\n' > .env
+docker compose up -d landing
+```
+
+- **`LANDING_BIND` is the host's LAN address, not loopback.** The edge is a
+  different machine, so it has to be able to reach this port; TLS and the public
+  name stay the edge's job.
+- **`docker compose up -d landing` starts only the file server.** The rest of the
+  compose file is the classroom/generation stack, which this host does not run.
+- **On the edge**, NPM proxy host 206 (`atheniq.institute`,
+  `www.atheniq.institute`) forwards to that address and port. Change it in the
+  UI *and* confirm the row: the UI regenerates `data/nginx/proxy_host/206.conf`
+  from the `proxy_host` table, so a hand-edited file alone is reverted the next
+  time someone saves the host in the UI.
+- **Verify** with `curl -sI https://atheniq.institute/ | head -3` and
+  `curl -s https://atheniq.institute/assets/unity-theme.css | grep -- '--brand'`:
+  the origin's palette is the one the school sees, so a stale copy shows up as
+  the old accent colour rather than as an error.
+
 **Realized (2026-10):** `atheniq`, `learn`, `apps.learn`, `lms`, `apps.lms`,
 `studio`, `classroom`, `ai.lms` (the generation console, its own
 single-name certificate), and `meilisearch.learn` / `meilisearch.lms`

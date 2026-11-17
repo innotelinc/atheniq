@@ -156,9 +156,9 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .split { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); gap: 18px; align-items: start; }
-/* The shared privacy-policy prose as console pages show it (the public site
-   styles the same component in app/site/site.css). Scoped to .main, which the
-   site layout does not render. */
+/* The shared privacy-policy prose as console pages show it. Scoped to .main,
+   the console's own content column, so a page outside the shell can style the
+   same component differently. */
 .main .prose { display: flex; flex-direction: column; gap: 14px; }
 .main .prose h2 { margin-top: 10px; }
 .main .prose ul { padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }

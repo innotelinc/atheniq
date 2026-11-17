@@ -1,16 +1,20 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, authEnabled, verifySession } from "@/lib/session";
-import { normalizeDomain, publicHosts } from "@/lib/branding";
+import { publicSiteOrigin } from "@/lib/branding";
 
 /**
- * Two surfaces, one app:
- *   • the registrar console — session required, except sign-in and verification
- *   • the public website  — no session, white-labeled from settings
+ * One app, one public website.
  *
- * The public site is served at /site on the console host, and rewritten to the
- * root for any host in PUBLIC_SITE_HOSTS (atheniq.institute by default). The
- * root layout reads x-atheniq-public and renders those pages without the
- * console chrome.
+ * The institute's website is atheniq.institute: `web/landing/` in this
+ * repository, served from a git checkout behind the edge's NPM proxy host 206.
+ * This app is the registrar's staff console and publishes no second site, so
+ * `/site` — which used to be a duplicate storefront rendered from settings —
+ * now answers by sending the visitor to the real site. One address for a
+ * student or an applicant, one place the school's copy lives.
+ *
+ * What stays public here is what a console has to answer without a session:
+ * sign-in, a credential check an employer runs, the payment hand-off, the
+ * policy, the form that asks for an account, and the mobile API's own auth.
  */
 const PUBLIC_PATHS = [
   /^\/login(\/|$)/,
@@ -35,13 +39,14 @@ const PUBLIC_PATHS = [
   /^\/favicon\.ico$/,
 ];
 
-const PUBLIC_SITE = /^\/site(\/|$)/;
+/** The old duplicate site's paths. They belong to atheniq.institute now. */
+const SITE_ALIAS = /^\/site(\/|$)/;
 
 /**
- * Pages a visitor reaches without a session that are not the white-labeled
- * site: sign-in, verification, the payment hand-off, the policy and the form
- * that asks for an account. They keep the console's styling but not its
- * sidebar — every sidebar link leads to a page the visitor cannot open.
+ * Pages a visitor reaches without a session that are not the website: sign-in,
+ * verification, the payment hand-off, the policy and the form that asks for an
+ * account. They keep the console's styling but not its sidebar — every sidebar
+ * link leads to a page the visitor cannot open.
  */
 const PUBLIC_SHELL_PATHS = [
   /^\/login(\/|$)/,
@@ -51,12 +56,6 @@ const PUBLIC_SHELL_PATHS = [
   /^\/request-access(\/|$)/,
 ];
 
-function publicHeaders(request: NextRequest): Headers {
-  const headers = new Headers(request.headers);
-  headers.set("x-atheniq-public", "1");
-  return headers;
-}
-
 function publicShellHeaders(request: NextRequest): Headers {
   const headers = new Headers(request.headers);
   headers.set("x-atheniq-public-shell", "1");
@@ -65,24 +64,12 @@ function publicShellHeaders(request: NextRequest): Headers {
 
 export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
-  const host = normalizeDomain(request.headers.get("host") || "");
-  const onPublicHost = publicHosts().includes(host);
 
-  if (onPublicHost) {
-    const headers = publicHeaders(request);
-    if (pathname.startsWith("/_next/") || pathname === "/favicon.ico" || pathname.startsWith("/api/")) {
-      return NextResponse.next({ request: { headers } });
-    }
-    const url = request.nextUrl.clone();
-    const publicPath = PUBLIC_SITE.test(pathname) || pathname === "/verify" || pathname.startsWith("/verify/");
-    if (!publicPath) {
-      url.pathname = pathname === "/" ? "/site" : `/site${pathname}`;
-    }
-    return NextResponse.rewrite(url, { request: { headers } });
-  }
-
-  if (PUBLIC_SITE.test(pathname)) {
-    return NextResponse.next({ request: { headers: publicHeaders(request) } });
+  // The storefront used to live here. The website is atheniq.institute, so a
+  // link to /site/courses is a link to the site's /courses.
+  if (SITE_ALIAS.test(pathname)) {
+    const rest = pathname.replace(/^\/site/, "") || "/";
+    return NextResponse.redirect(new URL(`${rest}${search}`, publicSiteOrigin()), 308);
   }
 
   // Signed in, these paths render inside the console as before; the root layout

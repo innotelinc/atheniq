@@ -57,12 +57,18 @@ export function monogram(brand: BrandSettings): string {
   return (letters.join("") || "A").slice(0, 2).toUpperCase();
 }
 
-/** Public hosts this build answers as, from PUBLIC_SITE_HOSTS. */
-export function publicHosts(): string[] {
-  return (process.env.PUBLIC_SITE_HOSTS || "atheniq.institute,www.atheniq.institute")
-    .split(",")
-    .map((host) => normalizeDomain(host))
-    .filter(Boolean);
+/**
+ * Where the institute's website is published. It is not this app: the site is
+ * `web/landing/` served from a git checkout behind the edge, so a link that
+ * used to point at the console's own /site points here instead.
+ */
+export function publicSiteOrigin(): string {
+  const configured = (process.env.PUBLIC_SITE_DOMAIN || process.env.PUBLIC_SITE_HOSTS || "atheniq.institute")
+    .split(",")[0]
+    .trim()
+    .replace(/^https?:\/\//i, "")
+    .replace(/\/.*$/, "");
+  return `https://${normalizeDomain(configured) || "atheniq.institute"}`;
 }
 
 /** Inline custom properties so the public site can be re-colored per tenant. */
