@@ -115,21 +115,31 @@ function bearerToken() {
 let token = "";
 async function call(method, requestPath, body) {
   if (!token) token = bearerToken();
-  const response = await fetch(`${API}${requestPath}`, {
-    method,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const text = await response.text();
-  const data = text ? JSON.parse(text) : {};
-  if (!response.ok) {
+  // App Store Connect 500s on reads that succeed a moment later; the iPad set
+  // was lost that way after the iPhone set had already gone in. Retrying the
+  // request is what makes a run finish the job it started.
+  const attempts = 4;
+  for (let attempt = 1; ; attempt += 1) {
+    const response = await fetch(`${API}${requestPath}`, {
+      method,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const text = await response.text();
+    const data = text ? JSON.parse(text) : {};
+    if (response.ok) return data;
     const detail = (data.errors || []).map((error) => `${error.title}: ${error.detail ?? ""}`).join("; ");
+    const retryable = response.status === 429 || response.status >= 500;
+    if (retryable && attempt < attempts) {
+      warn(`${method} ${requestPath} failed (${response.status}); retrying (${attempt}/${attempts - 1})`);
+      await new Promise((resolve) => setTimeout(resolve, attempt * 2000));
+      continue;
+    }
     throw new Error(`${method} ${requestPath} failed (${response.status}) — ${detail || text}`);
   }
-  return data;
 }
 
 const OPEN_STATES = ["PREPARE_FOR_SUBMISSION", "METADATA_REJECTED", "DEVELOPER_REJECTED", "REJECTED"];
