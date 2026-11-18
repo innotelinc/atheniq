@@ -31,6 +31,8 @@ const APPLY = args.includes("--apply");
 // UPLOAD_COMPLETE while Apple is still checking the images — this answers the
 // question that comes later, without touching the listing.
 const STATUS = args.includes("--status");
+/** Whether this run names one slot, or (with --status) should report every one. */
+const DISPLAY_GIVEN = args.includes("--display");
 const valueAfter = (name) => {
   const index = args.indexOf(name);
   return index >= 0 ? args[index + 1] : undefined;
@@ -39,7 +41,12 @@ const DIR = valueAfter("--dir") || "screenshots";
 /** Which display slot this run fills. The iPhone set does not satisfy an iPad app. */
 const DISPLAY = valueAfter("--display") || "APP_IPHONE_67";
 const DISPLAY_SIZES = {
+  // 6.9-inch phones (1320×2868) and 6.7-inch (1290×2796) share one slot.
   APP_IPHONE_67: ["1320x2868", "1290x2796", "2868x1320"],
+  // The 6.3-inch phone: 1206×2622 is an iPhone 16/17 Pro; 1179×2556 is the
+  // 6.1-inch 15/14 Pro that Apple also accepts here. App Review asks for both
+  // iPhone sizes, and a draft with only the 6.9-inch set cannot be submitted.
+  APP_IPHONE_61: ["1206x2622", "1179x2556", "2622x1206"],
   APP_IPAD_PRO_3GEN_129: ["2064x2752", "2048x2732", "2752x2064"],
 };
 // Read after the table above exists: referring to either of those consts in the
@@ -244,28 +251,54 @@ async function reportStatus() {
     "GET",
     `/appStoreVersionLocalizations/${localization.id}/appScreenshotSets?limit=20&fields[appScreenshotSets]=screenshotDisplayType`,
   );
-  const set = sets.data.find((item) => item.attributes.screenshotDisplayType === DISPLAY);
-  log(`${meta.name} ${meta.version} → ${DISPLAY}`);
-  if (!set) {
+  // No --display means "which sets does the draft have at all": the answer a
+  // submission needs, since a missing size blocks review just like a rejected
+  // image, and neither is visible from the upload's own log.
+  const selected = DISPLAY_GIVEN
+    ? sets.data.filter((item) => item.attributes.screenshotDisplayType === DISPLAY)
+    : sets.data;
+
+  log(`${meta.name} ${meta.version} — screenshot sets on ${meta.locale}`);
+  if (DISPLAY_GIVEN && !selected.length) {
     fail(`The draft has no ${DISPLAY} screenshot set. Upload one first (--apply).`);
   }
-  const listed = await call(
-    "GET",
-    `/appScreenshotSets/${set.id}/appScreenshots?limit=50&fields[appScreenshots]=fileName,assetDeliveryState`,
-  );
-  let pending = 0;
-  let failed = 0;
-  for (const shot of listed.data) {
-    const state = shot.attributes.assetDeliveryState?.state || "UNKNOWN";
-    const errors = (shot.attributes.assetDeliveryState?.errors || []).map((error) => error.code || error.description);
-    log(`  ${shot.attributes.fileName.padEnd(22)} ${state}${errors.length ? ` — ${errors.join(", ")}` : ""}`);
-    if (state === "FAILED") failed += 1;
-    else if (state !== "COMPLETE") pending += 1;
+  if (!sets.data.length) {
+    fail("The draft has no screenshot sets at all. Run the screenshots workflow first.");
   }
-  log("");
-  log(`screenshot set ${DISPLAY}: ${listed.data.length} image(s), ${listed.data.length - pending - failed} complete, ${pending} still processing, ${failed} failed`);
-  if (failed) fail(`${failed} image(s) failed Apple's checks; open the set in App Store Connect.`);
-  if (pending) log("Apple is still processing; re-run --status in a few minutes.");
+
+  let totalPending = 0;
+  let totalFailed = 0;
+  for (const set of selected) {
+    const display = set.attributes.screenshotDisplayType;
+    const listed = await call(
+      "GET",
+      `/appScreenshotSets/${set.id}/appScreenshots?limit=50&fields[appScreenshots]=fileName,assetDeliveryState`,
+    );
+    let pending = 0;
+    let failed = 0;
+    log("");
+    log(`${display} (${listed.data.length} image${listed.data.length === 1 ? "" : "s"})`);
+    for (const shot of listed.data) {
+      const state = shot.attributes.assetDeliveryState?.state || "UNKNOWN";
+      const errors = (shot.attributes.assetDeliveryState?.errors || []).map((error) => error.code || error.description);
+      log(`  ${shot.attributes.fileName.padEnd(22)} ${state}${errors.length ? ` — ${errors.join(", ")}` : ""}`);
+      if (state === "FAILED") failed += 1;
+      else if (state !== "COMPLETE") pending += 1;
+    }
+    log(`  ${listed.data.length - pending - failed} complete, ${pending} still processing, ${failed} failed`);
+    totalPending += pending;
+    totalFailed += failed;
+  }
+
+  if (!DISPLAY_GIVEN) {
+    const present = new Set(sets.data.map((item) => item.attributes.screenshotDisplayType));
+    const missing = Object.keys(DISPLAY_SIZES).filter((slot) => !present.has(slot));
+    log("");
+    log(`sets: ${[...present].join(", ")}`);
+    log(missing.length ? `known slots not on the draft: ${missing.join(", ")}` : "every known slot is on the draft");
+  }
+  if (totalFailed) fail(`${totalFailed} image(s) failed Apple's checks; open the set in App Store Connect.`);
+  if (totalPending) log("Apple is still processing; re-run --status in a few minutes.");
 }
 
 async function main() {

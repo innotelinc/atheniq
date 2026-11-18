@@ -11,12 +11,14 @@ on:
   workflow_dispatch:
     inputs:
       display:
-        description: "Screenshot slot to check"
+        description: "Screenshot slot to check (all = every set on the draft)"
         type: choice
         options:
+          - all
           - APP_IPHONE_67
+          - APP_IPHONE_61
           - APP_IPAD_PRO_3GEN_129
-        default: APP_IPHONE_67
+        default: all
 
 permissions:
   contents: read
@@ -47,4 +49,8 @@ jobs:
             echo "::error::Missing repository secret(s):$missing."
             exit 1
           fi
-          node console/scripts/asc-screenshots.mjs --display "${{ github.event.inputs.display }}" --status
+          if [ "${{ github.event.inputs.display }}" = "all" ]; then
+            node console/scripts/asc-screenshots.mjs --status
+          else
+            node console/scripts/asc-screenshots.mjs --display "${{ github.event.inputs.display }}" --status
+          fi

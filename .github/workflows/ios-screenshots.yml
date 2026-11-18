@@ -1,9 +1,11 @@
 name: App Store screenshots
 
-# Captures the 6.9-inch iPhone screenshot set Apple requires before a version can
-# be submitted, and (when the App Store Connect key is present) writes it into
-# the draft version. Runs on a macOS runner because the set has to come from a
-# real iOS simulator: 1320×2868, what an iPhone 16 Pro Max captures.
+# Captures the screenshot sets Apple requires before a version can be submitted
+# — the 6.9-inch iPhone set (1320×2868), the 6.3-inch one (1206×2622) and the
+# 13-inch iPad set — and (when the App Store Connect key is present) writes them
+# into the draft version. Runs on a macOS runner because the sets have to come
+# from real iOS simulators: a draft missing any of these sizes cannot be sent to
+# review, which is what a 6.9-inch-only upload found out.
 #
 # The app is built Release, not Debug: a Debug build loads its JavaScript from a
 # Metro server that is not running on the runner, so it would open to a blank
@@ -148,11 +150,43 @@ jobs:
           xcrun simctl bootstatus "$udid" -b
           xcrun simctl ui "$udid" appearance dark || true
 
+      # The 6.3-inch phone is its own display slot (APP_IPHONE_61). App Review
+      # wants it beside the 6.9-inch set, and a 6.9-inch frame is refused there.
+      - name: Boot a 6.3-inch iPhone simulator
+        id: sim_61
+        run: |
+          set -euo pipefail
+          udid=""
+          # 1206×2622 is an iPhone 16/17 Pro; 1179×2556 (the 15/14 Pro) is also
+          # accepted in this slot, so either device answers the requirement.
+          for candidate in "iPhone 17 Pro" "iPhone 16 Pro" "iPhone 15 Pro"; do
+            udid=$( { xcrun simctl list devices available | grep -F "$candidate (" | head -1 | sed -E 's/.*\(([0-9A-Fa-f-]{36})\).*/\1/'; } || true )
+            if [ -n "$udid" ]; then echo "device $candidate ($udid)"; break; fi
+          done
+          if [ -z "$udid" ]; then
+            runtime=$( { xcrun simctl list runtimes | grep -F iOS | tail -1 | sed -E 's/.*(com\.apple\.CoreSimulator\.SimRuntime\.iOS-[0-9-]+).*/\1/'; } || true )
+            devicetype=$( { xcrun simctl list devicetypes | grep -F "iPhone 16 Pro" | head -1 | sed -E 's/.*(com\.apple\.CoreSimulator\.SimDeviceType\.[A-Za-z0-9.-]+).*/\1/'; } || true )
+            if [ -z "$devicetype" ]; then
+              devicetype=$( { xcrun simctl list devicetypes | grep -F "iPhone 15 Pro" | head -1 | sed -E 's/.*(com\.apple\.CoreSimulator\.SimDeviceType\.[A-Za-z0-9.-]+).*/\1/'; } || true )
+            fi
+            if [ -z "$runtime" ] || [ -z "$devicetype" ]; then
+              echo "::error::No 6.3-inch iPhone simulator is available on this runner."
+              exit 1
+            fi
+            udid=$(xcrun simctl create "AthenIQ 6.3 screenshots" "$devicetype" "$runtime")
+            echo "created a 6.3-inch iPhone"
+          fi
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+          xcrun simctl boot "$udid" 2>/dev/null || true
+          xcrun simctl bootstatus "$udid" -b
+          xcrun simctl ui "$udid" appearance dark || true
+
       - name: Capture
         id: capture
         env:
           UDID: ${{ steps.sim.outputs.udid }}
           IPAD_UDID: ${{ steps.sim_ipad.outputs.udid }}
+          PHONE61_UDID: ${{ steps.sim_61.outputs.udid }}
           API_BASE: https://registrar.atheniq.institute
         run: |
           set -euo pipefail
@@ -160,6 +194,7 @@ jobs:
           test -n "$app"
           echo "app $app"
           bash console/scripts/capture-store-screenshots.sh "$UDID" "$app" screenshots "1320x2868" "$API_BASE"
+          bash console/scripts/capture-store-screenshots.sh "$PHONE61_UDID" "$app" screenshots-61 "1206x2622,1179x2556" "$API_BASE"
           bash console/scripts/capture-store-screenshots.sh "$IPAD_UDID" "$app" screenshots-ipad "2064x2752,2048x2732" "$API_BASE"
 
       - name: Upload to App Store Connect
@@ -178,6 +213,7 @@ jobs:
             exit 1
           fi
           node console/scripts/asc-screenshots.mjs --dir screenshots --display APP_IPHONE_67 --apply
+          node console/scripts/asc-screenshots.mjs --dir screenshots-61 --display APP_IPHONE_61 --apply
           node console/scripts/asc-screenshots.mjs --dir screenshots-ipad --display APP_IPAD_PRO_3GEN_129 --apply
 
       - name: Keep the screenshots and the build log
@@ -187,6 +223,7 @@ jobs:
           name: ios-screenshots
           path: |
             screenshots/*.png
+            screenshots-61/*.png
             screenshots-ipad/*.png
             ${{ runner.temp }}/sim-build.log
           if-no-files-found: ignore
