@@ -320,8 +320,8 @@ async function writeAgeRating() {
       kidsAgeBand: meta.ageRating?.kidsAgeBand ?? null,
       // Apple's newer questionnaire fields; all of them are required, and an
       // educational client that neither chats nor shows ads answers none/false.
-      socialMedia: "NONE",
-      messagingAndChat: "NONE",
+      socialMedia: false,
+      messagingAndChat: false,
       ageAssurance: false,
       advertising: false,
       gambling: false,
@@ -422,11 +422,9 @@ async function firstThatAnswers(paths) {
 /** The app is free everywhere; Apple wants that as a price schedule, not a flag. */
 async function writeFreePrice() {
   try {
-    const schedule = await firstThatAnswers([
-      `/appPriceSchedules?filter[app]=${meta.appId}&limit=1`,
-      `/apps/${meta.appId}/appPriceSchedules?limit=1`,
-    ]);
-    if (schedule.data.length) {
+    // Singular: one schedule per app, and a 404 simply means none is set yet.
+    const schedule = await call("GET", `/apps/${meta.appId}/appPriceSchedule`).catch(() => null);
+    if (schedule?.data?.id) {
       log("price: a price schedule is already set");
       return;
     }
