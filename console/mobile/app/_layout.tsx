@@ -4,11 +4,13 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { SessionProvider } from "@/lib/session";
 import { configureNotificationHandler } from "@/lib/push";
 import { colors } from "@/lib/theme";
+import { useStartRoute } from "@/lib/start-route";
 
 // Banners arrive while the app is open; the handler decides how they appear.
 configureNotificationHandler();
 
 export default function RootLayout() {
+  useStartRoute();
   return (
     <SafeAreaProvider>
       <SessionProvider>
