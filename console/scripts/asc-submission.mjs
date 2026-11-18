@@ -711,7 +711,11 @@ async function reportStatus() {
     else missing("subtitle");
     if (infoLoc?.attributes.privacyPolicyUrl) ok("privacy policy URL");
     else missing("privacy policy URL");
-    if (info.relationships?.primaryCategory?.data?.id) ok("primary category");
+    // A to-one relationship is not inlined on the list response, so ask for it
+    // directly: reading relationships.primaryCategory off appInfos listed it as
+    // missing even when the category was set.
+    const category = await call("GET", `/appInfos/${info.id}/primaryCategory`).catch(() => null);
+    if (category?.data?.id) ok(`primary category (${category.data.id})`);
     else missing("primary category");
     const rating = await call("GET", `/appInfos/${info.id}/ageRatingDeclaration`).catch(() => null);
     if (rating?.data?.id) ok("age rating questionnaire answered");
