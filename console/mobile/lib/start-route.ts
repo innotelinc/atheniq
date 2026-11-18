@@ -24,7 +24,14 @@ export function useStartRoute() {
         if (!info.exists) return;
         const route = (await FileSystem.readAsStringAsync(file)).trim();
         await FileSystem.deleteAsync(file, { idempotent: true });
-        if (!cancelled && route.startsWith("/")) router.replace(route as Href);
+        await FileSystem.deleteAsync(`${FileSystem.documentDirectory}${FILE}.done`, { idempotent: true });
+        if (route.startsWith("/")) {
+          if (!cancelled) router.replace(route as Href);
+          // Tell the screenshot harness the route was applied. It cannot see the
+          // screen, and a fixed sleep photographed the app mid-launch as a
+          // black frame; this file is the signal that a frame is worth taking.
+          await FileSystem.writeAsStringAsync(`${FileSystem.documentDirectory}${FILE}.done`, route);
+        }
       } catch {
         // A capture hook must never be able to break a launch.
       }

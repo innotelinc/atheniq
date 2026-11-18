@@ -38,21 +38,54 @@ xcrun simctl status_bar "$UDID" override \
 data=$(xcrun simctl get_app_container "$UDID" "$BUNDLE" data)
 mkdir -p "$data/Documents"
 
+# A frame taken while the app is still launching is a black rectangle that
+# still passes every size and distinctness check, and that is what shipped in
+# one run. Two things stop it: the app writes `start-route.txt.done` once it has
+# navigated, and the frame is only kept when two shots a moment apart are
+# identical — a screen that is still painting never is.
+capture_settled() {
+  local name="$1"
+  local attempt
+  for attempt in 1 2 3 4; do
+    xcrun simctl io "$UDID" screenshot --type=png "$OUT/$name"
+    sleep 2
+    xcrun simctl io "$UDID" screenshot --type=png "$OUT/.check.png"
+    if [ "$(md5 -q "$OUT/$name")" = "$(md5 -q "$OUT/.check.png")" ]; then
+      rm -f "$OUT/.check.png"
+      return 0
+    fi
+    echo "$name was still painting (attempt $attempt); waiting"
+  done
+  rm -f "$OUT/.check.png"
+  echo "::error::$name never settled; the frame would be a half-drawn screen."
+  return 1
+}
+
 shot() {
-  name="$1"; route="$2"; settle="${3:-6}"
+  name="$1"; route="$2"; settle="${3:-4}"
+  rm -f "$data/Documents/start-route.txt.done"
   printf '%s\n' "$route" > "$data/Documents/start-route.txt"
   xcrun simctl terminate "$UDID" "$BUNDLE" >/dev/null 2>&1 || true
   xcrun simctl launch "$UDID" "$BUNDLE" >/dev/null
+  # Wait for the app to say it navigated, not for a fixed number of seconds.
+  for _ in $(seq 1 30); do
+    [ -f "$data/Documents/start-route.txt.done" ] && break
+    sleep 1
+  done
+  if [ ! -f "$data/Documents/start-route.txt.done" ]; then
+    echo "::error::$name: the app never applied $route. Check lib/start-route.ts."
+    return 1
+  fi
   sleep "$settle"
-  xcrun simctl io "$UDID" screenshot --type=png "$OUT/$name"
-  echo "captured $name ($route)"
+  capture_settled "$name"
+  echo "captured $name ($route, $(wc -c < "$OUT/$name" | tr -d ' ') bytes)"
 }
 
 # The app opens on the catalog, so wait for the network before the first frame
 # rather than photographing a spinner.
-rm -f "$data/Documents/start-route.txt"
+rm -f "$data/Documents/start-route.txt" "$data/Documents/start-route.txt.done"
 sleep 8
-xcrun simctl io "$UDID" screenshot --type=png "$OUT/01-courses.png"
+capture_settled "01-courses.png"
 
 # A real course page: the catalog is public, so take the first id.
 course=$(curl -fsS "$API_BASE/api/mobile/v1/catalog" | node -e '
