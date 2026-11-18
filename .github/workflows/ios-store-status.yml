@@ -1,0 +1,50 @@
+name: App Store status
+
+# Read-only: what App Store Connect has done with the draft that is already
+# there. The screenshots job reports the state it finds a moment after the bytes
+# land, which is UPLOAD_COMPLETE while Apple is still checking the images; this
+# asks again later without re-uploading anything, so "still processing" can be
+# told apart from "rejected".
+#
+# Runs on a plain Linux runner: it only talks to Apple's API, it builds nothing.
+on:
+  workflow_dispatch:
+    inputs:
+      display:
+        description: "Screenshot slot to check"
+        type: choice
+        options:
+          - APP_IPHONE_67
+          - APP_IPAD_PRO_3GEN_129
+        default: APP_IPHONE_67
+
+permissions:
+  contents: read
+
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Report the screenshot set's state
+        run: |
+          set -euo pipefail
+          missing=""
+          [ -z "$ASC_KEY_ID" ] && missing="$missing ASC_KEY_ID"
+          [ -z "$ASC_ISSUER_ID" ] && missing="$missing ASC_ISSUER_ID"
+          [ -z "$ASC_PRIVATE_KEY" ] && missing="$missing ASC_PRIVATE_KEY"
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository secret(s):$missing."
+            exit 1
+          fi
+          node console/scripts/asc-screenshots.mjs --display "${{ github.event.inputs.display }}" --status

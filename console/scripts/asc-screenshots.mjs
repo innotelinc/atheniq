@@ -26,6 +26,11 @@ const API = "https://api.appstoreconnect.apple.com/v1";
 // 1290×2796, and it is the only one of the two the API will take.
 const args = process.argv.slice(2);
 const APPLY = args.includes("--apply");
+// Read-only: what Apple has done with the set that is already there. The upload
+// path reports the state it finds a moment after the bytes land, which is
+// UPLOAD_COMPLETE while Apple is still checking the images — this answers the
+// question that comes later, without touching the listing.
+const STATUS = args.includes("--status");
 const valueAfter = (name) => {
   const index = args.indexOf(name);
   return index >= 0 ? args[index + 1] : undefined;
@@ -232,7 +237,39 @@ async function stateOf(shotId) {
   return shot.data.attributes.assetDeliveryState?.state || "UNKNOWN";
 }
 
+async function reportStatus() {
+  const version = await findDraftVersion();
+  const localization = await findLocalization(version.id);
+  const sets = await call(
+    "GET",
+    `/appStoreVersionLocalizations/${localization.id}/appScreenshotSets?limit=20&fields[appScreenshotSets]=screenshotDisplayType`,
+  );
+  const set = sets.data.find((item) => item.attributes.screenshotDisplayType === DISPLAY);
+  log(`${meta.name} ${meta.version} → ${DISPLAY}`);
+  if (!set) {
+    fail(`The draft has no ${DISPLAY} screenshot set. Upload one first (--apply).`);
+  }
+  const listed = await call(
+    "GET",
+    `/appScreenshotSets/${set.id}/appScreenshots?limit=50&fields[appScreenshots]=fileName,assetDeliveryState`,
+  );
+  let pending = 0;
+  let failed = 0;
+  for (const shot of listed.data) {
+    const state = shot.attributes.assetDeliveryState?.state || "UNKNOWN";
+    const errors = (shot.attributes.assetDeliveryState?.errors || []).map((error) => error.code || error.description);
+    log(`  ${shot.attributes.fileName.padEnd(22)} ${state}${errors.length ? ` — ${errors.join(", ")}` : ""}`);
+    if (state === "FAILED") failed += 1;
+    else if (state !== "COMPLETE") pending += 1;
+  }
+  log("");
+  log(`screenshot set ${DISPLAY}: ${listed.data.length} image(s), ${listed.data.length - pending - failed} complete, ${pending} still processing, ${failed} failed`);
+  if (failed) fail(`${failed} image(s) failed Apple's checks; open the set in App Store Connect.`);
+  if (pending) log("Apple is still processing; re-run --status in a few minutes.");
+}
+
 async function main() {
+  if (STATUS) return reportStatus();
   const files = screenshots();
   log(`${meta.name} ${meta.version} → ${DISPLAY}, ${files.length} screenshot(s) from ${DIR}`);
   for (const file of files) log(`  ${path.basename(file)} ${pixelSize(file)}`);
