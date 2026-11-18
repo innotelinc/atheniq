@@ -65,14 +65,24 @@ shot() {
   name="$1"; route="$2"; settle="${3:-4}"
   rm -f "$data/Documents/start-route.txt.done"
   printf '%s\n' "$route" > "$data/Documents/start-route.txt"
-  xcrun simctl terminate "$UDID" "$BUNDLE" >/dev/null 2>&1 || true
-  xcrun simctl launch "$UDID" "$BUNDLE" >/dev/null
-  # Wait for the app to say it navigated, not for a fixed number of seconds.
-  for _ in $(seq 1 30); do
-    [ -f "$data/Documents/start-route.txt.done" ] && break
-    sleep 1
+  # A cold simulator can take half a minute to load the bundle, and a launch
+  # that lands while the previous instance is still shutting down never gets as
+  # far as the route: one run lost /sign-up that way and the whole set with it.
+  # Wait longer, and give the launch itself a second chance before failing.
+  applied=0
+  for launch in 1 2; do
+    xcrun simctl terminate "$UDID" "$BUNDLE" >/dev/null 2>&1 || true
+    sleep 2
+    xcrun simctl launch "$UDID" "$BUNDLE" >/dev/null
+    # Wait for the app to say it navigated, not for a fixed number of seconds.
+    for _ in $(seq 1 90); do
+      [ -f "$data/Documents/start-route.txt.done" ] && break
+      sleep 1
+    done
+    if [ -f "$data/Documents/start-route.txt.done" ]; then applied=1; break; fi
+    echo "$name: $route was not applied within 90s (launch $launch); relaunching"
   done
-  if [ ! -f "$data/Documents/start-route.txt.done" ]; then
+  if [ "$applied" -ne 1 ]; then
     echo "::error::$name: the app never applied $route. Check lib/start-route.ts."
     return 1
   fi
