@@ -24,8 +24,7 @@ import { fileURLToPath } from "node:url";
 const API = "https://api.appstoreconnect.apple.com/v1";
 // The 6.7/6.9-inch display family: APP_IPHONE_67 accepts 1320×2868 as well as
 // 1290×2796, and it is the only one of the two the API will take.
-const DISPLAY = "APP_IPHONE_67";
-const EXPECTED = ["1320x2868", "2868x1320"];
+const EXPECTED = DISPLAY_SIZES[DISPLAY] ?? DISPLAY_SIZES.APP_IPHONE_67;
 const args = process.argv.slice(2);
 const APPLY = args.includes("--apply");
 const valueAfter = (name) => {
@@ -33,6 +32,12 @@ const valueAfter = (name) => {
   return index >= 0 ? args[index + 1] : undefined;
 };
 const DIR = valueAfter("--dir") || "screenshots";
+/** Which display slot this run fills. The iPhone set does not satisfy an iPad app. */
+const DISPLAY = valueAfter("--display") || "APP_IPHONE_67";
+const DISPLAY_SIZES = {
+  APP_IPHONE_67: ["1320x2868", "1290x2796", "2868x1320"],
+  APP_IPAD_PRO_3GEN_129: ["2064x2752", "2048x2732", "2752x2064"],
+};
 // Found from this file, not the working directory: the workflow runs at the
 // repository root, and after the merge the copy sits beside the app it describes.
 const META_PATH =

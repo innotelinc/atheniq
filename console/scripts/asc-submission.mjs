@@ -474,9 +474,16 @@ async function firstThatAnswers(paths) {
 async function writeFreePrice() {
   try {
     // Singular: one schedule per app, and a 404 simply means none is set yet.
-    const schedule = await call("GET", `/apps/${meta.appId}/appPriceSchedule`).catch(() => null);
-    if (schedule?.data?.id) {
-      log("price: a price schedule is already set");
+    // A schedule object can exist with no prices in it, which still reads as
+    // "missing required pricing" to App Review — so count the rows, not the object.
+    const schedule = await call(
+      "GET",
+      `/apps/${meta.appId}/appPriceSchedule?include=manualPrices,automaticPrices`,
+    ).catch(() => null);
+    const manual = schedule?.data?.relationships?.manualPrices?.data?.length ?? 0;
+    const automatic = schedule?.data?.relationships?.automaticPrices?.data?.length ?? 0;
+    if (manual + automatic > 0) {
+      log(`price: the schedule already carries ${manual + automatic} price row(s)`);
       return;
     }
     const points = await firstThatAnswers([
