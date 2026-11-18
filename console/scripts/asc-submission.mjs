@@ -129,9 +129,6 @@ function versionAttributes() {
     marketingUrl: meta.marketingUrl,
     promotionalText: meta.promotionalText,
   };
-  // Required for review and easy to forget because it lives on the version, not
-  // the localization. A missing copyright blocks the submission.
-  if (meta.copyright) attributes.copyright = meta.copyright;
   if (meta.whatsNew) attributes.whatsNew = meta.whatsNew;
   return attributes;
 }
@@ -230,6 +227,22 @@ async function writeVersionLocalization(versionId) {
       });
     }
     warn(`whatsNew is refused before a first release; the rest of the ${meta.locale} metadata was written`);
+  }
+}
+
+/**
+ * The copyright line App Review shows on the listing. It is an attribute of the
+ * version, not of its localization — putting it on the localization is refused.
+ */
+async function writeVersionCopyright(versionId) {
+  if (!meta.copyright) return;
+  try {
+    await call("PATCH", `/appStoreVersions/${versionId}`, {
+      data: { type: "appStoreVersions", id: versionId, attributes: { copyright: meta.copyright } },
+    });
+    log(`copyright: ${meta.copyright}`);
+  } catch (error) {
+    problems.push(`copyright: ${error.message}`);
   }
 }
 
@@ -531,6 +544,7 @@ async function checkVersionReadiness(versionId) {
 }
 
 async function prepareForReview(version) {
+  await writeVersionCopyright(version.id);
   await writeContentRights();
   await writeAgeRating();
   await writeReviewDetail(version.id);
