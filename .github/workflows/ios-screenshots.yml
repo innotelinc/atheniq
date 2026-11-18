@@ -34,7 +34,10 @@ permissions:
 jobs:
   screenshots:
     runs-on: macos-latest
-    timeout-minutes: 60
+    # Three simulators, a Release build and three capture passes do not fit in
+    # an hour: two runs were cancelled by this timeout mid-capture, which is why
+    # the 6.3-inch set never landed.
+    timeout-minutes: 110
     env:
       TEAM_APP_ID: "6835960485"
       ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}

@@ -33,6 +33,16 @@ const APPLY = args.has("--apply");
 const ATTACH_BUILD = args.has("--attach-build");
 const READY = args.has("--ready") || args.has("--submit");
 const SUBMIT = args.has("--submit");
+// Read-only: answer "what is still missing" without writing anything, so the
+// question can be asked of a live draft as often as it needs asking.
+const STATUS = args.has("--status");
+
+/**
+ * The screenshot slots App Review requires. A draft that declares both phone
+ * families and a tablet needs all three: the 6.9-inch set does not stand in for
+ * the 6.3-inch one, and neither satisfies the iPad slot.
+ */
+const REQUIRED_SLOTS = ["APP_IPHONE_67", "APP_IPHONE_61", "APP_IPAD_PRO_3GEN_129"];
 // Found from this file, not the working directory: the workflow runs at the
 // repository root, and after the merge the copy sits beside the app it describes.
 const META_PATH =
@@ -550,6 +560,10 @@ async function checkVersionReadiness(versionId) {
         found.push(`${localization.attributes.locale} ${set.attributes.screenshotDisplayType}`);
       }
     }
+    const slots = new Set(found.map((entry) => entry.split(" ").pop()));
+    for (const slot of REQUIRED_SLOTS) {
+      if (!slots.has(slot)) problems.push(`no ${slot} screenshot set`);
+    }
     if (!found.length) problems.push("no screenshots on the version");
     else log(`screenshots: ${found.join(", ")}`);
   } catch (error) {
@@ -640,8 +654,149 @@ async function submitForReview(version) {
   log(`review state: ${after.data.attributes.state} (submitted ${after.data.attributes.submittedDate ?? "not yet"})`);
 }
 
+/**
+ * Read-only answer to "what does App Store Connect still want": the same
+ * questions the web form asks, asked of the API. A missing screenshot set or a
+ * blank copyright blocks submission just as hard as a rejected binary, and
+ * neither shows up anywhere in the upload log.
+ */
+async function reportStatus() {
+  const blockers = [];
+  const ok = (line) => log(`  ok      ${line}`);
+  const missing = (line) => {
+    blockers.push(line);
+    log(`  MISSING ${line}`);
+  };
+
+  const versions = await call(
+    "GET",
+    `/apps/${meta.appId}/appStoreVersions?filter[platform]=IOS&limit=20&fields[appStoreVersions]=versionString,appStoreState,copyright`,
+  );
+  const version =
+    versions.data.find((item) => OPEN_STATES.includes(item.attributes.appStoreState)) ?? versions.data[0];
+  if (!version) fail("the app has no App Store version record");
+  log(`\nversion ${version.attributes.versionString} (${version.attributes.appStoreState})`);
+  if (version.attributes.versionString !== meta.version) {
+    missing(`version string ${version.attributes.versionString} does not match the build's ${meta.version}`);
+  }
+
+  const locs = await call("GET", `/appStoreVersions/${version.id}/appStoreVersionLocalizations?limit=50`);
+  const loc = locs.data.find((item) => item.attributes.locale === meta.locale);
+  if (!loc) {
+    missing(`${meta.locale} version metadata`);
+  } else {
+    const fields = [
+      ["description", "description"],
+      ["keywords", "keywords"],
+      ["supportUrl", "support URL"],
+      ["marketingUrl", "marketing URL"],
+    ];
+    for (const [key, label] of fields) {
+      if (loc.attributes[key]) ok(label);
+      else missing(label);
+    }
+  }
+  if (version.attributes.copyright) ok(`copyright "${version.attributes.copyright}"`);
+  else missing("copyright");
+
+  const info = await firstAppInfo().catch(() => null);
+  if (!info) {
+    missing("app info record");
+  } else {
+    const infoLocs = await call("GET", `/appInfos/${info.id}/appInfoLocalizations?limit=50`).catch(() => ({ data: [] }));
+    const infoLoc = infoLocs.data.find((item) => item.attributes.locale === meta.locale);
+    if (infoLoc?.attributes.name) ok(`app name "${infoLoc.attributes.name}"`);
+    else missing("app name");
+    if (infoLoc?.attributes.subtitle) ok("subtitle");
+    else missing("subtitle");
+    if (infoLoc?.attributes.privacyPolicyUrl) ok("privacy policy URL");
+    else missing("privacy policy URL");
+    if (info.relationships?.primaryCategory?.data?.id) ok("primary category");
+    else missing("primary category");
+    const rating = await call("GET", `/appInfos/${info.id}/ageRatingDeclaration`).catch(() => null);
+    if (rating?.data?.id) ok("age rating questionnaire answered");
+    else missing("age rating questionnaire");
+  }
+  const app = await call("GET", `/apps/${meta.appId}?fields[apps]=contentRightsDeclaration`).catch(() => null);
+  if (app?.data?.attributes?.contentRightsDeclaration) ok(`content rights (${app.data.attributes.contentRightsDeclaration})`);
+  else missing("content rights declaration");
+
+  const build = await call(
+    "GET",
+    `/appStoreVersions/${version.id}/build?fields[builds]=version,processingState,usesNonExemptEncryption`,
+  ).catch(() => null);
+  const buildData = build?.data;
+  if (!buildData) {
+    missing("a build attached to the version");
+  } else {
+    ok(`build ${buildData.attributes.version} (${buildData.attributes.processingState})`);
+    if (buildData.attributes.usesNonExemptEncryption === false) ok("export compliance answered");
+    else missing("export compliance (usesNonExemptEncryption)");
+  }
+
+  const sets = await call(
+    "GET",
+    `/appStoreVersionLocalizations/${loc?.id ?? ""}/appScreenshotSets?limit=50`,
+  ).catch(() => ({ data: [] }));
+  const bySlot = new Map();
+  for (const set of sets.data) bySlot.set(set.attributes.screenshotDisplayType, set.id);
+  for (const slot of REQUIRED_SLOTS) {
+    const id = bySlot.get(slot);
+    if (!id) {
+      missing(`${slot} screenshot set`);
+      continue;
+    }
+    const shots = await call(
+      "GET",
+      `/appScreenshotSets/${id}/appScreenshots?limit=50&fields[appScreenshots]=fileName,assetDeliveryState`,
+    ).catch(() => ({ data: [] }));
+    const failed = shots.data.filter((shot) => shot.attributes.assetDeliveryState?.state === "FAILED");
+    const pending = shots.data.filter((shot) => shot.attributes.assetDeliveryState?.state !== "COMPLETE" && shot.attributes.assetDeliveryState?.state !== "FAILED");
+    const summary = `${slot} screenshots: ${shots.data.length} image(s)${pending.length ? `, ${pending.length} processing` : ""}${failed.length ? `, ${failed.length} failed` : ""}`;
+    if (!shots.data.length) missing(`${slot} screenshots (set is empty)`);
+    else if (failed.length) missing(`${slot} screenshots (${failed.length} failed Apple's checks)`);
+    else ok(summary);
+  }
+
+  const detail = await call("GET", `/appStoreVersions/${version.id}/appStoreReviewDetail`).catch(() => null);
+  if (detail?.data?.attributes?.contactEmail) ok(`review contact ${detail.data.attributes.contactEmail}`);
+  else missing("review contact (appStoreReviewDetail)");
+
+  const schedule = await call("GET", `/apps/${meta.appId}/appPriceSchedule?include=manualPrices,automaticPrices`).catch(() => null);
+  const prices =
+    (schedule?.data?.relationships?.manualPrices?.data?.length ?? 0) +
+    (schedule?.data?.relationships?.automaticPrices?.data?.length ?? 0);
+  if (prices > 0) ok(`price schedule (${prices} row(s))`);
+  else missing("price schedule");
+
+  // App Privacy has no supported endpoint: the API answers 403/404 for it, and
+  // the published answer only exists in the web UI. Say so rather than pretend.
+  const privacy = await call("GET", `/apps/${meta.appId}/appDataUsages?limit=1`).catch((error) => error);
+  if (privacy instanceof Error) {
+    log("  ?       App Privacy (appDataUsages) is not readable through the API — confirm it is published in the web UI");
+  } else {
+    const declared = privacy?.data?.length ?? 0;
+    if (declared) ok(`App Privacy declared (${declared} usage(s))`);
+    else missing("App Privacy (no data usages declared)");
+  }
+
+  log("");
+  if (!blockers.length) {
+    log("nothing is missing that the API can see.");
+    return true;
+  }
+  log(`${blockers.length} blocker(s):`);
+  for (const blocker of blockers) log(`  - ${blocker}`);
+  return false;
+}
+
 async function main() {
   log(`${meta.name} ${meta.version} → App Store Connect app ${meta.appId} (${meta.bundleId})`);
+  if (STATUS) {
+    const ready = await reportStatus();
+    if (!ready) process.exitCode = 1;
+    return;
+  }
   if (!APPLY) {
     printPlan();
     return;

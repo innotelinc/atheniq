@@ -3,10 +3,15 @@ name: App Store draft submission
 # Creates the "Prepare for Submission" version for the iPhone app and writes its
 # metadata, using the same three App Store Connect secrets as the TestFlight
 # job. Runs on a plain Linux runner: this only talks to Apple's API, it does not
-# build anything. Deliberately manual — it edits the store listing.
+# build anything. Deliberately manual — it edits the store listing, except with
+# status=true, which only reports what is still missing before submission.
 on:
   workflow_dispatch:
     inputs:
+      status:
+        description: "Read-only: report what App Store Connect still flags as missing (ignores the inputs below)"
+        type: boolean
+        default: false
       apply:
         description: "Write to App Store Connect (off = print the plan only)"
         type: boolean
@@ -57,6 +62,7 @@ jobs:
         run: |
           set -euo pipefail
           flags=""
+          [ "${{ github.event.inputs.status }}" = "true" ] && flags="$flags --status"
           [ "${{ github.event.inputs.apply }}" = "true" ] && flags="$flags --apply"
           [ "${{ github.event.inputs.attach_build }}" = "true" ] && flags="$flags --attach-build"
           [ "${{ github.event.inputs.ready }}" = "true" ] && flags="$flags --ready"
