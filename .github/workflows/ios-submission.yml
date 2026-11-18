@@ -15,6 +15,14 @@ on:
         description: "Attach the newest processed build to the draft"
         type: boolean
         default: true
+      ready:
+        description: "Fill in what review needs: age rating, export compliance, price, review contact"
+        type: boolean
+        default: true
+      submit:
+        description: "Submit the version to App Review (irreversible from here)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -51,4 +59,6 @@ jobs:
           flags=""
           [ "${{ github.event.inputs.apply }}" = "true" ] && flags="$flags --apply"
           [ "${{ github.event.inputs.attach_build }}" = "true" ] && flags="$flags --attach-build"
+          [ "${{ github.event.inputs.ready }}" = "true" ] && flags="$flags --ready"
+          [ "${{ github.event.inputs.submit }}" = "true" ] && flags="$flags --submit"
           node console/scripts/asc-submission.mjs $flags

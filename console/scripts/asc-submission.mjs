@@ -31,6 +31,8 @@ const API = "https://api.appstoreconnect.apple.com/v1";
 const args = new Set(process.argv.slice(2));
 const APPLY = args.has("--apply");
 const ATTACH_BUILD = args.has("--attach-build");
+const READY = args.has("--ready") || args.has("--submit");
+const SUBMIT = args.has("--submit");
 // Found from this file, not the working directory: the workflow runs at the
 // repository root, and after the merge the copy sits beside the app it describes.
 const META_PATH =
@@ -40,6 +42,9 @@ const META_PATH =
 const meta = JSON.parse(fs.readFileSync(META_PATH, "utf8"));
 const log = (...parts) => console.log(...parts);
 const warn = (...parts) => console.warn("warning:", ...parts);
+
+/** Blockers found while preparing; --submit refuses to run with any of them. */
+const problems = [];
 
 function fail(message) {
   console.error(`\n${message}\n`);
@@ -126,7 +131,18 @@ function printPlan() {
   log(`  4. POST or PATCH /appInfoLocalizations (${meta.locale}): name, subtitle, privacy policy URL`);
   log(`  5. PATCH /appInfos/:id primaryCategory ${meta.primaryCategory}`);
   if (ATTACH_BUILD) log("  6. attach the newest processed build to the version");
-  log("\nNothing was sent. Re-run with --apply to write it to App Store Connect.");
+  if (READY) {
+    log(`  7. PATCH the age rating declaration: ${meta.ageRating?.label ?? "4+"}, every descriptor none`);
+    log("  8. POST/PATCH appStoreReviewDetail with the review contact and notes");
+    log("  9. PATCH the build to declare no non-exempt encryption");
+    log(" 10. POST an appPriceSchedule with the free price point (all territories)");
+    log(" 11. check a screenshot set and a build are on the version");
+  }
+  if (SUBMIT) {
+    log(" 12. POST a reviewSubmission, add the version, PATCH submitted:true");
+    log(`     review contact: ${meta.reviewContact?.firstName ?? "?"} ${meta.reviewContact?.lastName ?? "?"} <${meta.reviewContact?.email ?? "?"}>`);
+  }
+  log("\nNothing was sent. Re-run with --apply (and --ready / --submit) to write it to App Store Connect.");
 }
 
 async function findOrCreateVersion() {
@@ -263,6 +279,253 @@ async function attachNewestBuild(versionId) {
   log(`attached build ${build.attributes.version} (uploaded ${build.attributes.uploadedDate})`);
 }
 
+async function firstAppInfo() {
+  const infos = await call("GET", `/apps/${meta.appId}/appInfos?limit=5`);
+  return infos.data[0] ?? null;
+}
+
+/**
+ * The age-rating questionnaire. 4+ means every content descriptor is "none" and
+ * the two flags that would change the band are false; the declaration itself is
+ * created by App Store Connect with the app, so this only fills it in.
+ */
+async function writeAgeRating() {
+  try {
+    const info = await firstAppInfo();
+    if (!info) {
+      problems.push("no appInfo on the app record, so no age rating");
+      return;
+    }
+    const found = await call("GET", `/appInfos/${info.id}/ageRatingDeclaration`);
+    const id = found?.data?.id;
+    if (!id) {
+      problems.push("no age rating declaration to fill in");
+      return;
+    }
+    const attributes = {
+      alcoholTobaccoOrDrugUseOrReferences: "NONE",
+      contests: "NONE",
+      gamblingSimulated: "NONE",
+      gunsOrOtherWeapons: "NONE",
+      horrorOrFearThemes: "NONE",
+      matureOrSuggestiveThemes: "NONE",
+      medicalOrTreatmentInformation: "NONE",
+      profanityOrCrudeHumor: "NONE",
+      sexualContentGraphicAndNudity: "NONE",
+      sexualContentOrNudity: "NONE",
+      violenceCartoonOrFantasy: "NONE",
+      violenceRealisticProlongedGraphicOrSadistic: "NONE",
+      violenceRealistic: "NONE",
+      unrestrictedWebAccess: false,
+      kidsAgeBand: meta.ageRating?.kidsAgeBand ?? null,
+    };
+    await call("PATCH", `/ageRatingDeclarations/${id}`, {
+      data: { type: "ageRatingDeclarations", id, attributes },
+    });
+    log(`age rating: ${meta.ageRating?.label ?? "4+"} — every content descriptor none`);
+  } catch (error) {
+    problems.push(`age rating: ${error.message}`);
+  }
+}
+
+/** Who Apple calls if review has a question. Missing contact blocks submission. */
+async function writeReviewDetail(versionId) {
+  const contact = meta.reviewContact ?? {};
+  if (!contact.firstName || !contact.lastName || !contact.phone || !contact.email) {
+    problems.push("review contact is incomplete (firstName, lastName, phone, email in submission.json)");
+    return;
+  }
+  const attributes = {
+    contactFirstName: contact.firstName,
+    contactLastName: contact.lastName,
+    contactPhone: contact.phone,
+    contactEmail: contact.email,
+    demoAccountRequired: false,
+    notes: meta.reviewNotes ?? "",
+  };
+  try {
+    const existing = await call("GET", `/appStoreVersions/${versionId}/appStoreReviewDetail`).catch(() => null);
+    const id = existing?.data?.id;
+    if (id) {
+      await call("PATCH", `/appStoreReviewDetails/${id}`, {
+        data: { type: "appStoreReviewDetails", id, attributes },
+      });
+      log(`review contact updated: ${contact.firstName} ${contact.lastName} <${contact.email}>`);
+    } else {
+      await call("POST", "/appStoreReviewDetails", {
+        data: {
+          type: "appStoreReviewDetails",
+          attributes,
+          relationships: { appStoreVersion: { data: { type: "appStoreVersions", id: versionId } } },
+        },
+      });
+      log(`review contact created: ${contact.firstName} ${contact.lastName} <${contact.email}>`);
+    }
+  } catch (error) {
+    problems.push(`review detail: ${error.message}`);
+  }
+}
+
+/**
+ * Export compliance. app.json already sets ITSAppUsesNonExemptEncryption, so a
+ * build answers this on upload; the answer still has to be on the build record
+ * before review will take it.
+ */
+async function writeExportCompliance() {
+  try {
+    const builds = await call(
+      "GET",
+      `/builds?filter[app]=${meta.appId}&sort=-uploadedDate&limit=1&fields[builds]=version,usesNonExemptEncryption`,
+    );
+    const build = builds.data[0];
+    if (!build) {
+      problems.push("no build on the app record");
+      return;
+    }
+    if (build.attributes.usesNonExemptEncryption === false) {
+      log(`export compliance: build ${build.attributes.version} reports no non-exempt encryption`);
+      return;
+    }
+    await call("PATCH", `/builds/${build.id}`, {
+      data: { type: "builds", id: build.id, attributes: { usesNonExemptEncryption: false } },
+    });
+    log(`export compliance: declared no non-exempt encryption on build ${build.attributes.version}`);
+  } catch (error) {
+    problems.push(`export compliance: ${error.message}`);
+  }
+}
+
+/** The app is free everywhere; Apple wants that as a price schedule, not a flag. */
+async function writeFreePrice() {
+  try {
+    const schedule = await call("GET", `/apps/${meta.appId}/appPriceSchedules?limit=1`);
+    if (schedule.data.length) {
+      log("price: a price schedule is already set");
+      return;
+    }
+    const points = await call(
+      "GET",
+      `/apps/${meta.appId}/appPricePoints?filter[territory]=USA&limit=200&fields[appPricePoints]=customerPrice`,
+    );
+    const free = points.data.find((point) => Number(point.attributes?.customerPrice) === 0);
+    if (!free) {
+      problems.push("the USA price points contain no free tier, so the price was not set");
+      return;
+    }
+    await call("POST", "/appPriceSchedules", {
+      data: {
+        type: "appPriceSchedules",
+        relationships: {
+          app: { data: { type: "apps", id: meta.appId } },
+          baseTerritory: { data: { type: "territories", id: "USA" } },
+          manualPrices: { data: [{ type: "appPrices", id: "${price1}" }] },
+        },
+      },
+      included: [
+        {
+          type: "appPrices",
+          id: "${price1}",
+          relationships: { appPricePoint: { data: { type: "appPricePoints", id: free.id } } },
+        },
+      ],
+    });
+    log("price: free in every territory that follows the USA base");
+  } catch (error) {
+    problems.push(`price schedule: ${error.message}`);
+  }
+}
+
+async function checkVersionReadiness(versionId) {
+  try {
+    const sets = await call("GET", `/appStoreVersions/${versionId}/appScreenshotSets?limit=50`);
+    if (!sets.data.length) problems.push("no screenshots on the version");
+    else log(`screenshots: ${sets.data.map((set) => set.attributes.screenshotDisplayType).join(", ")}`);
+  } catch (error) {
+    problems.push(`screenshot check: ${error.message}`);
+  }
+  try {
+    const version = await call("GET", `/appStoreVersions/${versionId}?include=build`);
+    const buildId = version.data.relationships?.build?.data?.id;
+    if (!buildId) problems.push("no build attached to the version");
+    else log(`build attached: ${buildId}`);
+  } catch (error) {
+    problems.push(`build check: ${error.message}`);
+  }
+}
+
+async function prepareForReview(version) {
+  await writeAgeRating();
+  await writeReviewDetail(version.id);
+  await writeExportCompliance();
+  await writeFreePrice();
+  await checkVersionReadiness(version.id);
+  if (problems.length) {
+    log("");
+    for (const problem of problems) warn(problem);
+  }
+}
+
+/**
+ * The last step: put the version into a review submission and hand it to Apple.
+ * It refuses to run while anything above reported a blocker, because a
+ * half-filled submission is rejected and the reason is harder to read there.
+ */
+async function submitForReview(version) {
+  if (problems.length) fail(`Not submitting — ${problems.length} blocker(s) listed above.`);
+
+  const open = await call(
+    "GET",
+    `/reviewSubmissions?filter[app]=${meta.appId}&filter[platform]=IOS&limit=5`,
+  ).catch(() => ({ data: [] }));
+  let submission = open.data.find((item) =>
+    ["READY_FOR_REVIEW", "WAITING_FOR_REVIEW", "IN_REVIEW"].includes(item.attributes.state),
+  );
+
+  if (!submission) {
+    const created = await call("POST", "/reviewSubmissions", {
+      data: {
+        type: "reviewSubmissions",
+        attributes: { platform: "IOS" },
+        relationships: { app: { data: { type: "apps", id: meta.appId } } },
+      },
+    });
+    submission = created.data;
+    log(`created review submission ${submission.id}`);
+  } else {
+    log(`reusing review submission ${submission.id} (${submission.attributes.state})`);
+  }
+
+  const items = await call("GET", `/reviewSubmissionItems?filter[reviewSubmission]=${submission.id}&limit=50`).catch(() => ({ data: [] }));
+  const listed = items.data.some((item) => item.relationships?.appStoreVersion?.data?.id === version.id);
+  if (!listed) {
+    await call("POST", "/reviewSubmissionItems", {
+      data: {
+        type: "reviewSubmissionItems",
+        relationships: {
+          reviewSubmission: { data: { type: "reviewSubmissions", id: submission.id } },
+          appStoreVersion: { data: { type: "appStoreVersions", id: version.id } },
+        },
+      },
+    });
+    log(`added version ${meta.version} to the submission`);
+  } else {
+    log(`version ${meta.version} is already in the submission`);
+  }
+
+  if (submission.attributes.state !== "WAITING_FOR_REVIEW" && submission.attributes.state !== "IN_REVIEW") {
+    await call("PATCH", `/reviewSubmissions/${submission.id}`, {
+      data: { type: "reviewSubmissions", id: submission.id, attributes: { submitted: true } },
+    });
+    log("submitted for review");
+  }
+
+  const after = await call(
+    "GET",
+    `/reviewSubmissions/${submission.id}?fields[reviewSubmissions]=state,submittedDate`,
+  );
+  log(`review state: ${after.data.attributes.state} (submitted ${after.data.attributes.submittedDate ?? "not yet"})`);
+}
+
 async function main() {
   log(`${meta.name} ${meta.version} → App Store Connect app ${meta.appId} (${meta.bundleId})`);
   if (!APPLY) {
@@ -281,6 +544,8 @@ async function main() {
   await writeVersionLocalization(version.id);
   await writeAppInfo();
   if (ATTACH_BUILD) await attachNewestBuild(version.id);
+  if (READY) await prepareForReview(version);
+  if (SUBMIT) await submitForReview(version);
 
   const after = await call("GET", `/appStoreVersions/${version.id}?fields[appStoreVersions]=versionString,appStoreState`);
   log("");
