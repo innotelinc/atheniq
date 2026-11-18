@@ -17,6 +17,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const API = "https://api.appstoreconnect.apple.com/v1";
 const DISPLAY = "APP_IPHONE_69";
@@ -28,7 +29,11 @@ const valueAfter = (name) => {
   return index >= 0 ? args[index + 1] : undefined;
 };
 const DIR = valueAfter("--dir") || "screenshots";
-const META_PATH = process.env.SUBMISSION_METADATA || "mobile/store/submission.json";
+// Found from this file, not the working directory: the workflow runs at the
+// repository root, and after the merge the copy sits beside the app it describes.
+const META_PATH =
+  process.env.SUBMISSION_METADATA ||
+  path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "mobile", "store", "submission.json");
 
 const meta = JSON.parse(fs.readFileSync(META_PATH, "utf8"));
 const log = (...parts) => console.log(...parts);

@@ -19,17 +19,23 @@
  *   ASC_ISSUER_ID    issuer UUID
  *   ASC_PRIVATE_KEY  the .p8 contents, or ASC_KEY_PATH pointing at the file
  *
- * Metadata lives in mobile/store/submission.json so the copy is reviewable in
- * the repository instead of being typed into a web form.
+ * Metadata lives in console/mobile/store/submission.json so the copy is
+ * reviewable in the repository instead of being typed into a web form.
  */
 import crypto from "node:crypto";
 import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const API = "https://api.appstoreconnect.apple.com/v1";
 const args = new Set(process.argv.slice(2));
 const APPLY = args.has("--apply");
 const ATTACH_BUILD = args.has("--attach-build");
-const META_PATH = process.env.SUBMISSION_METADATA || "mobile/store/submission.json";
+// Found from this file, not the working directory: the workflow runs at the
+// repository root, and after the merge the copy sits beside the app it describes.
+const META_PATH =
+  process.env.SUBMISSION_METADATA ||
+  path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "mobile", "store", "submission.json");
 
 const meta = JSON.parse(fs.readFileSync(META_PATH, "utf8"));
 const log = (...parts) => console.log(...parts);
