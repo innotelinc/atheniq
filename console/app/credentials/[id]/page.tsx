@@ -4,6 +4,7 @@ import { getDb } from "@/lib/store";
 import { dateTime, shortDate } from "@/lib/format";
 import { Badge, Card, Crumbs, Topbar } from "@/components/ui";
 import { CredentialActions } from "@/components/CredentialActions";
+import { credentialStands } from "@/lib/certificate";
 
 export const dynamic = "force-dynamic";
 
@@ -18,9 +19,11 @@ export default async function CredentialPage({ params }: { params: Promise<{ id:
       <Topbar>
         <Crumbs items={[{ label: "Credentials", href: "/credentials" }, { label: credential.verifyId.slice(0, 8) }]} />
         <div className="row">
-          <a className="btn small" href={`/api/credentials/${credential.id}/certificate?download=1`}>
-            Download PDF
-          </a>
+          {credentialStands(credential) && (
+            <a className="btn small" href={`/api/credentials/${credential.id}/certificate?download=1`}>
+              Download PDF
+            </a>
+          )}
           <Link className="btn small ghost" href={`/verify/${credential.verifyId}`}>
             Public verification
           </Link>
@@ -52,11 +55,19 @@ export default async function CredentialPage({ params }: { params: Promise<{ id:
           <div className="stack">
             <Card title="Certificate document" subtitle="The exact PDF submitted to Signara for signing.">
               <div className="card-body">
-                <iframe
-                  title="Certificate PDF"
-                  src={`/api/credentials/${credential.id}/certificate`}
-                  style={{ width: "100%", height: 520, border: "1px solid var(--line)", borderRadius: 10, background: "#fff" }}
-                />
+                {credentialStands(credential) ? (
+                  <iframe
+                    title="Certificate PDF"
+                    src={`/api/credentials/${credential.id}/certificate`}
+                    style={{ width: "100%", height: 520, border: "1px solid var(--line)", borderRadius: 10, background: "#fff" }}
+                  />
+                ) : (
+                  <p className="small muted">
+                    {credential.status === "revoked"
+                      ? "Withheld: the signed file stops being served while the revocation stands, so a revoked award cannot keep circulating as a document. It remains in the register below."
+                      : "Nothing to show yet: the document exists once the award is signed."}
+                  </p>
+                )}
               </div>
             </Card>
 
@@ -127,8 +138,8 @@ export default async function CredentialPage({ params }: { params: Promise<{ id:
                 <div className="card-body small">
                   <p>{credential.revokeReason}</p>
                   <p className="muted" style={{ marginTop: 6 }}>
-                    The public verification page reports this revocation; the signed document itself is retained
-                    for the audit trail.
+                    The public verification page reports this revocation and no signature file is served; the
+                    register keeps the record and the document for the audit trail.
                   </p>
                 </div>
               </Card>

@@ -1,11 +1,17 @@
-import { certificateResponse } from "@/lib/certificate";
-import { fail } from "@/lib/api";
+import { certificateDocument, withheldResponse } from "@/lib/certificate";
 
 export const dynamic = "force-dynamic";
 
-/** The certificate document, rendered when it was signed. Staff path. */
+/** The certificate document, rendered when it was signed. Staff path, same rule. */
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const download = new URL(request.url).searchParams.get("download") === "1";
-  return certificateResponse(id, download) ?? fail("Credential not found.", 404);
+  const lookup = certificateDocument(id, download);
+
+  if (lookup.kind === "document") return lookup.response;
+
+  return (
+    withheldResponse(lookup) ??
+    new Response("No credential matches that id.\n", { status: 404 })
+  );
 }

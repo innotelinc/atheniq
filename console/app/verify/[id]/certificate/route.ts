@@ -1,4 +1,4 @@
-import { certificateResponse } from "@/lib/certificate";
+import { certificateDocument, withheldResponse } from "@/lib/certificate";
 
 export const dynamic = "force-dynamic";
 
@@ -17,12 +17,12 @@ export async function GET(
 ) {
   const { id } = await params;
   const download = new URL(request.url).searchParams.get("download") === "1";
-  const response = certificateResponse(id, download);
+  const lookup = certificateDocument(id, download);
 
-  if (response) return response;
+  if (lookup.kind === "document") return lookup.response;
 
-  return new Response("No credential matches that verification id.", {
-    status: 404,
-    headers: { "Content-Type": "text/plain; charset=utf-8" },
-  });
+  return (
+    withheldResponse(lookup) ??
+    new Response("No credential matches that verification id.\n", { status: 404 })
+  );
 }
