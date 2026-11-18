@@ -159,21 +159,44 @@ async function writeVersionLocalization(versionId) {
   const existing = list.data.find((item) => item.attributes.locale === meta.locale);
   const attributes = versionAttributes();
 
-  if (existing) {
-    await call("PATCH", `/appStoreVersionLocalizations/${existing.id}`, {
-      data: { type: "appStoreVersionLocalizations", id: existing.id, attributes },
+  try {
+    if (existing) {
+      await call("PATCH", `/appStoreVersionLocalizations/${existing.id}`, {
+        data: { type: "appStoreVersionLocalizations", id: existing.id, attributes },
+      });
+      log(`updated ${meta.locale} version metadata`);
+      return;
+    }
+    await call("POST", "/appStoreVersionLocalizations", {
+      data: {
+        type: "appStoreVersionLocalizations",
+        attributes: { locale: meta.locale, ...attributes },
+        relationships: { version: { data: { type: "appStoreVersions", id: versionId } } },
+      },
     });
-    log(`updated ${meta.locale} version metadata`);
-    return;
+    log(`created ${meta.locale} version metadata`);
+  } catch (error) {
+    // Apple refuses "What's New" until there is a released version to compare
+    // against, which a first draft never has. Losing that one field is much
+    // better than losing the whole listing, so it is written again without it.
+    if (!attributes.whatsNew || !/whatsNew/i.test(String(error?.message ?? ""))) throw error;
+    const rest = { ...attributes };
+    delete rest.whatsNew;
+    if (existing) {
+      await call("PATCH", `/appStoreVersionLocalizations/${existing.id}`, {
+        data: { type: "appStoreVersionLocalizations", id: existing.id, attributes: rest },
+      });
+    } else {
+      await call("POST", "/appStoreVersionLocalizations", {
+        data: {
+          type: "appStoreVersionLocalizations",
+          attributes: { locale: meta.locale, ...rest },
+          relationships: { version: { data: { type: "appStoreVersions", id: versionId } } },
+        },
+      });
+    }
+    warn(`whatsNew is refused before a first release; the rest of the ${meta.locale} metadata was written`);
   }
-  await call("POST", "/appStoreVersionLocalizations", {
-    data: {
-      type: "appStoreVersionLocalizations",
-      attributes: { locale: meta.locale, ...attributes },
-      relationships: { version: { data: { type: "appStoreVersions", id: versionId } } },
-    },
-  });
-  log(`created ${meta.locale} version metadata`);
 }
 
 async function writeAppInfo() {
