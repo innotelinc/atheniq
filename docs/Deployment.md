@@ -1178,6 +1178,17 @@ docker-compose.yml holds `LANDING_BIND` / `LANDING_PORT` for that host. The Vult
 copy is retired: its container is stopped, and the tree it served is left there
 only as a backup, never as an origin.
 
+**The service is behind the `landing` profile.** A second copy ran on the
+classroom host (`192.168.1.59`) and kept coming back: a plain `docker compose up`
+there recreated `atheniq-landing` on port 8085, from a checkout nobody was
+updating, so the retirement had to survive every restart. `profiles: ["landing"]`
+does that — an untargeted `docker compose up` (and `docker compose up -d
+--remove-orphans`, which is what `deploy.sh` runs) now leaves it out and removes
+the stale container, while the host that serves the apex opts in with
+`COMPOSE_PROFILES=landing` in its `.env`, and `deploy/update-landing.sh` names
+the service explicitly. The tree the old host served is untouched; only the
+container is gone.
+
 #### One-time setup of that origin (per host)
 
 Two minutes on a host with Docker, and this is the last time the site is set up
@@ -1186,7 +1197,7 @@ by hand. After it, every publish is `deploy/update-landing.sh`.
 ```bash
 git clone https://github.com/innotelinc/atheniq.git /usr/src/atheniq-site
 cd /usr/src/atheniq-site
-printf 'LANDING_BIND=192.168.1.73\nLANDING_PORT=8085\n' > .env
+printf 'COMPOSE_PROFILES=landing\nLANDING_BIND=192.168.1.73\nLANDING_PORT=8085\n' > .env
 docker compose up -d landing
 ```
 
@@ -1195,6 +1206,9 @@ docker compose up -d landing
   name stay the edge's job.
 - **`docker compose up -d landing` starts only the file server.** The rest of the
   compose file is the classroom/generation stack, which this host does not run.
+  The explicit service name is what crosses the `landing` profile; with
+  `COMPOSE_PROFILES=landing` in `.env`, a plain `docker compose up -d` brings it
+  up too, which is what keeps `deploy.sh` from deleting the apex origin.
 - **On the edge**, NPM proxy host 206 (`atheniq.institute`,
   `www.atheniq.institute`) forwards to that address and port. Change it in the
   UI *and* confirm the row: the UI regenerates `data/nginx/proxy_host/206.conf`

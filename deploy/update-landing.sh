@@ -32,6 +32,9 @@ git fetch --quiet origin main
 git merge --ff-only FETCH_HEAD
 git log --oneline -1
 
-docker compose up -d landing
+# `landing` sits behind the "landing" profile so a plain `docker compose up`
+# on a host that does not serve the apex cannot resurrect it; naming it is how
+# this script keeps working on the host that does.
+docker compose --profile landing up -d landing
 sleep 2
 curl -sS -o /dev/null -w "== apex origin (${BIND}:${PORT}): %{http_code}\n" "http://${BIND}:${PORT}/"

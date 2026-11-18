@@ -179,6 +179,15 @@ services:
   landing:
     image: caddy:2.11.4
     container_name: atheniq-landing
+    # Behind a profile because the apex has exactly one origin, and this service
+    # has been run on more than one host: the container on the classroom host
+    # (`192.168.1.59`) was shut down for good, and a plain `docker compose up`
+    # there used to bring a second copy back to life — answering on 8085 with a
+    # tree nobody had updated. Naming the service still starts it
+    # (`docker compose up -d landing`), and the host that *does* serve the apex
+    # opts in with `COMPOSE_PROFILES=landing` in its `.env`, so nothing starts
+    # by accident and nothing that should answer stops.
+    profiles: ["landing"]
     restart: unless-stopped
     # Memory posture (docs/service-audit.md): static files, nothing to cache.
     mem_limit: 128m
