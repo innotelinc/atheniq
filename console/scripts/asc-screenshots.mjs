@@ -3,9 +3,11 @@
  * Uploads the 6.9-inch iPhone screenshot set to the App Store Connect draft.
  *
  * A version cannot be submitted without screenshots, and they are per display
- * size, not per device: "APP_IPHONE_69" wants 1320×2868 portrait images (what
- * an iPhone 16 Pro Max simulator captures). The workflow
- * `.github/workflows/ios-screenshots.yml` takes them; this puts them in.
+ * size, not per device: the 6.9-inch canvas (1320×2868 portrait, what an iPhone
+ * 16 Pro Max simulator captures) uploads into APP_IPHONE_67, because Apple never
+ * added a 69 display type and the API answers 409 for anything it does not list.
+ * The workflow `.github/workflows/ios-screenshots.yml` takes the frames; this
+ * puts them in.
  *
  *   node scripts/asc-screenshots.mjs --dir screenshots            # show the plan
  *   node scripts/asc-screenshots.mjs --dir screenshots --apply    # replace the set
@@ -20,7 +22,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const API = "https://api.appstoreconnect.apple.com/v1";
-const DISPLAY = "APP_IPHONE_69";
+// The 6.7/6.9-inch display family: APP_IPHONE_67 accepts 1320×2868 as well as
+// 1290×2796, and it is the only one of the two the API will take.
+const DISPLAY = "APP_IPHONE_67";
 const EXPECTED = ["1320x2868", "2868x1320"];
 const args = process.argv.slice(2);
 const APPLY = args.includes("--apply");
