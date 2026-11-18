@@ -336,6 +336,46 @@ export interface AccessRequest {
   decidedBy: string | null;
 }
 
+/** Where an application stands. Only a registrar moves it past "received". */
+export type ApplicationStatus = "received" | "reviewing" | "accepted" | "waitlisted" | "declined";
+
+/** The transcript a learner uploaded with the application, as stored on disk. */
+export interface TranscriptRef {
+  /** What the applicant called the file, kept for the download. */
+  fileName: string;
+  mimeType: string;
+  bytes: number;
+  /** Basename under data/transcripts; never a path the client supplied. */
+  storedAs: string;
+  uploadedAt: string;
+}
+
+/**
+ * One application to a program for a term. The goals statement and the
+ * transcript are what admissions reads; everything else is the person and the
+ * plan they picked, snapshotted so a later program rename does not rewrite
+ * history.
+ */
+export interface Application {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  programId: string;
+  programName: string;
+  term: string;
+  goals: string;
+  transcript: TranscriptRef | null;
+  status: ApplicationStatus;
+  /** The registrar's note: why it was decided, or what is still missing. */
+  note: string;
+  source: string;
+  createdAt: string;
+  updatedAt: string;
+  decidedAt: string | null;
+  decidedBy: string | null;
+}
+
 export type SessionEndReason =
   | "signed_out"
   | "ended_by_registrar"
@@ -550,7 +590,9 @@ export interface Activity {
     | "digest.sent"
     | "learner.enrolled"
     | "learner.completed"
-    | "course.purchased";
+    | "course.purchased"
+    | "application.received"
+    | "application.decided";
   message: string;
   ref: string;
   actor?: ActorRef | null;
@@ -570,6 +612,7 @@ export interface Database {
   sessions: GenSession[];
   activity: Activity[];
   accessRequests: AccessRequest[];
+  applications: Application[];
   authLog: AuthEvent[];
   loginSessions: LoginSession[];
   /** Recently ended sessions; capped, so the list survives pruning. */

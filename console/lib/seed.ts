@@ -1044,6 +1044,7 @@ export function buildSeed(): Database {
     version: 1,
     staff: [],
     accessRequests: [],
+    applications: [],
     authLog: [],
     loginSessions: [],
     enrollments: [],

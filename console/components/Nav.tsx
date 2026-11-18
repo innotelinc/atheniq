@@ -39,6 +39,17 @@ const GROUPS: {
     label: "Teach",
     items: [
       {
+        href: "/admissions",
+        label: "Admissions",
+        icon: (
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M6 3h9l4 4v14H6z" />
+            <path d="M14 3v5h5" />
+            <path d="M9 13h6M9 17h4" />
+          </svg>
+        ),
+      },
+      {
         href: "/courses",
         label: "Courses",
         icon: (

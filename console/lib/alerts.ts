@@ -107,6 +107,40 @@ export function notifyAccessRequest(entry: AccessRequest): void {
   );
 }
 
+/** Someone applied to a program; admissions reads it from the console. */
+export function notifyApplication(
+  app: {
+    name: string;
+    email: string;
+    programName: string;
+    term: string;
+    goals: string;
+    transcript: { fileName: string } | null;
+    createdAt: string;
+  },
+): void {
+  if (!mailerConfig().configured) return;
+  const rows =
+    row("Applicant", `${app.name} <${app.email}>`) +
+    row("Program", app.programName) +
+    row("Term", app.term) +
+    row("Transcript", app.transcript ? app.transcript.fileName : "not attached") +
+    row("Goals", app.goals.slice(0, 400)) +
+    row("Applied", app.createdAt);
+  const text = [
+    `${app.name} <${app.email}> applied to ${app.programName} for ${app.term}.`,
+    app.transcript ? `Transcript: ${app.transcript.fileName}` : "No transcript attached.",
+    app.goals ? `Goals: ${app.goals.slice(0, 400)}` : "",
+    "",
+    "Read it, download the transcript and set a status on the Admissions page of the console.",
+  ].filter(Boolean);
+  void deliver(
+    `Application — ${app.name}`, 
+    text.join("\n"),
+    frame(`Application — ${app.name}`, rows, `Review at ${consoleBase()}/admissions`),
+  );
+}
+
 /**
  * Three refusals for one address inside fifteen minutes is worth a look. One
  * alert per address per window, so a bot hammering the form cannot flood inboxes.

@@ -29,6 +29,11 @@ const PUBLIC_PATHS = [
   /^\/privacy(\/|$)/,
   /^\/request-access(\/|$)/,
   /^\/api\/access-requests(\/|$)/,
+  // The application form an applicant reaches from the website. `exactly` on
+  // the API matters: the transcript download under /api/applications/<id>/ is
+  // staff-only, and a prefix match here would publish it.
+  /^\/apply(\/|$)/,
+  /^\/api\/applications$/,
   // The app signs in with its own bearer tokens — a phone cannot hold the
   // console session cookie, and those routes refuse anonymous callers anyway.
   /^\/api\/mobile(\/|$)/,
@@ -66,6 +71,7 @@ const PUBLIC_SHELL_PATHS = [
   /^\/pay(\/|$)/,
   /^\/privacy(\/|$)/,
   /^\/request-access(\/|$)/,
+  /^\/apply(\/|$)/,
 ];
 
 function publicShellHeaders(request: NextRequest): Headers {
