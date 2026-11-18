@@ -90,13 +90,16 @@ jobs:
           set -euo pipefail
           udid=""
           name=""
+          # A lookup that finds nothing must not end the step: with `set -e` a
+          # failing grep in a command substitution exits the whole script, which
+          # is what killed the iPad pass before it could fall back.
           for candidate in "iPhone 17 Pro Max" "iPhone 16 Pro Max"; do
-            udid=$(xcrun simctl list devices available | grep -F "$candidate (" | head -1 | sed -E 's/.*\(([0-9A-Fa-f-]{36})\).*/\1/')
+            udid=$( { xcrun simctl list devices available | grep -F "$candidate (" | head -1 | sed -E 's/.*\(([0-9A-Fa-f-]{36})\).*/\1/'; } || true )
             if [ -n "$udid" ]; then name="$candidate"; break; fi
           done
           if [ -z "$udid" ]; then
-            runtime=$(xcrun simctl list runtimes | grep -F iOS | tail -1 | sed -E 's/.*(com\.apple\.CoreSimulator\.SimRuntime\.iOS-[0-9-]+).*/\1/')
-            devicetype=$(xcrun simctl list devicetypes | grep -F "iPhone 16 Pro Max" | head -1 | sed -E 's/.*(com\.apple\.CoreSimulator\.SimDeviceType\.[A-Za-z0-9.-]+).*/\1/')
+            runtime=$( { xcrun simctl list runtimes | grep -F iOS | tail -1 | sed -E 's/.*(com\.apple\.CoreSimulator\.SimRuntime\.iOS-[0-9-]+).*/\1/'; } || true )
+            devicetype=$( { xcrun simctl list devicetypes | grep -F "iPhone 16 Pro Max" | head -1 | sed -E 's/.*(com\.apple\.CoreSimulator\.SimDeviceType\.[A-Za-z0-9.-]+).*/\1/'; } || true )
             test -n "$runtime" -a -n "$devicetype"
             udid=$(xcrun simctl create "AthenIQ screenshots" "$devicetype" "$runtime")
             name="created iPhone 16 Pro Max"
@@ -120,14 +123,20 @@ jobs:
         run: |
           set -euo pipefail
           udid=""
-          for candidate in "iPad Pro 13-inch (M4)" "iPad Pro 12.9-inch (6th generation)" "iPad Pro 12.9-inch (5th generation)"; do
-            udid=$(xcrun simctl list devices available | grep -F "$candidate (" | head -1 | sed -E 's/.*\(([0-9A-Fa-f-]{36})\).*/\1/')
+          # Any iPad Pro is acceptable: the upload accepts both 2064x2752 (13-inch
+          # M4) and 2048x2732 (12.9-inch) in the 13-inch slot.
+          for candidate in "iPad Pro 13-inch (M4)" "iPad Pro 12.9-inch (6th generation)" "iPad Pro 12.9-inch (5th generation)" "iPad Pro 12.9-inch (4th generation)"; do
+            udid=$( { xcrun simctl list devices available | grep -F "$candidate (" | head -1 | sed -E 's/.*\(([0-9A-Fa-f-]{36})\).*/\1/'; } || true )
             if [ -n "$udid" ]; then echo "device $candidate ($udid)"; break; fi
           done
           if [ -z "$udid" ]; then
-            runtime=$(xcrun simctl list runtimes | grep -F iOS | tail -1 | sed -E 's/.*(com\.apple\.CoreSimulator\.SimRuntime\.iOS-[0-9-]+).*/\1/')
-            devicetype=$(xcrun simctl list devicetypes | grep -F "iPad Pro 12.9-inch" | head -1 | sed -E 's/.*(com\.apple\.CoreSimulator\.SimDeviceType\.[A-Za-z0-9.-]+).*/\1/')
-            test -n "$runtime" -a -n "$devicetype"
+            runtime=$( { xcrun simctl list runtimes | grep -F iOS | tail -1 | sed -E 's/.*(com\.apple\.CoreSimulator\.SimRuntime\.iOS-[0-9-]+).*/\1/'; } || true )
+            devicetype=$( { xcrun simctl list devicetypes | grep -F "iPad Pro 12.9-inch" | head -1 | sed -E 's/.*(com\.apple\.CoreSimulator\.SimDeviceType\.[A-Za-z0-9.-]+).*/\1/'; } || true )
+            if [ -z "$runtime" ] || [ -z "$devicetype" ]; then
+              echo "::error::No iPad Pro simulator is available on this runner."
+              xcrun simctl list devicetypes | grep -i ipad | head -5
+              exit 1
+            fi
             udid=$(xcrun simctl create "AthenIQ pad screenshots" "$devicetype" "$runtime")
             echo "created an iPad Pro 12.9-inch"
           fi
