@@ -125,13 +125,16 @@ jobs:
           udid=""
           # Any iPad Pro is acceptable: the upload accepts both 2064x2752 (13-inch
           # M4) and 2048x2732 (12.9-inch) in the 13-inch slot.
-          for candidate in "iPad Pro 13-inch (M4)" "iPad Pro 12.9-inch (6th generation)" "iPad Pro 12.9-inch (5th generation)" "iPad Pro 12.9-inch (4th generation)"; do
+          for candidate in "iPad Pro 13-inch (M5)" "iPad Pro 13-inch (M4)" "iPad Pro 12.9-inch (6th generation)" "iPad Pro 12.9-inch (5th generation)"; do
             udid=$( { xcrun simctl list devices available | grep -F "$candidate (" | head -1 | sed -E 's/.*\(([0-9A-Fa-f-]{36})\).*/\1/'; } || true )
             if [ -n "$udid" ]; then echo "device $candidate ($udid)"; break; fi
           done
           if [ -z "$udid" ]; then
             runtime=$( { xcrun simctl list runtimes | grep -F iOS | tail -1 | sed -E 's/.*(com\.apple\.CoreSimulator\.SimRuntime\.iOS-[0-9-]+).*/\1/'; } || true )
-            devicetype=$( { xcrun simctl list devicetypes | grep -F "iPad Pro 12.9-inch" | head -1 | sed -E 's/.*(com\.apple\.CoreSimulator\.SimDeviceType\.[A-Za-z0-9.-]+).*/\1/'; } || true )
+            devicetype=$( { xcrun simctl list devicetypes | grep -F "iPad Pro 13-inch" | head -1 | sed -E 's/.*(com\.apple\.CoreSimulator\.SimDeviceType\.[A-Za-z0-9.-]+).*/\1/'; } || true )
+            if [ -z "$devicetype" ]; then
+              devicetype=$( { xcrun simctl list devicetypes | grep -F "iPad Pro 12.9-inch" | head -1 | sed -E 's/.*(com\.apple\.CoreSimulator\.SimDeviceType\.[A-Za-z0-9.-]+).*/\1/'; } || true )
+            fi
             if [ -z "$runtime" ] || [ -z "$devicetype" ]; then
               echo "::error::No iPad Pro simulator is available on this runner."
               xcrun simctl list devicetypes | grep -i ipad | head -5
