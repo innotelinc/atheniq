@@ -1,6 +1,7 @@
 name: iOS TestFlight
 
-# Builds the iPhone app with Xcode on GitHub's macOS runner and uploads the .ipa
+# Builds the iPhone app with Xcode 27 (iOS 27 SDK) on GitHub's macOS runner and
+# uploads the .ipa
 # to App Store Connect, which is what puts it into TestFlight. No Expo cloud and
 # no EAS: the JavaScript is bundled by the Xcode build itself, and the Xcode
 # project is generated from app.json in this job because it is not committed.
@@ -38,7 +39,7 @@ permissions:
 
 jobs:
   testflight:
-    runs-on: macos-latest
+    runs-on: xcode-27
     timeout-minutes: 90
     env:
       TEAM_ID: BH7WW2BR39
@@ -49,12 +50,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # App Store Connect refuses builds made with an older SDK, and the image's
-      # default Xcode is not always the newest one installed.
-      - name: Select the newest Xcode
+      # The app ships against the iOS 27 SDK, and App Store Connect refuses a
+      # build made with an older one. The job runs on the Xcode 27 image and
+      # picks the newest 27.x installed rather than the image's default, then
+      # fails here — in seconds — if that image ever stops shipping one.
+      - name: Select Xcode 27
         run: |
-          latest=$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)
-          if [ -n "$latest" ]; then sudo xcode-select -s "$latest"; fi
+          latest=$(ls -d /Applications/Xcode_27*.app 2>/dev/null | sort -V | tail -1)
+          if [ -z "$latest" ]; then
+            echo "::error::No Xcode 27 on this runner; expected /Applications/Xcode_27*.app"
+            ls -d /Applications/Xcode*.app 2>/dev/null || true
+            exit 1
+          fi
+          sudo xcode-select -s "$latest"
           xcodebuild -version
           xcodebuild -showsdks | grep -i iphoneos
 
