@@ -98,7 +98,22 @@ async function call(method, path, body) {
   const text = await response.text();
   const data = text ? JSON.parse(text) : {};
   if (!response.ok) {
-    const detail = (data.errors || []).map((error) => `${error.title}: ${error.detail ?? ""}`).join("; ");
+    // Apple hides the real reason for a refused submission under
+    // errors[].meta.associatedErrors, keyed by the resource it applies to —
+    // without it the message is only "this resource cannot be reviewed".
+    const associated = (data.errors || []).flatMap((error) => {
+      const map = error.meta?.associatedErrors;
+      if (!map || typeof map !== "object") return [];
+      return Object.entries(map).flatMap(([resource, list]) =>
+        (Array.isArray(list) ? list : []).map(
+          (entry) => `${resource}: ${entry.title || entry.code || ""}${entry.detail ? ` — ${entry.detail}` : ""}`,
+        ),
+      );
+    });
+    const detail = [
+      ...(data.errors || []).map((error) => `${error.title}: ${error.detail ?? ""}`),
+      ...associated,
+    ].join("; ");
     throw new Error(`${method} ${path} failed (${response.status}) — ${detail || text}`);
   }
   return data;
@@ -114,6 +129,9 @@ function versionAttributes() {
     marketingUrl: meta.marketingUrl,
     promotionalText: meta.promotionalText,
   };
+  // Required for review and easy to forget because it lives on the version, not
+  // the localization. A missing copyright blocks the submission.
+  if (meta.copyright) attributes.copyright = meta.copyright;
   if (meta.whatsNew) attributes.whatsNew = meta.whatsNew;
   return attributes;
 }
@@ -212,6 +230,26 @@ async function writeVersionLocalization(versionId) {
       });
     }
     warn(`whatsNew is refused before a first release; the rest of the ${meta.locale} metadata was written`);
+  }
+}
+
+/**
+ * Content rights: whether the app uses third-party content it does not own.
+ * AthenIQ's courses, copy and artwork are its own, so the declaration is the
+ * "does not use third-party content" answer App Review expects.
+ */
+async function writeContentRights() {
+  try {
+    await call("PATCH", `/apps/${meta.appId}`, {
+      data: {
+        type: "apps",
+        id: meta.appId,
+        attributes: { contentRightsDeclaration: "DOES_NOT_USE_THIRD_PARTY_CONTENT" },
+      },
+    });
+    log("content rights: does not use third-party content");
+  } catch (error) {
+    problems.push(`content rights: ${error.message}`);
   }
 }
 
@@ -493,6 +531,7 @@ async function checkVersionReadiness(versionId) {
 }
 
 async function prepareForReview(version) {
+  await writeContentRights();
   await writeAgeRating();
   await writeReviewDetail(version.id);
   await writeExportCompliance();
