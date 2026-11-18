@@ -318,6 +318,17 @@ async function writeAgeRating() {
       violenceRealistic: "NONE",
       unrestrictedWebAccess: false,
       kidsAgeBand: meta.ageRating?.kidsAgeBand ?? null,
+      // Apple's newer questionnaire fields; all of them are required, and an
+      // educational client that neither chats nor shows ads answers none/false.
+      socialMedia: "NONE",
+      messagingAndChat: "NONE",
+      ageAssurance: false,
+      advertising: false,
+      gambling: false,
+      healthOrWellnessTopics: false,
+      lootBox: false,
+      parentalControls: false,
+      userGeneratedContent: false,
     };
     await call("PATCH", `/ageRatingDeclarations/${id}`, {
       data: { type: "ageRatingDeclarations", id, attributes },
@@ -395,18 +406,34 @@ async function writeExportCompliance() {
   }
 }
 
+/** The first of several URL shapes that answers, so an API move is not a blocker. */
+async function firstThatAnswers(paths) {
+  let last = null;
+  for (const candidate of paths) {
+    try {
+      return await call("GET", candidate);
+    } catch (error) {
+      last = error;
+    }
+  }
+  throw last;
+}
+
 /** The app is free everywhere; Apple wants that as a price schedule, not a flag. */
 async function writeFreePrice() {
   try {
-    const schedule = await call("GET", `/apps/${meta.appId}/appPriceSchedules?limit=1`);
+    const schedule = await firstThatAnswers([
+      `/appPriceSchedules?filter[app]=${meta.appId}&limit=1`,
+      `/apps/${meta.appId}/appPriceSchedules?limit=1`,
+    ]);
     if (schedule.data.length) {
       log("price: a price schedule is already set");
       return;
     }
-    const points = await call(
-      "GET",
+    const points = await firstThatAnswers([
       `/apps/${meta.appId}/appPricePoints?filter[territory]=USA&limit=200&fields[appPricePoints]=customerPrice`,
-    );
+      `/appPricePoints?filter[app]=${meta.appId}&filter[territory]=USA&limit=200&fields[appPricePoints]=customerPrice`,
+    ]);
     const free = points.data.find((point) => Number(point.attributes?.customerPrice) === 0);
     if (!free) {
       problems.push("the USA price points contain no free tier, so the price was not set");
@@ -437,9 +464,23 @@ async function writeFreePrice() {
 
 async function checkVersionReadiness(versionId) {
   try {
-    const sets = await call("GET", `/appStoreVersions/${versionId}/appScreenshotSets?limit=50`);
-    if (!sets.data.length) problems.push("no screenshots on the version");
-    else log(`screenshots: ${sets.data.map((set) => set.attributes.screenshotDisplayType).join(", ")}`);
+    // Screenshot sets hang off the version's localization, not the version.
+    const localizations = await call(
+      "GET",
+      `/appStoreVersions/${versionId}/appStoreVersionLocalizations?limit=50`,
+    );
+    const found = [];
+    for (const localization of localizations.data) {
+      const sets = await call(
+        "GET",
+        `/appStoreVersionLocalizations/${localization.id}/appScreenshotSets?limit=50`,
+      ).catch(() => ({ data: [] }));
+      for (const set of sets.data) {
+        found.push(`${localization.attributes.locale} ${set.attributes.screenshotDisplayType}`);
+      }
+    }
+    if (!found.length) problems.push("no screenshots on the version");
+    else log(`screenshots: ${found.join(", ")}`);
   } catch (error) {
     problems.push(`screenshot check: ${error.message}`);
   }
