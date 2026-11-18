@@ -171,6 +171,21 @@ async function findOrCreateVersion() {
 
   if (open) {
     log(`version ${open.attributes.versionString} already open (${open.attributes.appStoreState}); reusing it`);
+    if (open.attributes.versionString !== meta.version) {
+      // A draft's version string can still be edited, and it has to match the
+      // build's CFBundleShortVersionString: a "1.0" draft holding a "1.0.0"
+      // build is only refused when the version is sent to review, long after
+      // anyone last looked at the listing.
+      try {
+        await call("PATCH", `/appStoreVersions/${open.id}`, {
+          data: { type: "appStoreVersions", id: open.id, attributes: { versionString: meta.version } },
+        });
+        log(`renamed it to ${meta.version} so it matches the build`);
+        open.attributes.versionString = meta.version;
+      } catch (error) {
+        warn(`could not rename ${open.attributes.versionString} to ${meta.version}: ${error.message}`);
+      }
+    }
     return open;
   }
 
