@@ -605,36 +605,15 @@ async function submitForReview(version) {
     "GET",
     `/reviewSubmissions?filter[app]=${meta.appId}&filter[platform]=IOS&limit=20`,
   ).catch(() => ({ data: [] }));
-  // The submission that already holds this version wins, whatever its state: a
-  // rejected submission keeps the version as an item, and Apple refuses to add
-  // that version to a second submission — "Item is already present in another
-  // reviewSubmission". Choosing an empty READY_FOR_REVIEW submission first, as
-  // this did, is exactly what produced that 409.
-  let submission = null;
   log(
     `review submissions on this app: ${
       open.data.map((item) => `${item.id.slice(0, 8)} ${item.attributes.state}`).join(", ") || "none"
     }`,
   );
-  for (const candidate of open.data) {
-    const held = await call(
-      "GET",
-      `/reviewSubmissionItems?filter[reviewSubmission]=${candidate.id}&limit=50` +
-        "&fields[reviewSubmissionItems]=state,appStoreVersion&include=appStoreVersion",
-    );
-    const held_versions = held.data.map((item) => item.relationships?.appStoreVersion?.data?.id ?? "?");
-    log(`  ${candidate.id.slice(0, 8)} ${candidate.attributes.state}: ${held.data.length} item(s) ${held_versions.join(", ")}`);
-    if (held_versions.includes(version.id)) {
-      submission = candidate;
-      break;
-    }
-  }
-  if (!submission) {
-    submission = open.data.find((item) =>
-      ["READY_FOR_REVIEW", "WAITING_FOR_REVIEW", "IN_REVIEW"].includes(item.attributes.state),
-    );
-  }
 
+  let submission = open.data.find((item) =>
+    ["READY_FOR_REVIEW", "WAITING_FOR_REVIEW", "IN_REVIEW"].includes(item.attributes.state),
+  );
   if (!submission) {
     const created = await call("POST", "/reviewSubmissions", {
       data: {
@@ -645,13 +624,16 @@ async function submitForReview(version) {
     });
     submission = created.data;
     log(`created review submission ${submission.id}`);
-  } else {
-    log(`reusing review submission ${submission.id} (${submission.attributes.state})`);
   }
 
-  const items = await call("GET", `/reviewSubmissionItems?filter[reviewSubmission]=${submission.id}&limit=50`).catch(() => ({ data: [] }));
-  const listed = items.data.some((item) => item.relationships?.appStoreVersion?.data?.id === version.id);
-  if (!listed) {
+  // reviewSubmissionItems answers CREATE, DELETE and UPDATE only — a collection
+  // GET is refused ("does not allow 'GET_COLLECTION'") — so "does this submission
+  // already hold the version?" can only be asked by trying to add it. Apple
+  // refuses a version that sits in another submission with "Item is already
+  // present in another reviewSubmission", naming that submission; after a
+  // rejection that is the one carrying the review thread, so it is the one to
+  // hand back. A fresh submission is what used to 409 here.
+  try {
     await call("POST", "/reviewSubmissionItems", {
       data: {
         type: "reviewSubmissionItems",
@@ -661,9 +643,21 @@ async function submitForReview(version) {
         },
       },
     });
-    log(`added version ${meta.version} to the submission`);
-  } else {
-    log(`version ${meta.version} is already in the submission`);
+    log(`added version ${meta.version} to submission ${submission.id.slice(0, 8)}`);
+  } catch (error) {
+    const held = /another reviewSubmission with id ([0-9a-f-]{36})/i.exec(String(error?.message ?? ""));
+    if (!held) throw error;
+    const owner = open.data.find((item) => item.id === held[1]);
+    if (held[1] === submission.id) {
+      log(`version ${meta.version} is already in submission ${held[1].slice(0, 8)}`);
+    } else {
+      log(
+        `version ${meta.version} already belongs to submission ${held[1].slice(0, 8)}` +
+          (owner ? ` (${owner.attributes.state})` : "") +
+          "; resubmitting that one",
+      );
+    }
+    submission = owner ?? { id: held[1], attributes: { state: "UNKNOWN" } };
   }
 
   if (submission.attributes.state !== "WAITING_FOR_REVIEW" && submission.attributes.state !== "IN_REVIEW") {
