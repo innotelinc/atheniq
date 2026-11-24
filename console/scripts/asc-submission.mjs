@@ -610,6 +610,17 @@ async function submitForReview(version) {
       open.data.map((item) => `${item.id.slice(0, 8)} ${item.attributes.state}`).join(", ") || "none"
     }`,
   );
+  const everyVersion = await call(
+    "GET",
+    `/apps/${meta.appId}/appStoreVersions?filter[platform]=IOS&limit=20&fields[appStoreVersions]=versionString,appStoreState`,
+  ).catch(() => ({ data: [] }));
+  log(
+    `versions: ${
+      everyVersion.data
+        .map((item) => `${item.id.slice(0, 8)} ${item.attributes.versionString} ${item.attributes.appStoreState}`)
+        .join(", ") || "none"
+    }`,
+  );
 
   let submission = open.data.find((item) =>
     ["READY_FOR_REVIEW", "WAITING_FOR_REVIEW", "IN_REVIEW"].includes(item.attributes.state),
@@ -661,9 +672,27 @@ async function submitForReview(version) {
   }
 
   if (submission.attributes.state !== "WAITING_FOR_REVIEW" && submission.attributes.state !== "IN_REVIEW") {
-    await call("PATCH", `/reviewSubmissions/${submission.id}`, {
-      data: { type: "reviewSubmissions", id: submission.id, attributes: { submitted: true } },
-    });
+    // Apple reconciles the attach and the metadata writes above asynchronously,
+    // and refuses the submit with "Version is not ready to be submitted yet"
+    // while it does. That settles on its own, so it is retried rather than
+    // reported as a blocker; anything else fails at once.
+    let done = false;
+    for (let attempt = 1; attempt <= 6 && !done; attempt += 1) {
+      try {
+        await call("PATCH", `/reviewSubmissions/${submission.id}`, {
+          data: { type: "reviewSubmissions", id: submission.id, attributes: { submitted: true } },
+        });
+        done = true;
+      } catch (error) {
+        const settling = /not ready to be submitted|not in valid state|try again later/i.test(
+          String(error?.message ?? ""),
+        );
+        if (!settling) throw error;
+        if (attempt === 6) throw error;
+        log(`Apple is still reconciling (attempt ${attempt} of 6); waiting 30s`);
+        await new Promise((resolve) => setTimeout(resolve, 30000));
+      }
+    }
     log("submitted for review");
   }
 
