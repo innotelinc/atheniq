@@ -603,11 +603,29 @@ async function submitForReview(version) {
 
   const open = await call(
     "GET",
-    `/reviewSubmissions?filter[app]=${meta.appId}&filter[platform]=IOS&limit=5`,
+    `/reviewSubmissions?filter[app]=${meta.appId}&filter[platform]=IOS&limit=20`,
   ).catch(() => ({ data: [] }));
   let submission = open.data.find((item) =>
     ["READY_FOR_REVIEW", "WAITING_FOR_REVIEW", "IN_REVIEW"].includes(item.attributes.state),
   );
+
+  // A rejected submission still holds the version as one of its items, and Apple
+  // refuses to add that version to a second submission — "Item is already present
+  // in another reviewSubmission". Resubmitting a rejected version therefore means
+  // handing back the submission that already holds it, not opening a fresh one.
+  if (!submission) {
+    for (const candidate of open.data) {
+      const held = await call(
+        "GET",
+        `/reviewSubmissionItems?filter[reviewSubmission]=${candidate.id}&limit=50` +
+          "&fields[reviewSubmissionItems]=state,appStoreVersion&include=appStoreVersion",
+      ).catch(() => ({ data: [] }));
+      if (held.data.some((item) => item.relationships?.appStoreVersion?.data?.id === version.id)) {
+        submission = candidate;
+        break;
+      }
+    }
+  }
 
   if (!submission) {
     const created = await call("POST", "/reviewSubmissions", {
