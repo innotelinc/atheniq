@@ -911,16 +911,20 @@ async function main() {
   }
   log(`app record confirmed: ${app.data.attributes.name} (${bundleId})`);
 
-  if (SUBMIT) {
-    const inReview = await findSubmittedVersion();
-    if (inReview) {
-      log(
-        `version ${inReview.attributes.versionString} is already ${inReview.attributes.appStoreState}; ` +
-          "nothing to submit",
-      );
-      log(`https://appstoreconnect.apple.com/apps/${meta.appId}/distribution/ios/version/inflight`);
-      return;
-    }
+  // Both paths stop here, not just --submit. A version with Apple is not in
+  // OPEN_STATES, so findOrCreateVersion() would find nothing to reuse and POST a
+  // second version, which Apple refuses with "You cannot create a new version of the
+  // App in the current state". The default dispatch (apply + attach + ready, submit
+  // off) is precisely that run.
+  const inReview = await findSubmittedVersion();
+  if (inReview) {
+    log(
+      `version ${inReview.attributes.versionString} is already ${inReview.attributes.appStoreState}; ` +
+        `nothing to ${SUBMIT ? "submit" : "draft"}`,
+    );
+    log("It has to come out of review in App Store Connect before there is a version to write to.");
+    log(`https://appstoreconnect.apple.com/apps/${meta.appId}/distribution/ios/version/inflight`);
+    return;
   }
 
   const version = await findOrCreateVersion();
