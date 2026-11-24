@@ -622,6 +622,22 @@ async function submitForReview(version) {
     }`,
   );
 
+  // TEMPORARY PROBE: find a route that lists a submission's items.
+  for (const candidate of open.data.filter((item) => item.attributes.state === "UNRESOLVED_ISSUES")) {
+    for (const route of [
+      `/reviewSubmissions/${candidate.id}?include=items`,
+      `/reviewSubmissions/${candidate.id}/items?limit=50`,
+      `/reviewSubmissions/${candidate.id}/relationships/items?limit=50`,
+    ]) {
+      try {
+        const got = await call("GET", route);
+        log(`probe ok ${route.replace(candidate.id, "…")} :: ${JSON.stringify(got).slice(0, 600)}`);
+      } catch (error) {
+        log(`probe no ${route.replace(candidate.id, "…")} :: ${String(error?.message ?? error).slice(0, 160)}`);
+      }
+    }
+  }
+
   let submission = open.data.find((item) =>
     ["READY_FOR_REVIEW", "WAITING_FOR_REVIEW", "IN_REVIEW"].includes(item.attributes.state),
   );
