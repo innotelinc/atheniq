@@ -594,6 +594,37 @@ async function prepareForReview(version) {
 }
 
 /**
+ * The items a submission holds. The collection route for reviewSubmissionItems is
+ * refused ("does not allow 'GET_COLLECTION'"), but the submission's own items
+ * route answers, which is what makes a rejected item findable at all.
+ */
+async function submissionItems(submissionId) {
+  const listed = await call("GET", `/reviewSubmissions/${submissionId}/items?limit=50`).catch(() => ({ data: [] }));
+  return listed.data ?? [];
+}
+
+/**
+ * A rejected item pins the version it names: Apple will not accept the
+ * submission ("Version is not ready to be submitted yet") while the item is
+ * still REJECTED, and will not let the version join another submission either.
+ * The web UI clears the item when the version is edited there; an API-only run
+ * has to remove it, which is the action Apple documents for a submission with
+ * unresolved issues.
+ */
+async function clearRejectedItems(submission) {
+  let removed = 0;
+  for (const item of await submissionItems(submission.id)) {
+    if (item.attributes?.state !== "REJECTED") continue;
+    await call("DELETE", `/reviewSubmissionItems/${item.id}`);
+    removed += 1;
+  }
+  if (removed) {
+    log(`removed ${removed} rejected item(s) from submission ${submission.id.slice(0, 8)}`);
+  }
+  return removed;
+}
+
+/**
  * The last step: put the version into a review submission and hand it to Apple.
  * It refuses to run while anything above reported a blocker, because a
  * half-filled submission is rejected and the reason is harder to read there.
@@ -622,20 +653,8 @@ async function submitForReview(version) {
     }`,
   );
 
-  // TEMPORARY PROBE: find a route that lists a submission's items.
   for (const candidate of open.data.filter((item) => item.attributes.state === "UNRESOLVED_ISSUES")) {
-    for (const route of [
-      `/reviewSubmissions/${candidate.id}?include=items`,
-      `/reviewSubmissions/${candidate.id}/items?limit=50`,
-      `/reviewSubmissions/${candidate.id}/relationships/items?limit=50`,
-    ]) {
-      try {
-        const got = await call("GET", route);
-        log(`probe ok ${route.replace(candidate.id, "…")} :: ${JSON.stringify(got).slice(0, 600)}`);
-      } catch (error) {
-        log(`probe no ${route.replace(candidate.id, "…")} :: ${String(error?.message ?? error).slice(0, 160)}`);
-      }
-    }
+    await clearRejectedItems(candidate);
   }
 
   let submission = open.data.find((item) =>
