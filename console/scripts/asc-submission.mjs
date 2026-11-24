@@ -611,13 +611,20 @@ async function submitForReview(version) {
   // reviewSubmission". Choosing an empty READY_FOR_REVIEW submission first, as
   // this did, is exactly what produced that 409.
   let submission = null;
+  log(
+    `review submissions on this app: ${
+      open.data.map((item) => `${item.id.slice(0, 8)} ${item.attributes.state}`).join(", ") || "none"
+    }`,
+  );
   for (const candidate of open.data) {
     const held = await call(
       "GET",
       `/reviewSubmissionItems?filter[reviewSubmission]=${candidate.id}&limit=50` +
         "&fields[reviewSubmissionItems]=state,appStoreVersion&include=appStoreVersion",
-    ).catch(() => ({ data: [] }));
-    if (held.data.some((item) => item.relationships?.appStoreVersion?.data?.id === version.id)) {
+    );
+    const held_versions = held.data.map((item) => item.relationships?.appStoreVersion?.data?.id ?? "?");
+    log(`  ${candidate.id.slice(0, 8)} ${candidate.attributes.state}: ${held.data.length} item(s) ${held_versions.join(", ")}`);
+    if (held_versions.includes(version.id)) {
       submission = candidate;
       break;
     }
