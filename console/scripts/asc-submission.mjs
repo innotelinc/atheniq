@@ -130,6 +130,11 @@ async function call(method, path, body) {
 }
 
 const OPEN_STATES = ["PREPARE_FOR_SUBMISSION", "METADATA_REJECTED", "DEVELOPER_REJECTED", "REJECTED"];
+// States that mean Apple already has this version. None of them is "open": a submit
+// run against one of these used to find no open version, fall through to creating a
+// second one, and die on POST /appStoreVersions ("You cannot create a new version of
+// the App in the current state").
+const SUBMITTED_STATES = ["WAITING_FOR_REVIEW", "IN_REVIEW", "PENDING_DEVELOPER_RELEASE", "READY_FOR_SALE"];
 
 function versionAttributes() {
   const attributes = {
@@ -865,6 +870,28 @@ async function reportStatus() {
   return false;
 }
 
+/**
+ * The version Apple already holds, if there is one. Used only to make --submit a
+ * clean no-op: submitting is a one-way act, and asking twice should say so rather
+ * than try to mint a second version record.
+ */
+async function findSubmittedVersion() {
+  const versions = await call(
+    "GET",
+    `/apps/${meta.appId}/appStoreVersions?filter[platform]=IOS&limit=20` +
+      "&fields[appStoreVersions]=versionString,appStoreState",
+  );
+  return (
+    versions.data.find(
+      (item) =>
+        SUBMITTED_STATES.includes(item.attributes.appStoreState) &&
+        item.attributes.versionString === meta.version,
+    ) ??
+    versions.data.find((item) => SUBMITTED_STATES.includes(item.attributes.appStoreState)) ??
+    null
+  );
+}
+
 async function main() {
   log(`${meta.name} ${meta.version} → App Store Connect app ${meta.appId} (${meta.bundleId})`);
   if (STATUS) {
@@ -883,6 +910,18 @@ async function main() {
     fail(`App ${meta.appId} is registered as ${bundleId}, not ${meta.bundleId}. An upload would be rejected; fix the record or the metadata.`);
   }
   log(`app record confirmed: ${app.data.attributes.name} (${bundleId})`);
+
+  if (SUBMIT) {
+    const inReview = await findSubmittedVersion();
+    if (inReview) {
+      log(
+        `version ${inReview.attributes.versionString} is already ${inReview.attributes.appStoreState}; ` +
+          "nothing to submit",
+      );
+      log(`https://appstoreconnect.apple.com/apps/${meta.appId}/distribution/ios/version/inflight`);
+      return;
+    }
+  }
 
   const version = await findOrCreateVersion();
   await writeVersionLocalization(version.id);
