@@ -607,21 +607,23 @@ async function submissionItems(submissionId) {
  * A rejected item pins the version it names: Apple will not accept the
  * submission ("Version is not ready to be submitted yet") while the item is
  * still REJECTED, and will not let the version join another submission either.
- * The web UI clears the item when the version is edited there; an API-only run
- * has to remove it, which is the action Apple documents for a submission with
- * unresolved issues.
+ * The web UI's "Update review" marks the item resolved; the API's form of that
+ * is resolved: true on the item. Deleting it is refused once it has been
+ * submitted ("Item was already submitted"), so resolving is the way back.
  */
-async function clearRejectedItems(submission) {
-  let removed = 0;
+async function resolveRejectedItems(submission) {
+  let resolved = 0;
   for (const item of await submissionItems(submission.id)) {
     if (item.attributes?.state !== "REJECTED") continue;
-    await call("DELETE", `/reviewSubmissionItems/${item.id}`);
-    removed += 1;
+    await call("PATCH", `/reviewSubmissionItems/${item.id}`, {
+      data: { type: "reviewSubmissionItems", id: item.id, attributes: { resolved: true } },
+    });
+    resolved += 1;
   }
-  if (removed) {
-    log(`removed ${removed} rejected item(s) from submission ${submission.id.slice(0, 8)}`);
+  if (resolved) {
+    log(`marked ${resolved} rejected item(s) resolved in submission ${submission.id.slice(0, 8)}`);
   }
-  return removed;
+  return resolved;
 }
 
 /**
@@ -654,7 +656,7 @@ async function submitForReview(version) {
   );
 
   for (const candidate of open.data.filter((item) => item.attributes.state === "UNRESOLVED_ISSUES")) {
-    await clearRejectedItems(candidate);
+    await resolveRejectedItems(candidate);
   }
 
   let submission = open.data.find((item) =>
