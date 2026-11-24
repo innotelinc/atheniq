@@ -605,26 +605,27 @@ async function submitForReview(version) {
     "GET",
     `/reviewSubmissions?filter[app]=${meta.appId}&filter[platform]=IOS&limit=20`,
   ).catch(() => ({ data: [] }));
-  let submission = open.data.find((item) =>
-    ["READY_FOR_REVIEW", "WAITING_FOR_REVIEW", "IN_REVIEW"].includes(item.attributes.state),
-  );
-
-  // A rejected submission still holds the version as one of its items, and Apple
-  // refuses to add that version to a second submission — "Item is already present
-  // in another reviewSubmission". Resubmitting a rejected version therefore means
-  // handing back the submission that already holds it, not opening a fresh one.
-  if (!submission) {
-    for (const candidate of open.data) {
-      const held = await call(
-        "GET",
-        `/reviewSubmissionItems?filter[reviewSubmission]=${candidate.id}&limit=50` +
-          "&fields[reviewSubmissionItems]=state,appStoreVersion&include=appStoreVersion",
-      ).catch(() => ({ data: [] }));
-      if (held.data.some((item) => item.relationships?.appStoreVersion?.data?.id === version.id)) {
-        submission = candidate;
-        break;
-      }
+  // The submission that already holds this version wins, whatever its state: a
+  // rejected submission keeps the version as an item, and Apple refuses to add
+  // that version to a second submission — "Item is already present in another
+  // reviewSubmission". Choosing an empty READY_FOR_REVIEW submission first, as
+  // this did, is exactly what produced that 409.
+  let submission = null;
+  for (const candidate of open.data) {
+    const held = await call(
+      "GET",
+      `/reviewSubmissionItems?filter[reviewSubmission]=${candidate.id}&limit=50` +
+        "&fields[reviewSubmissionItems]=state,appStoreVersion&include=appStoreVersion",
+    ).catch(() => ({ data: [] }));
+    if (held.data.some((item) => item.relationships?.appStoreVersion?.data?.id === version.id)) {
+      submission = candidate;
+      break;
     }
+  }
+  if (!submission) {
+    submission = open.data.find((item) =>
+      ["READY_FOR_REVIEW", "WAITING_FOR_REVIEW", "IN_REVIEW"].includes(item.attributes.state),
+    );
   }
 
   if (!submission) {
