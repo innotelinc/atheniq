@@ -709,27 +709,12 @@ async function submitForReview(version) {
   }
 
   if (submission.attributes.state !== "WAITING_FOR_REVIEW" && submission.attributes.state !== "IN_REVIEW") {
-    // Apple reconciles the attach and the metadata writes above asynchronously,
-    // and refuses the submit with "Version is not ready to be submitted yet"
-    // while it does. That settles on its own, so it is retried rather than
-    // reported as a blocker; anything else fails at once.
-    let done = false;
-    for (let attempt = 1; attempt <= 6 && !done; attempt += 1) {
-      try {
-        await call("PATCH", `/reviewSubmissions/${submission.id}`, {
-          data: { type: "reviewSubmissions", id: submission.id, attributes: { submitted: true } },
-        });
-        done = true;
-      } catch (error) {
-        const settling = /not ready to be submitted|not in valid state|try again later/i.test(
-          String(error?.message ?? ""),
-        );
-        if (!settling) throw error;
-        if (attempt === 6) throw error;
-        log(`Apple is still reconciling (attempt ${attempt} of 6); waiting 30s`);
-        await new Promise((resolve) => setTimeout(resolve, 30000));
-      }
-    }
+    // "Version is not ready to be submitted yet" was the rejected item, not a
+    // settling window: once it is resolved above, Apple takes the submission on
+    // the first call, so there is nothing to retry.
+    await call("PATCH", `/reviewSubmissions/${submission.id}`, {
+      data: { type: "reviewSubmissions", id: submission.id, attributes: { submitted: true } },
+    });
     log("submitted for review");
   }
 
