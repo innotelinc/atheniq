@@ -1,7 +1,7 @@
 # One sign-in for AthenIQ.
 #
 # WHY TWO PROXIES AND ONE IDENTITY. `oauth2-proxy` serves exactly one upstream,
-# so the console (8090) and the classroom (3000) cannot be one process. What they
+# so the console (8094) and the classroom (3000) cannot be one process. What they
 # *can* share — and what this file makes them share — is everything that decides
 # who you are: the same Authentik client, the same cookie secret, the same cookie
 # name on the same domain, and one Redis session store. A session opened at the
@@ -135,8 +135,9 @@ services:
       - --set-xauthrequest=true
       - --pass-user-headers=true
       - --session-store-type=redis
-      - --skip-auth-route=^/healthz($|[/?])
-      - --upstream=http://192.168.1.59:8090
+      - --skip-auth-route=^/portal($|[/?])
+      - --skip-auth-route=^/api/health($|[/?])
+      - --upstream=http://192.168.1.59:8094
       - --http-address=0.0.0.0:4180
       - --silence-ping-logging=true
     ports:
