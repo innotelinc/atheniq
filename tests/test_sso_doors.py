@@ -155,15 +155,13 @@ class StaffLists(unittest.TestCase):
                          "the portal's default staff group cannot reach the door")
         self.assertEqual(set(names) - AUTHENTIK_GROUPS, set())
 
-    def test_generation_unit(self):
-        names = env_groups(SYSTEMD / "atheniq-generation.service",
-                           "GENERATION_ALLOWED_GROUPS")
-        self.assertIsNotNone(names, "the unit sets no GENERATION_ALLOWED_GROUPS")
-        self.assertTrue(names)
-        self.assertEqual([n for n in names if n not in AUTHENTIK_GROUPS], [],
-                         "GENERATION_ALLOWED_GROUPS names a group Authentik does not have")
-        self.assertEqual(set(names) - self.audience, set(),
-                         "the console allows a group the door in front of it refuses")
+    def test_legacy_units_are_retired(self):
+        # The console on 8094 serves the generation console and the learner
+        # portal behind the generation-sso door. The 8090/8092 units must not
+        # come back with a rebuild, or the one-port setup quietly regresses.
+        for name in ("atheniq-generation.service", "atheniq-student.service"):
+            self.assertFalse((SYSTEMD / name).exists(),
+                             f"{name} is retired; the console covers its routes")
 
     def test_root_script_matches_the_door(self):
         if not ROOT_SCRIPT.exists():
