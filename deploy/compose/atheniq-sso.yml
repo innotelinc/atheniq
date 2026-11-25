@@ -64,7 +64,7 @@ services:
       - OAUTH2_PROXY_REDIS_CONNECTION_URL=${OAUTH2_PROXY_REDIS_CONNECTION_URL:?resolve it from the vault (cerulean/openmaic)}
     command:
       - --provider=oidc
-      - --oidc-issuer-url=https://auth.cerulean.innotel.us/application/o/classroom/
+      - --oidc-issuer-url=https://auth.innotel.us/application/o/classroom/
       - --oidc-groups-claim=groups
       - --scope=openid email profile groups
       - --approval-prompt=auto
@@ -136,7 +136,9 @@ services:
       - --pass-user-headers=true
       - --session-store-type=redis
       - --skip-auth-route=^/healthz($|[/?])
-      - --upstream=http://192.168.1.59:8090
+      - --skip-auth-route=^/portal($|[/?])
+      - --skip-auth-route=^/api/portal/
+      - --upstream=http://192.168.1.59:8094
       - --http-address=0.0.0.0:4180
       - --silence-ping-logging=true
     ports:
