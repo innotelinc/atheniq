@@ -86,15 +86,6 @@ def allowed_groups(lines):
     return found
 
 
-def env_groups(path, variable):
-    """The value of one `Environment=NAME=a,b` line in a unit file."""
-    text = pathlib.Path(path).read_text(encoding="utf-8")
-    match = re.search(rf"^Environment={variable}=(.*)$", text, re.MULTILINE)
-    if not match:
-        return None
-    return [name.strip() for name in match.group(1).split(",") if name.strip()]
-
-
 class Doors(unittest.TestCase):
 
     @classmethod

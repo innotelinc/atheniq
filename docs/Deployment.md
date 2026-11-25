@@ -507,7 +507,7 @@ oauth2-proxy \
   --approval-prompt=auto \
   --set-xauthrequest=true --pass-user-headers=true --cookie-secure=true \
   --reverse-proxy=true --http-address=0.0.0.0:3001 \
-  --upstream=http://<atheniq host>:8090
+  --upstream=http://<atheniq host>:8094
 ```
 
 **Why it runs on the host network.** OpenMAIC publishes its API on the host's
@@ -558,17 +558,21 @@ POST for ntfy-style endpoints); this host sends email only. The unit is left
 failed whether or not a channel is configured, and a failed delivery is printed
 in the journal without masking the probe's own failure.
 
-**Realized (2026-10, `ai.lms.innotel.us`).** The console runs from
-`atheniq-generation.service` (`deploy/systemd/atheniq-generation.service`):
-`/home/tutor/atheniq-generation` holds this repo's `scripts/generation-console.py`,
-`web/generate/` and the fourteen `courses/*/openmaic/classrooms.json`, and the
-unit binds `192.168.1.59:8090` as the `tutor` user (so recording a classroom id
-can write the spec it owns). In front of it, a second oauth2-proxy
-(`generation-sso`, published `192.168.1.59:8091`) reuses the classroom's
-Authentik client with `--set-xauthrequest`/`--pass-user-headers`; its callback
-`https://ai.lms.innotel.us/oauth2/callback` had to be added to that provider
-(the `Classroom` provider, `client_id=classroom`) — Authentik's OAuth2 model is
-at `/api/v3/providers/oauth2/`, not under `core/`.
+**Retired (2026-10, superseded 2026-11).** This used to run from
+`atheniq-generation.service`, which bound `192.168.1.59:8090` with
+`/home/tutor/atheniq-generation` holding `scripts/generation-console.py`,
+`web/generate/` and the fourteen `courses/*/openmaic/classrooms.json`. That unit
+is gone from `deploy/systemd/`; the console (`console/`,
+`atheniq-console.service`) now serves generation from `192.168.1.59:8094`
+behind the same `generation-sso` door, and the old host redirects there.
+Reinstalling `atheniq-generation.service` would put 8090 back in front of the
+console — don't. The edge history below is kept for the certificate work only.
+
+In front of the app, a second oauth2-proxy (`generation-sso`, published
+`192.168.1.59:8091`) reuses the classroom's Authentik client with
+`--set-xauthrequest`/`--pass-user-headers`; its callback had to be added to that
+provider (the `Classroom` provider, `client_id=classroom`) — Authentik's OAuth2
+model is at `/api/v3/providers/oauth2/`, not under `core/`.
 
 ```bash
 # on the edge host, in this order
@@ -584,10 +588,12 @@ python3 /tmp/ai-lms-edge.py            # DRY_RUN=1 to plan only
 
 The certificate is one name, not a wildcard: `ai.lms.` is not covered by the
 `lms.innotel.us` pair, and a wildcard for a name only used by staff would be
-wider than the need. Verified live: `CN=ai.lms.innotel.us` (Let's Encrypt),
-`302` to Authentik on every path including `/api/`, and a request that sets its
-own `X-Auth-Request-*` headers is still refused — the proxy authenticates before
-it forwards.
+wider than the need. At the time it was verified, `CN=ai.lms.innotel.us`
+(Let's Encrypt) answered `302` to Authentik on every path including `/api/`, and
+a request that set its own `X-Auth-Request-*` headers was still refused — the
+proxy authenticates before it forwards. **Now:** `ai.lms.innotel.us` is a
+`301` to `https://atheniq.courses/authoring/home`; the door it protected is
+`ai.atheniq.courses` against the console on 8094.
 
 ### Programs — degrees and certificates (this repo)
 
@@ -775,15 +781,17 @@ public page must not be able to reach a gradebook. The JSON it answers with
 (`/api/public/programs`, `/api/public/programs/<id>`, `/api/public/courses`)
 drops enrollments, grades and the creating account before it leaves the process.
 
-```text
-STUDENT_BIND=192.168.1.59   STUDENT_PORT=8092   STUDENT_ROOT=/home/tutor/atheniq-generation
-```
-
-It runs as `atheniq-student.service`. The page is `web/student/` and wears the
-same Unity palette as the console and the Studio chrome. **Live:** the edge
-proxy host for `lms.innotel.us` now forwards to `192.168.1.59:8092` instead of
-the LMS root, and `https://lms.innotel.us/` serves the portal with
+The page is `web/student/` and wears the same Unity palette as the console and
+the Studio chrome. **Live:** it is served by the console
+(`atheniq-console.service`, `192.168.1.59:8094`) behind the `generation-sso`
+door, and the `lms.innotel.us` proxy host forwards to that door instead of the
+LMS root: `/` redirects to `/portal`, which serves the catalog with
 `/api/public/programs` answering 200.
+
+The standalone `atheniq-student.service` that used to bind
+`192.168.1.59:8092` with `STUDENT_BIND`/`STUDENT_PORT`/`STUDENT_ROOT` is retired
+and no longer in `deploy/systemd/`. A rebuild must not bring 8092 back; the
+console owns the portal's routes.
 
 ### One domain — `learn.innotel.us`
 
