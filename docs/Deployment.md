@@ -432,13 +432,21 @@ spec on its own. It is a **front for OpenMAIC**, not a second generator:
 OpenMAIC keeps the runs, the classrooms and the model settings.
 
 ```bash
-make up                       # this repo's compose: landing + generation
-# on a box with OpenMAIC locally:
-make generation-console       # local dev only: 127.0.0.1:8090, trusting local requests
+make up                       # this repo's compose: openmaic + convex profiles
+# on a box that runs OpenMAIC, start the classroom front deliberately:
+docker compose --profile generation up -d generation   # 0.0.0.0:8090
+# or for local dev only:
+make generation-console       # 127.0.0.1:8090, trusting local requests
 ```
 
-That target is a developer server on 8090. The deployed console is the Next.js
-app on `192.168.1.59:8094` behind its door; 8090 is not published anywhere.
+Both listen on 8090, and neither is part of a default bring-up: the compose
+service is behind the `generation` profile, so a plain `docker compose up` or
+`deploy.sh` leaves it out, and a stale `atheniq-generation` container on the
+reference host is never recreated. The deployed console on `192.168.1.59:8094`
+behind its door is the Next.js app (`console/`): it drafts and publishes
+courses, but it does not drive OpenMAIC runs, so classroom generation stays
+with `scripts/build-classrooms.py` or this front. Nothing publishes 8090 on
+the reference host.
 
 What it serves (`web/generate/`, no build step, stdlib Python — see the module
 docstring in `scripts/generation-console.py` for the full route list):
@@ -565,11 +573,15 @@ in the journal without masking the probe's own failure.
 `atheniq-generation.service`, which bound `192.168.1.59:8090` with
 `/home/tutor/atheniq-generation` holding `scripts/generation-console.py`,
 `web/generate/` and the fourteen `courses/*/openmaic/classrooms.json`. That unit
-is gone from `deploy/systemd/`; the console (`console/`,
-`atheniq-console.service`) now serves generation from `192.168.1.59:8094`
-behind the same `generation-sso` door, and the old host redirects there.
-Reinstalling `atheniq-generation.service` would put 8090 back in front of the
-console — don't. The edge history below is kept for the certificate work only.
+is gone from `deploy/systemd/`, and the compose service of the same name is
+behind the `generation` profile, so neither a reinstall nor `deploy.sh` starts
+it. The host now does the staff work in the Next.js console (`console/`,
+`atheniq-console.service`) on `192.168.1.59:8094` behind the same
+`generation-sso` door. The console does not yet drive OpenMAIC runs: classroom
+generation there is `scripts/build-classrooms.py` from a checkout, and this
+front is opt-in on a box with OpenMAIC (`docker compose --profile generation up
+-d generation`) — not on the reference host. The edge history below is kept for
+the certificate work only.
 
 In front of the app, a second oauth2-proxy (`generation-sso`, published
 `192.168.1.59:8091`) reuses the classroom's Authentik client with
@@ -1129,7 +1141,7 @@ Canonical hosts for a reference deployment:
 | `apps.lms.<domain>` | Alias of `apps.learn.<domain>` |
 | `studio.<domain>` | AthenIQ Studio |
 | `classroom.<domain>` | OpenMAIC |
-| `ai.atheniq.courses` | Console — generation, programs and the learner portal — on `192.168.1.59:8094` behind the `generation-sso` door; `ai.lms.<domain>` now 301s here |
+| `ai.atheniq.courses` | Console — course authoring, programs and the learner portal — on `192.168.1.59:8094` behind the `generation-sso` door; `ai.lms.<domain>` now 301s here |
 | `cert.<domain>` | Signara portal (shared DocumentOps) |
 
 Set the `CERULEAN_*` variables in `.env` (`CERULEAN_BASE_DOMAIN`,
@@ -1216,7 +1228,9 @@ docker compose up -d landing
   different machine, so it has to be able to reach this port; TLS and the public
   name stay the edge's job.
 - **`docker compose up -d landing` starts only the file server.** The rest of the
-  compose file is the classroom/generation stack, which this host does not run.
+  compose file is the classroom/generation stack, which this host does not run;
+  OpenMAIC, Convex, the landing origin and the legacy generation front each sit
+  behind their own profile.
   The explicit service name is what crosses the `landing` profile; with
   `COMPOSE_PROFILES=landing` in `.env`, a plain `docker compose up -d` brings it
   up too, which is what keeps `deploy.sh` from deleting the apex origin.

@@ -289,8 +289,15 @@ services:
   # The identity headers come from oauth2-proxy, not from this container — see
   # docs/Deployment.md §"Course-generation console". Without a proxy the app
   # answers 401 to every API call, which is the failure we want.
+  #
+  # Behind the `generation` profile, on purpose. On the reference host the
+  # Next.js console (`console/`, port 8094) replaced this screen, and an
+  # untargeted `docker compose up` - what `deploy.sh` runs - must not put 8090
+  # back. Opt in where the front is still wanted:
+  # `docker compose --profile generation up -d generation`.
   # ------------------------------------------------------------------
   generation:
+    profiles: ["generation"]
     image: python:3.12-slim
     container_name: atheniq-generation
     restart: unless-stopped
