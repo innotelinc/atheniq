@@ -2092,7 +2092,7 @@ outer door, not a replacement - the console still asks for its own password and
 authenticator, so a person signs in twice: once to Authentik, once to the console.
 
 `deploy/compose/atheniq-registrar-sso.yml` is the older standalone door (`:8092`
-forwarding to the console on `:8090`). Nothing on the reference host uses it: the
+forwarding to the console on `:8094`). Nothing on the reference host uses it: the
 generation door on `:8091` fronts the console, and 8090/8092 are not published.
 
 The session store is not optional. This IdP returns a long group list, the

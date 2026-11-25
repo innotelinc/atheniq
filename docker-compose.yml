@@ -35,7 +35,7 @@ services:
   # provisioning. It keeps its own settings in `console/.env` (see
   # `console/.env.example`), so the service reads that file when it is present
   # and still starts without one. TLS and the public name belong to the edge
-  # (NPM), which is why this listens on plain HTTP - on 8090, the port
+  # (NPM), which is why this listens on plain HTTP - on 8094, the port
   # `deploy/compose/atheniq-sso.yml` already assumes for the console.
   # ------------------------------------------------------------------
   console:
@@ -53,7 +53,7 @@ services:
       - PORT=3100
       - HOSTNAME=0.0.0.0
     ports:
-      - "${CONSOLE_BIND:-0.0.0.0}:${CONSOLE_PORT:-8090}:3100"
+      - "${CONSOLE_BIND:-0.0.0.0}:${CONSOLE_PORT:-8094}:3100"
     volumes:
       - console-data:/app/data
     healthcheck:

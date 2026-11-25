@@ -116,7 +116,7 @@ services:
       - --skip-auth-route=^/site($|[/?])
       # The app cannot walk an Authentik redirect; it signs in with bearer tokens.
       - --skip-auth-route=^/api/mobile($|[/?])
-      - --upstream=http://127.0.0.1:8090
+      - --upstream=http://127.0.0.1:8094
       - --http-address=0.0.0.0:8092
       - --silence-ping-logging=true
     depends_on:
