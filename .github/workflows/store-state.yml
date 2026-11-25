@@ -1,0 +1,58 @@
+name: Store state
+
+# Read-only, once a day and on demand: ask App Store Connect what it holds for
+# this app and compare that with store.json, the record the store workflows and
+# the listing document both read. A mismatch means the repository is telling
+# people something Apple does not — the run fails with the exact field that
+# drifted, in the log and in the job summary, and nothing at Apple is written.
+#
+# console/scripts/store-state.mjs has no write path: this workflow cannot attach a build, edit a
+# localization or submit anything.
+
+on:
+  schedule:
+    # 27 6 * * * UTC. GitHub delays a scheduled run at busy times; the job is a single
+    # read, so a late start costs nothing.
+    - cron: '27 6 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: atheniq-store-state
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Compare store.json with App Store Connect
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Check the credentials are present
+        run: |
+          set -euo pipefail
+          missing=""
+          [ -z "$ASC_KEY_ID" ] && missing="$missing ASC_KEY_ID"
+          [ -z "$ASC_ISSUER_ID" ] && missing="$missing ASC_ISSUER_ID"
+          [ -z "$ASC_PRIVATE_KEY" ] && missing="$missing ASC_PRIVATE_KEY"
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository secret(s):$missing."
+            exit 1
+          fi
+
+      - name: Check the record and the listing
+        run: node console/scripts/store-state.mjs
+
+      - name: Compare the record with what Apple holds
+        run: node console/scripts/store-state.mjs --verify-live --summary "$GITHUB_STEP_SUMMARY"
