@@ -4,7 +4,10 @@ Renaming a script is invisible to systemd: the unit keeps starting the old path,
 fails at the next timer tick, and nothing here notices until a host reports it.
 This walks every `deploy/systemd/*.service` and resolves the paths that point
 into a checkout — `/home/tutor/atheniq/` on the classroom host,
-`/usr/src/projects/complete/atheniq/` on the LMS host — against the repo.
+`/usr/src/projects/complete/atheniq/` on the LMS host — against the repo. The
+timer half checks the other direction: every `*.timer` must name a `.service`
+that is still in `deploy/systemd`, so renaming a service cannot leave a timer
+pointing at nothing.
 
 Paths outside a checkout (`/usr/bin/python3`, `/opt/node/bin/node`, the console's
 `/opt/atheniq-console` install) are deployment facts a unit test cannot check and
@@ -24,6 +27,7 @@ CHECKOUT_ROOTS = (
 )
 
 EXEC = re.compile(r"^ExecStart(?:Pre|Post)?\s*=\s*(.+)$")
+UNIT = re.compile(r"^Unit\s*=\s*(\S+)\s*$")
 
 
 def repo_paths(command):
@@ -58,6 +62,27 @@ class ExecStartTest(unittest.TestCase):
         # If the checkout roots above ever stop matching, the loop passes
         # vacuously and guards nothing — this keeps that from happening.
         self.assertGreater(checked, 0, "no unit ExecStart resolved into the repo")
+
+
+class TimerUnitTest(unittest.TestCase):
+    def test_timers_name_a_service_that_exists(self):
+        timers = sorted(SYSTEMD.glob("*.timer"))
+        self.assertTrue(timers, "no timer units found")
+
+        for timer in timers:
+            names = [m.group(1) for m in map(UNIT.match, timer.read_text().splitlines()) if m]
+            self.assertEqual(len(names), 1, f"{timer.name} needs exactly one Unit=")
+            target = names[0]
+
+            with self.subTest(timer=timer.name, unit=target):
+                self.assertTrue(
+                    target.endswith(".service"),
+                    f"{timer.name} targets {target}, not a service unit",
+                )
+                self.assertTrue(
+                    (SYSTEMD / target).is_file(),
+                    f"{timer.name} targets {target}, which is not in deploy/systemd",
+                )
 
 
 if __name__ == "__main__":
