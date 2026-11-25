@@ -121,7 +121,7 @@ class Config:
             bind=env.get("PORTAL_BIND") or "127.0.0.1",
             port=int(env.get("PORTAL_PORT") or 8092),
             view=(env.get("PORTAL_VIEW") or "learner").strip().lower(),
-            console_url=env.get("PORTAL_CONSOLE") or "http://127.0.0.1:8090",
+            console_url=env.get("PORTAL_CONSOLE") or "http://127.0.0.1:8094",
             admin_groups=groups,
             lms_url=env.get("PORTAL_LMS") or "https://atheniq.courses",
             classroom_url=env.get("PORTAL_CLASSROOM") or "https://class.atheniq.courses",
