@@ -1,5 +1,5 @@
 [Unit]
-Description=Probe the AthenIQ generation console through its SSO proxy
+Description=Probe the AthenIQ console through its SSO proxy
 After=network-online.target
 Wants=network-online.target
 
@@ -10,11 +10,11 @@ User=tutor
 # NPM -> oauth2-proxy -> console path staff use and fails on a proxy 502.
 Environment=ATHENIQ_CONSOLE_HEALTH_URL=https://ai.atheniq.courses/api/health
 # Alert channels, set in a drop-in so a repo update keeps them:
-#   /etc/systemd/system/atheniq-generation-uptime.service.d/alert.conf
+#   /etc/systemd/system/atheniq-console-uptime.service.d/alert.conf
 #   [Service]
 #   Environment=ATHENIQ_ALERT_EMAIL=ops@example.edu
 #   Environment=ATHENIQ_SMTP_HOST=mail.example.edu
 #   Environment=ATHENIQ_SMTP_PORT=25
 #   Environment=ATHENIQ_SMTP_FROM=atheniq-uptime@example.edu
 #   (optional) Environment=ATHENIQ_ALERT_WEBHOOK_URL=https://...
-ExecStart=/bin/bash /home/tutor/atheniq/scripts/check-generation-console.sh
+ExecStart=/bin/bash /home/tutor/atheniq/scripts/check-console-health.sh

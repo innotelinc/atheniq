@@ -7,7 +7,7 @@ the path Mailcow accepts inbound mail from the LAN on. Port 587 with
 submission auth. A plain-text webhook (ntfy-style Title/Priority/Tags) is
 optional; this host uses email.
 
-Run by check-generation-console.sh after the probe has already failed. An
+Run by check-console-health.sh after the probe has already failed. An
 unconfigured channel is skipped. The exit status is 1 when a configured channel
 could not deliver; the probe's failed unit is independent of that.
 """
@@ -35,11 +35,11 @@ def email_alert(url: str, error: str) -> str | None:
     message = EmailMessage()
     message["From"] = sender
     message["To"] = recipient
-    message["Subject"] = "AthenIQ generation console is down"
+    message["Subject"] = "AthenIQ console is down"
     message.set_content(
-        "The AthenIQ generation console failed its health probe.\n\n"
+        "The AthenIQ console failed its health probe.\n\n"
         f"URL: {url}\nError: {error}\n\n"
-        "Sent by the atheniq-generation-uptime timer on the AthenIQ host.\n"
+        "Sent by the atheniq-console-uptime timer on the AthenIQ host.\n"
     )
     with smtplib.SMTP(host, port, timeout=10) as smtp:
         if truthy(os.environ.get("ATHENIQ_SMTP_STARTTLS", "1")):
@@ -55,14 +55,14 @@ def webhook_alert(url: str, error: str) -> str | None:
     target = os.environ.get("ATHENIQ_ALERT_WEBHOOK_URL", "").strip()
     if not target:
         return None
-    body = f"AthenIQ generation console health check failed\n\n{url}\n\n{error}".encode()
+    body = f"AthenIQ console health check failed\n\n{url}\n\n{error}".encode()
     request = urllib.request.Request(
         target,
         data=body,
         method="POST",
         headers={
             "Content-Type": "text/plain; charset=utf-8",
-            "Title": "AthenIQ generation console is down",
+            "Title": "AthenIQ console is down",
             "Priority": "high",
             "Tags": "warning",
         },

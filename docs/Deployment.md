@@ -533,14 +533,26 @@ probes.
 
 `generation-sso` skips authentication for exactly that path, so a probe crosses
 the same NPM -> oauth2-proxy -> console path a browser takes. The timer runs
-`scripts/check-generation-console.sh` every five minutes and leaves the unit
+`scripts/check-console-health.sh` every five minutes and leaves the unit
 failed when the console or the proxy stops answering:
 
 ```bash
-sudo cp deploy/systemd/atheniq-generation-uptime.service deploy/systemd/atheniq-generation-uptime.timer /etc/systemd/system/
+sudo cp deploy/systemd/atheniq-console-uptime.service deploy/systemd/atheniq-console-uptime.timer /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable --now atheniq-generation-uptime.timer
-journalctl -u atheniq-generation-uptime.service -n 20
+sudo systemctl enable --now atheniq-console-uptime.timer
+journalctl -u atheniq-console-uptime.service -n 20
+```
+
+The unit is named for what it probes. If a host still has the older
+generation-named pair, retire it in the same pass so two timers do not both
+email:
+
+```bash
+sudo systemctl disable --now atheniq-generation-uptime.timer
+sudo rm -f /etc/systemd/system/atheniq-generation-uptime.timer \
+           /etc/systemd/system/atheniq-generation-uptime.service
+sudo rm -rf /etc/systemd/system/atheniq-generation-uptime.service.d
+sudo systemctl daemon-reload
 ```
 
 A failing probe leaves the unit failed; it also emails `ATHENIQ_ALERT_EMAIL`
@@ -550,8 +562,8 @@ a relay that wants submission auth on 587). The values live in a drop-in so a
 repository update keeps them:
 
 ```bash
-sudo mkdir -p /etc/systemd/system/atheniq-generation-uptime.service.d
-sudo tee /etc/systemd/system/atheniq-generation-uptime.service.d/alert.conf >/dev/null <<'CONF'
+sudo mkdir -p /etc/systemd/system/atheniq-console-uptime.service.d
+sudo tee /etc/systemd/system/atheniq-console-uptime.service.d/alert.conf >/dev/null <<'CONF'
 [Service]
 Environment=ATHENIQ_ALERT_EMAIL=ops@example.edu
 Environment=ATHENIQ_SMTP_HOST=mail.example.edu
