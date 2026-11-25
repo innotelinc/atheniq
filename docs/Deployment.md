@@ -422,7 +422,7 @@ the owner's concurrent-run limit, so leaving them behind jams a batch shut.
 `--skip <slug|code>` leaves a course out of the run, which is how the demo course
 stays classroom-free.
 
-### Course-generation console (`ai.lms.<domain>`)
+### Course-generation console (`ai.atheniq.courses`)
 
 `scripts/build-classrooms.py` is the batch: an operator runs it from a shell, in
 one long command, and reads the log. The console is the same work from a
@@ -434,8 +434,11 @@ OpenMAIC keeps the runs, the classrooms and the model settings.
 ```bash
 make up                       # this repo's compose: landing + generation
 # on a box with OpenMAIC locally:
-make generation-console       # opens on 127.0.0.1:8090, trusting local requests
+make generation-console       # local dev only: 127.0.0.1:8090, trusting local requests
 ```
+
+That target is a developer server on 8090. The deployed console is the Next.js
+app on `192.168.1.59:8094` behind its door; 8090 is not published anywhere.
 
 What it serves (`web/generate/`, no build step, stdlib Python — see the module
 docstring in `scripts/generation-console.py` for the full route list):
@@ -467,7 +470,7 @@ docstring in `scripts/generation-console.py` for the full route list):
   deployment that wants five sets it to `5` (with
   `OPENMAIC_AGENT_RUNTIME_MAX_CONCURRENT` and
   `OPENMAIC_GENERATION_RUN_MAX_CONCURRENT` at least that high, since the lowest
-  ceiling wins). `ai.lms` runs that way: the hourly limit is off and all three
+  ceiling wins). `ai.atheniq.courses` runs that way: the hourly limit is off and all three
   are `5`. Classrooms already in flight are skipped rather than submitted twice,
   because the spec does not learn about a run until it finishes; so is one the
   spec has meanwhile been given, with the reason attached.
@@ -1126,7 +1129,7 @@ Canonical hosts for a reference deployment:
 | `apps.lms.<domain>` | Alias of `apps.learn.<domain>` |
 | `studio.<domain>` | AthenIQ Studio |
 | `classroom.<domain>` | OpenMAIC |
-| `ai.lms.<domain>` | Course-generation console — staff only, behind its own oauth2-proxy |
+| `ai.atheniq.courses` | Console — generation, programs and the learner portal — on `192.168.1.59:8094` behind the `generation-sso` door; `ai.lms.<domain>` now 301s here |
 | `cert.<domain>` | Signara portal (shared DocumentOps) |
 
 Set the `CERULEAN_*` variables in `.env` (`CERULEAN_BASE_DOMAIN`,
@@ -1228,8 +1231,8 @@ docker compose up -d landing
   the old accent colour rather than as an error.
 
 **Realized (2026-10):** `atheniq`, `learn`, `apps.learn`, `lms`, `apps.lms`,
-`studio`, `classroom`, `ai.lms` (the generation console, its own
-single-name certificate), and `meilisearch.learn` / `meilisearch.lms`
+`studio`, `classroom`, `ai.atheniq.courses` (the console, on 8094 behind
+its door; `ai.lms` is a 301 to it), and `meilisearch.learn` / `meilisearch.lms`
 (`innotel.us`) are live.
 DNS records are CNAMEs to the `innotel.us.` apex (A `73.68.203.71`, the edge's
 WAN address), written through Cerulean's Technitium plane — the old
@@ -2034,8 +2037,8 @@ not depend on a workstation staying awake.
 ```bash
 # from the repository root, on the host that should serve the portal
 cp console/.env.example console/.env      # then fill it in
-docker compose up -d --build console      # builds the image, starts it on :8090
-curl -s localhost:8090/api/health         # 200 once the app answers
+CONSOLE_PORT=8094 docker compose up -d --build console  # container :3100, published on :8094
+curl -s localhost:8094/api/health         # 200 once the app answers
 ```
 
 `console/.env` is read when it exists and the service still starts without one; an
@@ -2057,35 +2060,40 @@ State lives in the `console-data` volume mounted at `/app/data` (`store.json`), 
 is why the service survives a recreate and why the volume � not a bind mount � is what
 carries it: a bind mount arrives root-owned and the app runs as uid 100.
 
-**Publishing it.** TLS and the public name belong to the edge. Point the
-`registrar.atheniq.institute` proxy host in NPM at `<host>:8090` over HTTP, exactly as
-the other hosts in this file do; the console binds plain HTTP and expects the proxy to
-terminate. Moving the portal between hosts is that one proxy-host change, not a DNS
-change.
+**Publishing it.** TLS and the public name belong to the edge. The console binds
+plain HTTP on `:8094` and expects the proxy to terminate. On the reference host it is
+not published directly: the edge points `registrar.atheniq.institute` (as it does
+`lms.innotel.us` and `ai.atheniq.courses`) at the `generation-sso` door on
+`192.168.1.59:8091`, which forwards to `:8094` after Authentik. A proxy host aimed
+straight at `:8094` would skip the door. Moving the portal between hosts is still one
+proxy-host change, not a DNS change.
 
 **Health.** `/api/health` returns 200 with a `healthy` flag and a per-integration
 breakdown; a fresh install reports `healthy: false` with the Signara key "muted"
 because no signing key has been recorded yet. That is configuration, not a fault, and
 the console's own healthcheck only asks whether the process serves.
 
-**Behind the SSO door (optional).** `deploy/compose/atheniq-sso.yml` carries a
-`registrar-sso` service that puts the console behind the same Authentik session as
-the classroom: it listens on `192.168.1.73:8092` and forwards to the console on
-`:8090`. It is an outer door, not a replacement - the console still asks for its own
+**Behind the SSO door (optional).** `deploy/compose/atheniq-sso.yml` carries the
+`generation-sso` service that puts the console behind the same Authentik session as
+the classroom: it listens on `192.168.1.59:8091` and forwards to the console on
+`:8094`. It is an outer door, not a replacement - the console still asks for its own
 password and authenticator. Two steps before publishing it: add
-`https://registrar.atheniq.institute/oauth2/callback` to that Authentik application
-redirect URIs, then point the proxy host at `192.168.1.73:8092` instead of `:8090`.
-Skipping the first step answers every visit with a 403 from the provider.
+`https://registrar.atheniq.institute/oauth2/callback` to that Authentik application's
+redirect URIs, then point the proxy host at the door on `:8091` instead of the console
+on `:8094`. Skipping the first step answers every visit with a 403 from the provider.
 
-**Behind the SSO door.** `deploy/compose/atheniq-sso.yml` carries a `registrar-sso`
-pair - oauth2-proxy plus its own Redis - that puts the console behind Authentik:
-it listens on `192.168.1.73:8092` and forwards to the console on `:8090`, and the
-proxy host points at `:8092`. Authentik holds an application `atheniq-registrar`
-(provider `AthenIQ Registrar`) whose redirect URI is
-`https://registrar.atheniq.institute/oauth2/callback`, bound to the group
-`atheniq-admins`; the proxy allows the same group. It is an outer door, not a
-replacement - the console still asks for its own password and authenticator, so a
-person signs in twice: once to Authentik, once to the console.
+**Behind the SSO door.** `deploy/compose/atheniq-sso.yml` carries the
+`generation-sso` pair - oauth2-proxy plus its own Redis - that puts the console
+behind Authentik: it listens on `192.168.1.59:8091` and forwards to the console on
+`:8094`, and the proxy host points at `:8091`. The Authentik application allows the
+group `atheniq-admins` and carries
+`https://registrar.atheniq.institute/oauth2/callback` as a redirect URI. It is an
+outer door, not a replacement - the console still asks for its own password and
+authenticator, so a person signs in twice: once to Authentik, once to the console.
+
+`deploy/compose/atheniq-registrar-sso.yml` is the older standalone door (`:8092`
+forwarding to the console on `:8090`). Nothing on the reference host uses it: the
+generation door on `:8091` fronts the console, and 8090/8092 are not published.
 
 The session store is not optional. This IdP returns a long group list, the
 cookie store splits it across several cookies, and the front proxy answers 502 on
@@ -2101,9 +2109,9 @@ instead of the password form. The account must still exist under Staff, be activ
 sit on a registered domain and hold that group. The authenticator step is skipped
 for these sign-ins because Authentik has already run the school sign-in.
 
-This is only safe while the proxy is the console port only client. Publish the
-console on `127.0.0.1:8090`, never on the network address: anyone who could reach
-the port directly could claim any address in those headers.
+This is only safe while the proxy is the console port's only client. Keep the
+console on `:8094` reachable by the door alone and never publish the port at the
+edge: anyone who could reach it directly could claim any address in those headers.
 
 Signing out clears the console session and leaves a marker cookie, so the next
 page load is not signed straight back in by the identity the proxy still holds.
