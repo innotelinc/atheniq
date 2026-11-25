@@ -18,7 +18,7 @@
  */
 
 import { createPrivateKey, sign } from 'node:crypto';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, writeSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -77,11 +77,22 @@ function repoRoot() {
   }
 }
 
+
+/** stdout and stderr are pipes on a runner and this script exits explicitly, so
+ *  every line is written synchronously: a buffered console.log is silently lost
+ *  when process.exit() runs before the flush. */
+function say(line = '') {
+  writeSync(1, `${line}\n`);
+}
+function warn(line) {
+  writeSync(2, `${line}\n`);
+}
+
 const ROOT = repoRoot();
 const STORE_PATH = join(ROOT, 'store.json');
 
 function die(message) {
-  console.error(`::error::${message}`);
+  warn(`::error::${message}`);
   process.exit(1);
 }
 
@@ -226,11 +237,11 @@ function writeListingBlock() {
   if (start < 0 || end < start) die(`${store.listingDoc} has no store-state block markers to replace`);
   const next = body.slice(0, start) + renderBlock(store) + body.slice(end + END_MARK.length);
   if (next === body) {
-    console.log(`${store.listingDoc} already matches store.json; nothing written`);
+    say(`${store.listingDoc} already matches store.json; nothing written`);
     return;
   }
   writeFileSync(path, next);
-  console.log(`${store.listingDoc} regenerated from store.json`);
+  say(`${store.listingDoc} regenerated from store.json`);
 }
 
 // ------------------------------------------------------- live, read-only
@@ -283,7 +294,7 @@ async function checkLive() {
       '&fields[appStoreVersions]=versionString,appStoreState&limit=50'
   );
   const versions = list?.data || [];
-  console.log(`Apple holds ${versions.length} IOS version(s) of app ${store.appId}`);
+  say(`Apple holds ${versions.length} IOS version(s) of app ${store.appId}`);
 
   const mine = versions.find((v) => v.attributes.versionString === String(store.version));
   if (!mine) {
@@ -296,7 +307,7 @@ async function checkLive() {
     );
     const state = detail.data.attributes.appStoreState;
     const build = detail.included?.find((i) => i.type === 'builds')?.attributes.version ?? 'none';
-    console.log(`read back ${store.version} (${mine.id}): ${state}, build ${build}`);
+    say(`read back ${store.version} (${mine.id}): ${state}, build ${build}`);
     if (state !== store.state) {
       problems.push(`store.json says ${store.version} is ${store.state}; Apple says ${state}`);
     }
@@ -325,7 +336,7 @@ async function checkLive() {
 function summary(lines) {
   const text = `${lines.join('\n')}\n`;
   if (SUMMARY) writeFileSync(SUMMARY, text, { flag: 'a' });
-  process.stdout.write(text);
+  writeSync(1, text);
 }
 
 if (GITHUB_ENV) {
@@ -346,10 +357,10 @@ const problems = [...checkRecord(), ...checkListing()];
 
 if (!VERIFY_LIVE) {
   if (problems.length) {
-    for (const problem of problems) console.error(`::error::${problem}`);
+    for (const problem of problems) warn(`::error::${problem}`);
     process.exit(1);
   }
-  console.log(
+  say(
     `store.json and ${store.listingDoc} agree: ${store.app} ${store.version} (build ${store.build}) is ${store.state}`
   );
   process.exit(0);
@@ -366,5 +377,5 @@ summary([
   ...(all.length ? ['', ...all.map((p) => `- ${p}`)] : []),
   '',
 ]);
-for (const problem of all) console.error(`::error::${problem}`);
+for (const problem of all) warn(`::error::${problem}`);
 process.exit(all.length ? 1 : 0);
