@@ -317,6 +317,34 @@ services:
       retries: 3
       start_period: 5s
 
+  # ------------------------------------------------------------------
+  # Zeus — `zeus.<domain>` and its eight subdomains.
+  #
+  # `web/zeus/` is one static document served for every zeus hostname, exactly
+  # as the VPS did it: a catch-all `caddy file-server` with no host matching, so
+  # api/pbx/ws/teams/portal/admin/auth/app all return the same page. The page
+  # was copied here during the LMS cutover (2026-11-18); before that it existed
+  # only on the VPS. It uses none of the Unity theme assets, so unlike
+  # `workforce` it needs no Caddyfile.
+  # ------------------------------------------------------------------
+  zeus:
+    image: caddy:2.11.4
+    container_name: zeus-landing
+    restart: unless-stopped
+    mem_limit: 128m
+    memswap_limit: 128m
+    command: ["caddy", "file-server", "--root", "/srv", "--listen", ":80"]
+    ports:
+      - "${ZEUS_BIND:-0.0.0.0}:${ZEUS_PORT:-8088}:80"
+    volumes:
+      - ./web/zeus:/srv:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+
 volumes:
   openmaic-postgres-data:
   convex-data:
