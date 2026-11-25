@@ -1,0 +1,13 @@
+{
+  "app": "AthenIQ Learning",
+  "appId": "6835960485",
+  "bundleId": "institute.atheniq.app",
+  "platform": "IOS",
+  "version": "1.0.0",
+  "build": "3",
+  "state": "READY_FOR_SALE",
+  "whatsNew": "First release: the catalog, lessons, offline downloads, progress, certificates, and the registrar's queue.",
+  "listingDoc": "console/mobile/store/submission.json",
+  "listingBlock": false,
+  "notes": "Approved and released: App Store Connect read back 1.0.0 as READY_FOR_SALE with build 3 on 25 November 2026 (run 45528802702). Apple's public store page and the iTunes lookup had not indexed the app when this was written."
+}
