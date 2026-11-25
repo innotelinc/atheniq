@@ -1,0 +1,60 @@
+name: Mobile API
+
+# The app is a separate client with its own auth, pricing and progress rules, so
+# its contract gets its own job: build the console, run it, exercise every route
+# the app uses — including the paid enrolment and the registrar's confirmation.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      AUTH_PASSWORD: "ci-console-password-1"
+      AUTH_EMAIL: "ci-registrar@innotel.us"
+      AUTH_NAME: "CI Registrar"
+      AUTH_SECRET: "ci-secret-not-a-production-key"
+      AUTH_REQUIRE_2FA: "off"
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Start the console
+        run: |
+          nohup npm run start > /tmp/console.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:3100/api/mobile/v1 > /dev/null; then
+              echo "console ready after ${i}s"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "console never answered"; cat /tmp/console.log; exit 1
+
+      - name: Mobile API contract
+        env:
+          MOBILE_API: "http://localhost:3100"
+          STAFF_EMAIL: "ci-registrar@innotel.us"
+          STAFF_PASSWORD: "ci-console-password-1"
+        run: npm run test:mobile-api
+
+      - name: Console log on failure
+        if: failure()
+        run: tail -n 120 /tmp/console.log

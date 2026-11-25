@@ -1,70 +1,87 @@
+import { NextResponse, type NextRequest } from "next/server";
 import { getDb } from "@/lib/store";
-import { brandOf, publicSiteOrigin } from "@/lib/branding";
-import { ADMISSIONS_EMAIL } from "@/lib/legal";
+import { brandOf } from "@/lib/branding";
+import { integrationHealth } from "@/lib/health";
 import { Card, Crumbs, PageHead, Topbar } from "@/components/ui";
 import { WebsiteForm } from "@/components/WebsiteForm";
 
 export const dynamic = "force-dynamic";
 
 /**
- * The institute's website is atheniq.institute — `web/landing/` in this
- * repository, served from a git checkout behind the edge's NPM proxy host 206.
- * The console does not publish a second copy of it and has no storefront of its
- * own: this page is where the school's name, domain and admissions address are
- * set, and where the one website is described. Students never come through the
- * console — their accounts are created at atheniq.courses/register.
+ * The public website atheniq.institute serves is generated from this console:
+ * published courses, active programs and the signed credential register. This
+ * page owns the brand the site wears (white-label) and whether it is live.
  */
 export default async function WebsitePage() {
   const db = getDb();
   const brand = brandOf(db.settings);
-  const site = publicSiteOrigin();
-  const registerUrl = `${db.settings.lms.baseUrl.replace(/\/+$/, "")}/register`;
-  const loginUrl = `${db.settings.lms.baseUrl.replace(/\/+$/, "")}/login`;
+  const health = await integrationHealth(db.settings);
+  const published = db.courses.filter((course) => course.status === "published");
 
   return (
     <>
       <Topbar>
         <Crumbs items={[{ label: "Registrar console" }, { label: "Website" }]} />
         <div className="row">
-          <a className="btn small ghost" href={`${site}/`} target="_blank" rel="noreferrer">
-            Open {brand.domain}
+          <span className={`chip ${db.settings.site.published ? "ok" : "warn"}`}>
+            {db.settings.site.published ? "Public site live" : "Public site offline"}
+          </span>
+          <a className="btn small ghost" href="/site" target="_blank" rel="noreferrer">
+            Open preview
           </a>
         </div>
       </Topbar>
 
       <div className="content">
         <PageHead
-          eyebrow="Public website"
-          title={brand.domain}
-          subtitle="One website, served from this repository: web/landing behind the edge, published by a git checkout rather than by this console. Set what the school is called, the domain it answers on and where admissions is written — there is no second site to keep in step, and no student route through the registrar."
+          eyebrow="Front-facing website"
+          title="atheniq.institute"
+          subtitle={`Derived from the platform, not maintained twice: ${published.length} published courses, ${
+            db.programs.filter((program) => program.status === "active").length
+          } active programs and every signed credential appear automatically. Brand it once here, then re-skin it per client — the same console becomes their school.`}
         />
 
         <WebsiteForm settings={db.settings} />
 
         <div className="split mt">
-          <Card title="Where it is served" subtitle="One site, one copy, one update command.">
+          <Card title="How the domain is served" subtitle={`${brand.domain} is answered by this same app.`}>
             <div className="card-body stack-sm small">
-              <Row label="Origin" value="the landing service, from a git checkout" />
-              <Row label="Published by" value="deploy/update-landing.sh" />
-              <Row label="Edge" value="NPM proxy host 206" />
-              <Row label="Domain" value={brand.domain} />
+              <p className="muted" style={{ margin: 0 }}>
+                Point the domain at this host, then the console rewrites the public paths for that host and serves
+                them without a staff session. The console itself stays on its own hostname.
+              </p>
+              <div className="between">
+                <span className="muted">A record</span>
+                <span className="mono tiny">{brand.domain} → the console host</span>
+              </div>
+              <div className="between">
+                <span className="muted">CNAME</span>
+                <span className="mono tiny">www.{brand.domain} → {brand.domain}</span>
+              </div>
+              <div className="between">
+                <span className="muted">Hosts it answers</span>
+                <span className="mono tiny">PUBLIC_SITE_HOSTS</span>
+              </div>
               <span className="tiny muted">
-                A change to the site is a commit and that one command — the files on the host are the files a
-                visitor gets. Settings saved here change the school's name, address and domain everywhere this
-                console points, not the page copy.
+                Add the domain to PUBLIC_SITE_HOSTS in .env and restart. Until DNS resolves, the site is served at
+                /site on the console host — that is the preview button above.
               </span>
             </div>
           </Card>
 
-          <Card title="Students and applicants" subtitle="They never come through the registrar console.">
+          <Card title="What goes live" subtitle="The site is a projection of the catalog.">
             <div className="card-body stack-sm small">
-              <Row label="Create an account" value={registerUrl} />
-              <Row label="Sign in" value={loginUrl} />
-              <Row label="Admissions" value={ADMISSIONS_EMAIL} />
-              <Row label="Check a credential" value="the public /verify page" />
+              <Row label="Published courses" value={`${published.length} listed`} />
+              <Row label="Active programs" value={`${db.programs.filter((p) => p.status === "active").length} listed`} />
+              <Row
+                label="Credential register"
+                value={`${db.credentials.filter((c) => ["issued", "signed"].includes(c.status)).length} verifiable`}
+              />
+              <Row label="Course engine" value={health.checks.find((c) => c.id === "lms")?.ok ? "answering" : "not answering"} />
+              <Row label="Prices" value="USD, from each course and program" />
               <span className="tiny muted">
-                A learner's account, enrolment and classroom live in the course engine. The console is staff-only:
-                sign-in here is for registrars and publishers, and every page behind it needs that session.
+                Archiving a course removes it from the site on the next request. Nothing is copied, so a price
+                change here is the price a visitor sees.
               </span>
             </div>
           </Card>
@@ -78,7 +95,7 @@ function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="between">
       <span className="muted">{label}</span>
-      <span className="mono tiny">{value}</span>
+      <span>{value}</span>
     </div>
   );
 }

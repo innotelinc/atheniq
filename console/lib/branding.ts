@@ -1,13 +1,9 @@
 import type { BrandSettings, LogoPlacement, Settings } from "./types";
 
 /**
- * What the school is called, how it is marked and where it answers.
- *
- * These settings are data, not code: the console's own chrome and its mail take
- * the name and mark from here, and every link out — the public shell, the
- * digest, the verification page — follows `domain`. The website is a separate
- * static tree (`web/landing/`), so nothing here renders it; these settings are
- * what the console points at it.
+ * The public site is white-label: every name, mark, color and domain it shows
+ * comes from these settings, not from the code. The console keeps its own
+ * AthenIQ chrome — this is the school's face.
  */
 
 const HEX = /^#[0-9a-f]{6}$/i;
@@ -40,8 +36,8 @@ export function normalizeDomain(value: string): string {
 }
 
 /**
- * Where the console itself answers. The brand domain serves the website, so a
- * link to a console-only page (/staff, /security) must not use it. Set
+ * Where the console itself answers. The brand domain serves the public site, so
+ * a link to a console-only page (/staff, /security) must not use it. Set
  * CONSOLE_ORIGIN for a host that is not the registrar subdomain.
  */
 export function consoleOrigin(domain: string): string {
@@ -61,17 +57,19 @@ export function monogram(brand: BrandSettings): string {
   return (letters.join("") || "A").slice(0, 2).toUpperCase();
 }
 
-/**
- * Where the institute's website is. It is not this app: the site is
- * `web/landing/`, served from a git checkout behind the edge, so a link that
- * used to point at the console's own /site goes here instead.
- *
- * One domain, one variable. `PUBLIC_SITE_HOSTS` belonged to the years when the
- * console answered as those hosts and rewrote visitors onto a storefront it
- * rendered itself; that path is gone, so a comma-list fallback would only let a
- * deployment look configured while having no effect.
- */
-export function publicSiteOrigin(): string {
-  const configured = (process.env.PUBLIC_SITE_DOMAIN || "").trim();
-  return `https://${normalizeDomain(configured) || "atheniq.institute"}`;
+/** Public hosts this build answers as, from PUBLIC_SITE_HOSTS. */
+export function publicHosts(): string[] {
+  return (process.env.PUBLIC_SITE_HOSTS || "atheniq.institute,www.atheniq.institute")
+    .split(",")
+    .map((host) => normalizeDomain(host))
+    .filter(Boolean);
+}
+
+/** Inline custom properties so the public site can be re-colored per tenant. */
+export function brandVars(brand: BrandSettings): Record<string, string> {
+  return {
+    "--brand": brand.accent,
+    "--brand-soft": brand.accent,
+    "--site-accent": brand.accent,
+  };
 }

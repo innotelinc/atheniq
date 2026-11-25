@@ -19,42 +19,21 @@
  *   ASC_ISSUER_ID    issuer UUID
  *   ASC_PRIVATE_KEY  the .p8 contents, or ASC_KEY_PATH pointing at the file
  *
- * Metadata lives in console/mobile/store/submission.json so the copy is
- * reviewable in the repository instead of being typed into a web form.
+ * Metadata lives in mobile/store/submission.json so the copy is reviewable in
+ * the repository instead of being typed into a web form.
  */
 import crypto from "node:crypto";
 import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 const API = "https://api.appstoreconnect.apple.com/v1";
 const args = new Set(process.argv.slice(2));
 const APPLY = args.has("--apply");
 const ATTACH_BUILD = args.has("--attach-build");
-const READY = args.has("--ready") || args.has("--submit");
-const SUBMIT = args.has("--submit");
-// Read-only: answer "what is still missing" without writing anything, so the
-// question can be asked of a live draft as often as it needs asking.
-const STATUS = args.has("--status");
-
-/**
- * The screenshot slots App Review requires. A draft that declares both phone
- * families and a tablet needs all three: the 6.9-inch set does not stand in for
- * the 6.3-inch one, and neither satisfies the iPad slot.
- */
-const REQUIRED_SLOTS = ["APP_IPHONE_67", "APP_IPHONE_61", "APP_IPAD_PRO_3GEN_129"];
-// Found from this file, not the working directory: the workflow runs at the
-// repository root, and after the merge the copy sits beside the app it describes.
-const META_PATH =
-  process.env.SUBMISSION_METADATA ||
-  path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "mobile", "store", "submission.json");
+const META_PATH = process.env.SUBMISSION_METADATA || "mobile/store/submission.json";
 
 const meta = JSON.parse(fs.readFileSync(META_PATH, "utf8"));
 const log = (...parts) => console.log(...parts);
 const warn = (...parts) => console.warn("warning:", ...parts);
-
-/** Blockers found while preparing; --submit refuses to run with any of them. */
-const problems = [];
 
 function fail(message) {
   console.error(`\n${message}\n`);
@@ -108,33 +87,13 @@ async function call(method, path, body) {
   const text = await response.text();
   const data = text ? JSON.parse(text) : {};
   if (!response.ok) {
-    // Apple hides the real reason for a refused submission under
-    // errors[].meta.associatedErrors, keyed by the resource it applies to —
-    // without it the message is only "this resource cannot be reviewed".
-    const associated = (data.errors || []).flatMap((error) => {
-      const map = error.meta?.associatedErrors;
-      if (!map || typeof map !== "object") return [];
-      return Object.entries(map).flatMap(([resource, list]) =>
-        (Array.isArray(list) ? list : []).map(
-          (entry) => `${resource}: ${entry.title || entry.code || ""}${entry.detail ? ` — ${entry.detail}` : ""}`,
-        ),
-      );
-    });
-    const detail = [
-      ...(data.errors || []).map((error) => `${error.title}: ${error.detail ?? ""}`),
-      ...associated,
-    ].join("; ");
+    const detail = (data.errors || []).map((error) => `${error.title}: ${error.detail ?? ""}`).join("; ");
     throw new Error(`${method} ${path} failed (${response.status}) — ${detail || text}`);
   }
   return data;
 }
 
 const OPEN_STATES = ["PREPARE_FOR_SUBMISSION", "METADATA_REJECTED", "DEVELOPER_REJECTED", "REJECTED"];
-// States that mean Apple already has this version. None of them is "open": a submit
-// run against one of these used to find no open version, fall through to creating a
-// second one, and die on POST /appStoreVersions ("You cannot create a new version of
-// the App in the current state").
-const SUBMITTED_STATES = ["WAITING_FOR_REVIEW", "IN_REVIEW", "PENDING_DEVELOPER_RELEASE", "READY_FOR_SALE"];
 
 function versionAttributes() {
   const attributes = {
@@ -161,18 +120,7 @@ function printPlan() {
   log(`  4. POST or PATCH /appInfoLocalizations (${meta.locale}): name, subtitle, privacy policy URL`);
   log(`  5. PATCH /appInfos/:id primaryCategory ${meta.primaryCategory}`);
   if (ATTACH_BUILD) log("  6. attach the newest processed build to the version");
-  if (READY) {
-    log(`  7. PATCH the age rating declaration: ${meta.ageRating?.label ?? "4+"}, every descriptor none`);
-    log("  8. POST/PATCH appStoreReviewDetail with the review contact and notes");
-    log("  9. PATCH the build to declare no non-exempt encryption");
-    log(" 10. POST an appPriceSchedule with the free price point (all territories)");
-    log(" 11. check a screenshot set and a build are on the version");
-  }
-  if (SUBMIT) {
-    log(" 12. POST a reviewSubmission, add the version, PATCH submitted:true");
-    log(`     review contact: ${meta.reviewContact?.firstName ?? "?"} ${meta.reviewContact?.lastName ?? "?"} <${meta.reviewContact?.email ?? "?"}>`);
-  }
-  log("\nNothing was sent. Re-run with --apply (and --ready / --submit) to write it to App Store Connect.");
+  log("\nNothing was sent. Re-run with --apply to write it to App Store Connect.");
 }
 
 async function findOrCreateVersion() {
@@ -186,21 +134,6 @@ async function findOrCreateVersion() {
 
   if (open) {
     log(`version ${open.attributes.versionString} already open (${open.attributes.appStoreState}); reusing it`);
-    if (open.attributes.versionString !== meta.version) {
-      // A draft's version string can still be edited, and it has to match the
-      // build's CFBundleShortVersionString: a "1.0" draft holding a "1.0.0"
-      // build is only refused when the version is sent to review, long after
-      // anyone last looked at the listing.
-      try {
-        await call("PATCH", `/appStoreVersions/${open.id}`, {
-          data: { type: "appStoreVersions", id: open.id, attributes: { versionString: meta.version } },
-        });
-        log(`renamed it to ${meta.version} so it matches the build`);
-        open.attributes.versionString = meta.version;
-      } catch (error) {
-        warn(`could not rename ${open.attributes.versionString} to ${meta.version}: ${error.message}`);
-      }
-    }
     return open;
   }
 
@@ -220,80 +153,21 @@ async function writeVersionLocalization(versionId) {
   const existing = list.data.find((item) => item.attributes.locale === meta.locale);
   const attributes = versionAttributes();
 
-  try {
-    if (existing) {
-      await call("PATCH", `/appStoreVersionLocalizations/${existing.id}`, {
-        data: { type: "appStoreVersionLocalizations", id: existing.id, attributes },
-      });
-      log(`updated ${meta.locale} version metadata`);
-      return;
-    }
-    await call("POST", "/appStoreVersionLocalizations", {
-      data: {
-        type: "appStoreVersionLocalizations",
-        attributes: { locale: meta.locale, ...attributes },
-        relationships: { version: { data: { type: "appStoreVersions", id: versionId } } },
-      },
+  if (existing) {
+    await call("PATCH", `/appStoreVersionLocalizations/${existing.id}`, {
+      data: { type: "appStoreVersionLocalizations", id: existing.id, attributes },
     });
-    log(`created ${meta.locale} version metadata`);
-  } catch (error) {
-    // Apple refuses "What's New" until there is a released version to compare
-    // against, which a first draft never has. Losing that one field is much
-    // better than losing the whole listing, so it is written again without it.
-    if (!attributes.whatsNew || !/whatsNew/i.test(String(error?.message ?? ""))) throw error;
-    const rest = { ...attributes };
-    delete rest.whatsNew;
-    if (existing) {
-      await call("PATCH", `/appStoreVersionLocalizations/${existing.id}`, {
-        data: { type: "appStoreVersionLocalizations", id: existing.id, attributes: rest },
-      });
-    } else {
-      await call("POST", "/appStoreVersionLocalizations", {
-        data: {
-          type: "appStoreVersionLocalizations",
-          attributes: { locale: meta.locale, ...rest },
-          relationships: { version: { data: { type: "appStoreVersions", id: versionId } } },
-        },
-      });
-    }
-    warn(`whatsNew is refused before a first release; the rest of the ${meta.locale} metadata was written`);
+    log(`updated ${meta.locale} version metadata`);
+    return;
   }
-}
-
-/**
- * The copyright line App Review shows on the listing. It is an attribute of the
- * version, not of its localization — putting it on the localization is refused.
- */
-async function writeVersionCopyright(versionId) {
-  if (!meta.copyright) return;
-  try {
-    await call("PATCH", `/appStoreVersions/${versionId}`, {
-      data: { type: "appStoreVersions", id: versionId, attributes: { copyright: meta.copyright } },
-    });
-    log(`copyright: ${meta.copyright}`);
-  } catch (error) {
-    problems.push(`copyright: ${error.message}`);
-  }
-}
-
-/**
- * Content rights: whether the app uses third-party content it does not own.
- * AthenIQ's courses, copy and artwork are its own, so the declaration is the
- * "does not use third-party content" answer App Review expects.
- */
-async function writeContentRights() {
-  try {
-    await call("PATCH", `/apps/${meta.appId}`, {
-      data: {
-        type: "apps",
-        id: meta.appId,
-        attributes: { contentRightsDeclaration: "DOES_NOT_USE_THIRD_PARTY_CONTENT" },
-      },
-    });
-    log("content rights: does not use third-party content");
-  } catch (error) {
-    problems.push(`content rights: ${error.message}`);
-  }
+  await call("POST", "/appStoreVersionLocalizations", {
+    data: {
+      type: "appStoreVersionLocalizations",
+      attributes: { locale: meta.locale, ...attributes },
+      relationships: { version: { data: { type: "appStoreVersions", id: versionId } } },
+    },
+  });
+  log(`created ${meta.locale} version metadata`);
 }
 
 async function writeAppInfo() {
@@ -360,545 +234,8 @@ async function attachNewestBuild(versionId) {
   log(`attached build ${build.attributes.version} (uploaded ${build.attributes.uploadedDate})`);
 }
 
-async function firstAppInfo() {
-  const infos = await call("GET", `/apps/${meta.appId}/appInfos?limit=5`);
-  return infos.data[0] ?? null;
-}
-
-/**
- * The age-rating questionnaire. 4+ means every content descriptor is "none" and
- * the two flags that would change the band are false; the declaration itself is
- * created by App Store Connect with the app, so this only fills it in.
- */
-async function writeAgeRating() {
-  try {
-    const info = await firstAppInfo();
-    if (!info) {
-      problems.push("no appInfo on the app record, so no age rating");
-      return;
-    }
-    const found = await call("GET", `/appInfos/${info.id}/ageRatingDeclaration`);
-    const id = found?.data?.id;
-    if (!id) {
-      problems.push("no age rating declaration to fill in");
-      return;
-    }
-    const attributes = {
-      alcoholTobaccoOrDrugUseOrReferences: "NONE",
-      contests: "NONE",
-      gamblingSimulated: "NONE",
-      gunsOrOtherWeapons: "NONE",
-      horrorOrFearThemes: "NONE",
-      matureOrSuggestiveThemes: "NONE",
-      medicalOrTreatmentInformation: "NONE",
-      profanityOrCrudeHumor: "NONE",
-      sexualContentGraphicAndNudity: "NONE",
-      sexualContentOrNudity: "NONE",
-      violenceCartoonOrFantasy: "NONE",
-      violenceRealisticProlongedGraphicOrSadistic: "NONE",
-      violenceRealistic: "NONE",
-      unrestrictedWebAccess: false,
-      kidsAgeBand: meta.ageRating?.kidsAgeBand ?? null,
-      // Apple's newer questionnaire fields; all of them are required, and an
-      // educational client that neither chats nor shows ads answers none/false.
-      socialMedia: false,
-      messagingAndChat: false,
-      ageAssurance: false,
-      advertising: false,
-      gambling: false,
-      healthOrWellnessTopics: false,
-      lootBox: false,
-      parentalControls: false,
-      userGeneratedContent: false,
-    };
-    await call("PATCH", `/ageRatingDeclarations/${id}`, {
-      data: { type: "ageRatingDeclarations", id, attributes },
-    });
-    log(`age rating: ${meta.ageRating?.label ?? "4+"} — every content descriptor none`);
-  } catch (error) {
-    problems.push(`age rating: ${error.message}`);
-  }
-}
-
-/** Who Apple calls if review has a question. Missing contact blocks submission. */
-async function writeReviewDetail(versionId) {
-  const contact = meta.reviewContact ?? {};
-  if (!contact.firstName || !contact.lastName || !contact.phone || !contact.email) {
-    problems.push("review contact is incomplete (firstName, lastName, phone, email in submission.json)");
-    return;
-  }
-  const attributes = {
-    contactFirstName: contact.firstName,
-    contactLastName: contact.lastName,
-    contactPhone: contact.phone,
-    contactEmail: contact.email,
-    demoAccountRequired: false,
-    notes: meta.reviewNotes ?? "",
-  };
-  try {
-    const existing = await call("GET", `/appStoreVersions/${versionId}/appStoreReviewDetail`).catch(() => null);
-    const id = existing?.data?.id;
-    if (id) {
-      await call("PATCH", `/appStoreReviewDetails/${id}`, {
-        data: { type: "appStoreReviewDetails", id, attributes },
-      });
-      log(`review contact updated: ${contact.firstName} ${contact.lastName} <${contact.email}>`);
-    } else {
-      await call("POST", "/appStoreReviewDetails", {
-        data: {
-          type: "appStoreReviewDetails",
-          attributes,
-          relationships: { appStoreVersion: { data: { type: "appStoreVersions", id: versionId } } },
-        },
-      });
-      log(`review contact created: ${contact.firstName} ${contact.lastName} <${contact.email}>`);
-    }
-  } catch (error) {
-    problems.push(`review detail: ${error.message}`);
-  }
-}
-
-/**
- * Export compliance. app.json already sets ITSAppUsesNonExemptEncryption, so a
- * build answers this on upload; the answer still has to be on the build record
- * before review will take it.
- */
-async function writeExportCompliance() {
-  try {
-    const builds = await call(
-      "GET",
-      `/builds?filter[app]=${meta.appId}&sort=-uploadedDate&limit=1&fields[builds]=version,usesNonExemptEncryption`,
-    );
-    const build = builds.data[0];
-    if (!build) {
-      problems.push("no build on the app record");
-      return;
-    }
-    if (build.attributes.usesNonExemptEncryption === false) {
-      log(`export compliance: build ${build.attributes.version} reports no non-exempt encryption`);
-      return;
-    }
-    await call("PATCH", `/builds/${build.id}`, {
-      data: { type: "builds", id: build.id, attributes: { usesNonExemptEncryption: false } },
-    });
-    log(`export compliance: declared no non-exempt encryption on build ${build.attributes.version}`);
-  } catch (error) {
-    problems.push(`export compliance: ${error.message}`);
-  }
-}
-
-/** The first of several URL shapes that answers, so an API move is not a blocker. */
-async function firstThatAnswers(paths) {
-  let last = null;
-  for (const candidate of paths) {
-    try {
-      return await call("GET", candidate);
-    } catch (error) {
-      last = error;
-    }
-  }
-  throw last;
-}
-
-/** The app is free everywhere; Apple wants that as a price schedule, not a flag. */
-async function writeFreePrice() {
-  try {
-    // Singular: one schedule per app, and a 404 simply means none is set yet.
-    // A schedule object can exist with no prices in it, which still reads as
-    // "missing required pricing" to App Review — so count the rows, not the object.
-    const schedule = await call(
-      "GET",
-      `/apps/${meta.appId}/appPriceSchedule?include=manualPrices,automaticPrices`,
-    ).catch(() => null);
-    const manual = schedule?.data?.relationships?.manualPrices?.data?.length ?? 0;
-    const automatic = schedule?.data?.relationships?.automaticPrices?.data?.length ?? 0;
-    if (manual + automatic > 0) {
-      log(`price: the schedule already carries ${manual + automatic} price row(s)`);
-      return;
-    }
-    const points = await firstThatAnswers([
-      `/apps/${meta.appId}/appPricePoints?filter[territory]=USA&limit=200&fields[appPricePoints]=customerPrice`,
-      `/appPricePoints?filter[app]=${meta.appId}&filter[territory]=USA&limit=200&fields[appPricePoints]=customerPrice`,
-    ]);
-    const free = points.data.find((point) => Number(point.attributes?.customerPrice) === 0);
-    if (!free) {
-      problems.push("the USA price points contain no free tier, so the price was not set");
-      return;
-    }
-    await call("POST", "/appPriceSchedules", {
-      data: {
-        type: "appPriceSchedules",
-        relationships: {
-          app: { data: { type: "apps", id: meta.appId } },
-          baseTerritory: { data: { type: "territories", id: "USA" } },
-          manualPrices: { data: [{ type: "appPrices", id: "${price1}" }] },
-        },
-      },
-      included: [
-        {
-          type: "appPrices",
-          id: "${price1}",
-          relationships: { appPricePoint: { data: { type: "appPricePoints", id: free.id } } },
-        },
-      ],
-    });
-    log("price: free in every territory that follows the USA base");
-  } catch (error) {
-    problems.push(`price schedule: ${error.message}`);
-  }
-}
-
-async function checkVersionReadiness(versionId) {
-  try {
-    // Screenshot sets hang off the version's localization, not the version.
-    const localizations = await call(
-      "GET",
-      `/appStoreVersions/${versionId}/appStoreVersionLocalizations?limit=50`,
-    );
-    const found = [];
-    for (const localization of localizations.data) {
-      const sets = await call(
-        "GET",
-        `/appStoreVersionLocalizations/${localization.id}/appScreenshotSets?limit=50`,
-      ).catch(() => ({ data: [] }));
-      for (const set of sets.data) {
-        found.push(`${localization.attributes.locale} ${set.attributes.screenshotDisplayType}`);
-      }
-    }
-    const slots = new Set(found.map((entry) => entry.split(" ").pop()));
-    for (const slot of REQUIRED_SLOTS) {
-      if (!slots.has(slot)) problems.push(`no ${slot} screenshot set`);
-    }
-    if (!found.length) problems.push("no screenshots on the version");
-    else log(`screenshots: ${found.join(", ")}`);
-  } catch (error) {
-    problems.push(`screenshot check: ${error.message}`);
-  }
-  try {
-    const version = await call("GET", `/appStoreVersions/${versionId}?include=build`);
-    const buildId = version.data.relationships?.build?.data?.id;
-    if (!buildId) problems.push("no build attached to the version");
-    else log(`build attached: ${buildId}`);
-  } catch (error) {
-    problems.push(`build check: ${error.message}`);
-  }
-}
-
-async function prepareForReview(version) {
-  await writeVersionCopyright(version.id);
-  await writeContentRights();
-  await writeAgeRating();
-  await writeReviewDetail(version.id);
-  await writeExportCompliance();
-  await writeFreePrice();
-  await checkVersionReadiness(version.id);
-  if (problems.length) {
-    log("");
-    for (const problem of problems) warn(problem);
-  }
-}
-
-/**
- * The items a submission holds. The collection route for reviewSubmissionItems is
- * refused ("does not allow 'GET_COLLECTION'"), but the submission's own items
- * route answers, which is what makes a rejected item findable at all.
- */
-async function submissionItems(submissionId) {
-  const listed = await call("GET", `/reviewSubmissions/${submissionId}/items?limit=50`).catch(() => ({ data: [] }));
-  return listed.data ?? [];
-}
-
-/**
- * A rejected item pins the version it names: Apple will not accept the
- * submission ("Version is not ready to be submitted yet") while the item is
- * still REJECTED, and will not let the version join another submission either.
- * The web UI's "Update review" marks the item resolved; the API's form of that
- * is resolved: true on the item. Deleting it is refused once it has been
- * submitted ("Item was already submitted"), so resolving is the way back.
- */
-async function resolveRejectedItems(submission) {
-  let resolved = 0;
-  for (const item of await submissionItems(submission.id)) {
-    if (item.attributes?.state !== "REJECTED") continue;
-    await call("PATCH", `/reviewSubmissionItems/${item.id}`, {
-      data: { type: "reviewSubmissionItems", id: item.id, attributes: { resolved: true } },
-    });
-    resolved += 1;
-  }
-  if (resolved) {
-    log(`marked ${resolved} rejected item(s) resolved in submission ${submission.id.slice(0, 8)}`);
-  }
-  return resolved;
-}
-
-/**
- * The last step: put the version into a review submission and hand it to Apple.
- * It refuses to run while anything above reported a blocker, because a
- * half-filled submission is rejected and the reason is harder to read there.
- */
-async function submitForReview(version) {
-  if (problems.length) fail(`Not submitting — ${problems.length} blocker(s) listed above.`);
-
-  const open = await call(
-    "GET",
-    `/reviewSubmissions?filter[app]=${meta.appId}&filter[platform]=IOS&limit=20`,
-  ).catch(() => ({ data: [] }));
-  log(
-    `review submissions on this app: ${
-      open.data.map((item) => `${item.id.slice(0, 8)} ${item.attributes.state}`).join(", ") || "none"
-    }`,
-  );
-  const everyVersion = await call(
-    "GET",
-    `/apps/${meta.appId}/appStoreVersions?filter[platform]=IOS&limit=20&fields[appStoreVersions]=versionString,appStoreState`,
-  ).catch(() => ({ data: [] }));
-  log(
-    `versions: ${
-      everyVersion.data
-        .map((item) => `${item.id.slice(0, 8)} ${item.attributes.versionString} ${item.attributes.appStoreState}`)
-        .join(", ") || "none"
-    }`,
-  );
-
-  for (const candidate of open.data.filter((item) => item.attributes.state === "UNRESOLVED_ISSUES")) {
-    await resolveRejectedItems(candidate);
-  }
-
-  let submission = open.data.find((item) =>
-    ["READY_FOR_REVIEW", "WAITING_FOR_REVIEW", "IN_REVIEW"].includes(item.attributes.state),
-  );
-  if (!submission) {
-    const created = await call("POST", "/reviewSubmissions", {
-      data: {
-        type: "reviewSubmissions",
-        attributes: { platform: "IOS" },
-        relationships: { app: { data: { type: "apps", id: meta.appId } } },
-      },
-    });
-    submission = created.data;
-    log(`created review submission ${submission.id}`);
-  }
-
-  // reviewSubmissionItems answers CREATE, DELETE and UPDATE only — a collection
-  // GET is refused ("does not allow 'GET_COLLECTION'") — so "does this submission
-  // already hold the version?" can only be asked by trying to add it. Apple
-  // refuses a version that sits in another submission with "Item is already
-  // present in another reviewSubmission", naming that submission; after a
-  // rejection that is the one carrying the review thread, so it is the one to
-  // hand back. A fresh submission is what used to 409 here.
-  try {
-    await call("POST", "/reviewSubmissionItems", {
-      data: {
-        type: "reviewSubmissionItems",
-        relationships: {
-          reviewSubmission: { data: { type: "reviewSubmissions", id: submission.id } },
-          appStoreVersion: { data: { type: "appStoreVersions", id: version.id } },
-        },
-      },
-    });
-    log(`added version ${meta.version} to submission ${submission.id.slice(0, 8)}`);
-  } catch (error) {
-    const held = /another reviewSubmission with id ([0-9a-f-]{36})/i.exec(String(error?.message ?? ""));
-    if (!held) throw error;
-    const owner = open.data.find((item) => item.id === held[1]);
-    if (held[1] === submission.id) {
-      log(`version ${meta.version} is already in submission ${held[1].slice(0, 8)}`);
-    } else {
-      log(
-        `version ${meta.version} already belongs to submission ${held[1].slice(0, 8)}` +
-          (owner ? ` (${owner.attributes.state})` : "") +
-          "; resubmitting that one",
-      );
-    }
-    submission = owner ?? { id: held[1], attributes: { state: "UNKNOWN" } };
-  }
-
-  if (submission.attributes.state !== "WAITING_FOR_REVIEW" && submission.attributes.state !== "IN_REVIEW") {
-    // "Version is not ready to be submitted yet" was the rejected item, not a
-    // settling window: once it is resolved above, Apple takes the submission on
-    // the first call, so there is nothing to retry.
-    await call("PATCH", `/reviewSubmissions/${submission.id}`, {
-      data: { type: "reviewSubmissions", id: submission.id, attributes: { submitted: true } },
-    });
-    log("submitted for review");
-  }
-
-  const after = await call(
-    "GET",
-    `/reviewSubmissions/${submission.id}?fields[reviewSubmissions]=state,submittedDate`,
-  );
-  log(`review state: ${after.data.attributes.state} (submitted ${after.data.attributes.submittedDate ?? "not yet"})`);
-}
-
-/**
- * Read-only answer to "what does App Store Connect still want": the same
- * questions the web form asks, asked of the API. A missing screenshot set or a
- * blank copyright blocks submission just as hard as a rejected binary, and
- * neither shows up anywhere in the upload log.
- */
-async function reportStatus() {
-  const blockers = [];
-  const ok = (line) => log(`  ok      ${line}`);
-  const missing = (line) => {
-    blockers.push(line);
-    log(`  MISSING ${line}`);
-  };
-
-  const versions = await call(
-    "GET",
-    `/apps/${meta.appId}/appStoreVersions?filter[platform]=IOS&limit=20&fields[appStoreVersions]=versionString,appStoreState,copyright`,
-  );
-  const version =
-    versions.data.find((item) => OPEN_STATES.includes(item.attributes.appStoreState)) ?? versions.data[0];
-  if (!version) fail("the app has no App Store version record");
-  log(`\nversion ${version.attributes.versionString} (${version.attributes.appStoreState})`);
-  if (version.attributes.versionString !== meta.version) {
-    missing(`version string ${version.attributes.versionString} does not match the build's ${meta.version}`);
-  }
-
-  const locs = await call("GET", `/appStoreVersions/${version.id}/appStoreVersionLocalizations?limit=50`);
-  const loc = locs.data.find((item) => item.attributes.locale === meta.locale);
-  if (!loc) {
-    missing(`${meta.locale} version metadata`);
-  } else {
-    const fields = [
-      ["description", "description"],
-      ["keywords", "keywords"],
-      ["supportUrl", "support URL"],
-      ["marketingUrl", "marketing URL"],
-    ];
-    for (const [key, label] of fields) {
-      if (loc.attributes[key]) ok(label);
-      else missing(label);
-    }
-  }
-  if (version.attributes.copyright) ok(`copyright "${version.attributes.copyright}"`);
-  else missing("copyright");
-
-  const info = await firstAppInfo().catch(() => null);
-  if (!info) {
-    missing("app info record");
-  } else {
-    const infoLocs = await call("GET", `/appInfos/${info.id}/appInfoLocalizations?limit=50`).catch(() => ({ data: [] }));
-    const infoLoc = infoLocs.data.find((item) => item.attributes.locale === meta.locale);
-    if (infoLoc?.attributes.name) ok(`app name "${infoLoc.attributes.name}"`);
-    else missing("app name");
-    if (infoLoc?.attributes.subtitle) ok("subtitle");
-    else missing("subtitle");
-    if (infoLoc?.attributes.privacyPolicyUrl) ok("privacy policy URL");
-    else missing("privacy policy URL");
-    // A to-one relationship is not inlined on the list response, so ask for it
-    // directly: reading relationships.primaryCategory off appInfos listed it as
-    // missing even when the category was set.
-    const category = await call("GET", `/appInfos/${info.id}/primaryCategory`).catch(() => null);
-    if (category?.data?.id) ok(`primary category (${category.data.id})`);
-    else missing("primary category");
-    const rating = await call("GET", `/appInfos/${info.id}/ageRatingDeclaration`).catch(() => null);
-    if (rating?.data?.id) ok("age rating questionnaire answered");
-    else missing("age rating questionnaire");
-  }
-  const app = await call("GET", `/apps/${meta.appId}?fields[apps]=contentRightsDeclaration`).catch(() => null);
-  if (app?.data?.attributes?.contentRightsDeclaration) ok(`content rights (${app.data.attributes.contentRightsDeclaration})`);
-  else missing("content rights declaration");
-
-  const build = await call(
-    "GET",
-    `/appStoreVersions/${version.id}/build?fields[builds]=version,processingState,usesNonExemptEncryption`,
-  ).catch(() => null);
-  const buildData = build?.data;
-  if (!buildData) {
-    missing("a build attached to the version");
-  } else {
-    ok(`build ${buildData.attributes.version} (${buildData.attributes.processingState})`);
-    if (buildData.attributes.usesNonExemptEncryption === false) ok("export compliance answered");
-    else missing("export compliance (usesNonExemptEncryption)");
-  }
-
-  const sets = await call(
-    "GET",
-    `/appStoreVersionLocalizations/${loc?.id ?? ""}/appScreenshotSets?limit=50`,
-  ).catch(() => ({ data: [] }));
-  const bySlot = new Map();
-  for (const set of sets.data) bySlot.set(set.attributes.screenshotDisplayType, set.id);
-  for (const slot of REQUIRED_SLOTS) {
-    const id = bySlot.get(slot);
-    if (!id) {
-      missing(`${slot} screenshot set`);
-      continue;
-    }
-    const shots = await call(
-      "GET",
-      `/appScreenshotSets/${id}/appScreenshots?limit=50&fields[appScreenshots]=fileName,assetDeliveryState`,
-    ).catch(() => ({ data: [] }));
-    const failed = shots.data.filter((shot) => shot.attributes.assetDeliveryState?.state === "FAILED");
-    const pending = shots.data.filter((shot) => shot.attributes.assetDeliveryState?.state !== "COMPLETE" && shot.attributes.assetDeliveryState?.state !== "FAILED");
-    const summary = `${slot} screenshots: ${shots.data.length} image(s)${pending.length ? `, ${pending.length} processing` : ""}${failed.length ? `, ${failed.length} failed` : ""}`;
-    if (!shots.data.length) missing(`${slot} screenshots (set is empty)`);
-    else if (failed.length) missing(`${slot} screenshots (${failed.length} failed Apple's checks)`);
-    else ok(summary);
-  }
-
-  const detail = await call("GET", `/appStoreVersions/${version.id}/appStoreReviewDetail`).catch(() => null);
-  if (detail?.data?.attributes?.contactEmail) ok(`review contact ${detail.data.attributes.contactEmail}`);
-  else missing("review contact (appStoreReviewDetail)");
-
-  const schedule = await call("GET", `/apps/${meta.appId}/appPriceSchedule?include=manualPrices,automaticPrices`).catch(() => null);
-  const prices =
-    (schedule?.data?.relationships?.manualPrices?.data?.length ?? 0) +
-    (schedule?.data?.relationships?.automaticPrices?.data?.length ?? 0);
-  if (prices > 0) ok(`price schedule (${prices} row(s))`);
-  else missing("price schedule");
-
-  // App Privacy has no supported endpoint: the API answers 403/404 for it, and
-  // the published answer only exists in the web UI. Say so rather than pretend.
-  const privacy = await call("GET", `/apps/${meta.appId}/appDataUsages?limit=1`).catch((error) => error);
-  if (privacy instanceof Error) {
-    log("  ?       App Privacy (appDataUsages) is not readable through the API — confirm it is published in the web UI");
-  } else {
-    const declared = privacy?.data?.length ?? 0;
-    if (declared) ok(`App Privacy declared (${declared} usage(s))`);
-    else missing("App Privacy (no data usages declared)");
-  }
-
-  log("");
-  if (!blockers.length) {
-    log("nothing is missing that the API can see.");
-    return true;
-  }
-  log(`${blockers.length} blocker(s):`);
-  for (const blocker of blockers) log(`  - ${blocker}`);
-  return false;
-}
-
-/**
- * The version Apple already holds, if there is one. Used only to make --submit a
- * clean no-op: submitting is a one-way act, and asking twice should say so rather
- * than try to mint a second version record.
- */
-async function findSubmittedVersion() {
-  const versions = await call(
-    "GET",
-    `/apps/${meta.appId}/appStoreVersions?filter[platform]=IOS&limit=20` +
-      "&fields[appStoreVersions]=versionString,appStoreState",
-  );
-  return (
-    versions.data.find(
-      (item) =>
-        SUBMITTED_STATES.includes(item.attributes.appStoreState) &&
-        item.attributes.versionString === meta.version,
-    ) ??
-    versions.data.find((item) => SUBMITTED_STATES.includes(item.attributes.appStoreState)) ??
-    null
-  );
-}
-
 async function main() {
   log(`${meta.name} ${meta.version} → App Store Connect app ${meta.appId} (${meta.bundleId})`);
-  if (STATUS) {
-    const ready = await reportStatus();
-    if (!ready) process.exitCode = 1;
-    return;
-  }
   if (!APPLY) {
     printPlan();
     return;
@@ -911,28 +248,10 @@ async function main() {
   }
   log(`app record confirmed: ${app.data.attributes.name} (${bundleId})`);
 
-  // Both paths stop here, not just --submit. A version with Apple is not in
-  // OPEN_STATES, so findOrCreateVersion() would find nothing to reuse and POST a
-  // second version, which Apple refuses with "You cannot create a new version of the
-  // App in the current state". The default dispatch (apply + attach + ready, submit
-  // off) is precisely that run.
-  const inReview = await findSubmittedVersion();
-  if (inReview) {
-    log(
-      `version ${inReview.attributes.versionString} is already ${inReview.attributes.appStoreState}; ` +
-        `nothing to ${SUBMIT ? "submit" : "draft"}`,
-    );
-    log("It has to come out of review in App Store Connect before there is a version to write to.");
-    log(`https://appstoreconnect.apple.com/apps/${meta.appId}/distribution/ios/version/inflight`);
-    return;
-  }
-
   const version = await findOrCreateVersion();
   await writeVersionLocalization(version.id);
   await writeAppInfo();
   if (ATTACH_BUILD) await attachNewestBuild(version.id);
-  if (READY) await prepareForReview(version);
-  if (SUBMIT) await submitForReview(version);
 
   const after = await call("GET", `/appStoreVersions/${version.id}?fields[appStoreVersions]=versionString,appStoreState`);
   log("");

@@ -181,7 +181,7 @@ export function buildDigest(db: Database, health: IntegrationHealth, at = new Da
       ? recent.map((item) => `  ${item.at.slice(0, 10)}  ${item.message}${item.actor ? ` — ${item.actor.name}` : ""}`)
       : ["  Nothing recorded yet."]),
     "",
-    `Website: https://${brand.domain}`,
+    `Public site: https://${brand.domain}${settings.site.published ? "" : " (not published)"}`,
     "",
     "Full detail: the console → Health.",
   ].join("\n");
@@ -242,7 +242,7 @@ export function buildDigest(db: Database, health: IntegrationHealth, at = new Da
       <table style="width:100%;border-collapse:collapse;font-size:13px;">${activityRows || `<tr><td style="padding:6px 10px;color:#6b827c;">Nothing recorded yet.</td></tr>`}</table>
     </div>
     <div style="padding:14px 24px;background:#f0f6f3;font-size:12px;color:#46605a;">
-      Website: <strong>${escapeHtml(brand.domain)}</strong>
+      Public site: <strong>${escapeHtml(brand.domain)}</strong>${settings.site.published ? "" : " (not published)"}
     </div>
   </div>
 </body></html>`;

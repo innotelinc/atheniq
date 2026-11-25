@@ -1,25 +1,24 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { api } from "@/lib/client";
 import type { LogoPlacement, Settings } from "@/lib/types";
 
-/**
- * The school's own details, not a site builder. The website at atheniq.institute
- * is `web/landing/` in this repository and is published from git, so what this
- * form owns is what the console and the institute are called, where admissions
- * is written, and which domain the school answers on.
- */
 export function WebsiteForm({ settings }: { settings: Settings }) {
   const router = useRouter();
   const [brand, setBrand] = useState(settings.brand);
+  const [site, setSite] = useState(settings.site);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   function setB<K extends keyof typeof brand>(key: K, value: (typeof brand)[K]) {
     setBrand((current) => ({ ...current, [key]: value }));
+  }
+  function setS<K extends keyof typeof site>(key: K, value: (typeof site)[K]) {
+    setSite((current) => ({ ...current, [key]: value }));
   }
 
   async function save(event: React.FormEvent) {
@@ -29,14 +28,14 @@ export function WebsiteForm({ settings }: { settings: Settings }) {
     setMessage(null);
     const result = await api<Settings>("/api/integrations", {
       method: "PUT",
-      body: JSON.stringify({ brand }),
+      body: JSON.stringify({ brand, site }),
     });
     setBusy(false);
     if (!result.ok) {
       setError(result.error ?? "Could not save the website settings.");
       return;
     }
-    setMessage("Saved — the school's details are updated.");
+    setMessage(site.published ? "Saved — the public site is live." : "Saved — the public site is offline.");
     router.refresh();
   }
 
@@ -48,8 +47,8 @@ export function WebsiteForm({ settings }: { settings: Settings }) {
         <section className="card">
           <header className="card-head">
             <div>
-              <h2 className="card-title">The institute</h2>
-              <div className="card-sub">What the school is called, and how it signs itself.</div>
+              <h2 className="card-title">Brand</h2>
+              <div className="card-sub">What a visitor sees. This is the white-label surface.</div>
             </div>
           </header>
           <div className="card-body stack-sm">
@@ -126,31 +125,6 @@ export function WebsiteForm({ settings }: { settings: Settings }) {
                 </button>
               ))}
             </div>
-          </div>
-        </section>
-
-        <section className="card">
-          <header className="card-head">
-            <div>
-              <h2 className="card-title">Domain and contact</h2>
-              <div className="card-sub">Where the school answers, and where an applicant writes.</div>
-            </div>
-          </header>
-          <div className="card-body stack-sm">
-            <label className="label" htmlFor="domain">
-              Public domain
-            </label>
-            <input
-              id="domain"
-              className="input"
-              value={brand.domain}
-              onChange={(event) => setB("domain", event.target.value)}
-              placeholder="atheniq.institute"
-            />
-            <span className="tiny muted">
-              The name the website is published under. The site itself is served from the repository's{" "}
-              <span className="mono">web/landing</span> — this field is what every link and every email here points at.
-            </span>
 
             <label className="label" htmlFor="support-email">
               Admissions email
@@ -163,6 +137,17 @@ export function WebsiteForm({ settings }: { settings: Settings }) {
               onChange={(event) => setB("supportEmail", event.target.value)}
             />
 
+            <label className="label" htmlFor="domain">
+              Public domain
+            </label>
+            <input
+              id="domain"
+              className="input"
+              value={brand.domain}
+              onChange={(event) => setB("domain", event.target.value)}
+              placeholder="atheniq.institute"
+            />
+
             <label className="row small" style={{ gap: 8, marginTop: 4 }}>
               <input
                 type="checkbox"
@@ -171,11 +156,104 @@ export function WebsiteForm({ settings }: { settings: Settings }) {
               />
               Show “Powered by AthenIQ” in the footer
             </label>
+          </div>
+        </section>
+
+        <section className="card">
+          <header className="card-head">
+            <div>
+              <h2 className="card-title">Public site</h2>
+              <div className="card-sub">Copy, sections and whether the domain answers.</div>
+            </div>
+          </header>
+          <div className="card-body stack-sm">
+            <label className="row small" style={{ gap: 8 }}>
+              <input
+                type="checkbox"
+                checked={site.published}
+                onChange={(event) => setS("published", event.target.checked)}
+              />
+              Publish the site at {brand.domain}
+            </label>
+
+            <label className="label" htmlFor="headline">
+              Headline
+            </label>
+            <input
+              id="headline"
+              className="input"
+              value={site.headline}
+              onChange={(event) => setS("headline", event.target.value)}
+            />
+
+            <label className="label" htmlFor="intro">
+              Introduction
+            </label>
+            <textarea
+              id="intro"
+              className="input"
+              rows={4}
+              value={site.intro}
+              onChange={(event) => setS("intro", event.target.value)}
+            />
+
+            <div className="row" style={{ gap: 8 }}>
+              <div style={{ flex: 1 }}>
+                <label className="label" htmlFor="cta-label">
+                  Button label
+                </label>
+                <input
+                  id="cta-label"
+                  className="input"
+                  value={site.ctaLabel}
+                  onChange={(event) => setS("ctaLabel", event.target.value)}
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label className="label" htmlFor="cta-href">
+                  Button link
+                </label>
+                <input
+                  id="cta-href"
+                  className="input"
+                  value={site.ctaHref}
+                  onChange={(event) => setS("ctaHref", event.target.value)}
+                />
+              </div>
+            </div>
+
+            <label className="row small" style={{ gap: 8 }}>
+              <input
+                type="checkbox"
+                checked={site.showPrices}
+                onChange={(event) => setS("showPrices", event.target.checked)}
+              />
+              Show tuition and course prices (USD)
+            </label>
+            <label className="row small" style={{ gap: 8 }}>
+              <input
+                type="checkbox"
+                checked={site.showPrograms}
+                onChange={(event) => setS("showPrograms", event.target.checked)}
+              />
+              Show degree programs
+            </label>
+            <label className="row small" style={{ gap: 8 }}>
+              <input
+                type="checkbox"
+                checked={site.showVerify}
+                onChange={(event) => setS("showVerify", event.target.checked)}
+              />
+              Show the public verification link
+            </label>
 
             <div className="row" style={{ gap: 8, marginTop: 6 }}>
               <button className="btn primary" type="submit" disabled={busy}>
-                {busy ? "Saving…" : "Save website settings"}
+                {busy ? "Saving…" : "Save website"}
               </button>
+              <Link className="btn ghost" href="/site" target="_blank">
+                Preview
+              </Link>
             </div>
             {message && <span className="chip ok">{message}</span>}
             {error && <span className="chip danger">{error}</span>}

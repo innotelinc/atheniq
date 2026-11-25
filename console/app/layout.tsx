@@ -6,7 +6,6 @@ import { Nav } from "@/components/Nav";
 import { SignOutButton } from "@/components/SignOutButton";
 import { currentStaff } from "@/lib/current-staff";
 import { LEGAL_EMAIL } from "@/lib/legal";
-import { publicSiteOrigin } from "@/lib/branding";
 import { authEnabled } from "@/lib/session";
 import { ROLE_LABELS } from "@/lib/staff-policy";
 
@@ -19,6 +18,15 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const headerList = await headers();
 
+  // The public website wears its own white-labeled chrome (app/site/layout.tsx).
+  if (headerList.get("x-atheniq-public") === "1") {
+    return (
+      <html lang="en">
+        <body>{children}</body>
+      </html>
+    );
+  }
+
   const staff = await currentStaff();
 
   // Public pages a visitor reaches without a session wear a header of public
@@ -30,13 +38,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <body>
           <div className="public-shell">
             <header className="public-bar">
-              <a className="brand" href={`${publicSiteOrigin()}/`}>
+              <Link className="brand" href="/site">
                 <BrandMark />
                 <span className="brand-text">
                   <span className="brand-name">AthenIQ</span>
                   <span className="brand-sub">Institute</span>
                 </span>
-              </a>
+              </Link>
               <nav className="public-links" aria-label="Public">
                 <Link href="/verify">Verify a credential</Link>
                 <Link href="/privacy">Privacy</Link>

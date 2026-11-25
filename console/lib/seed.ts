@@ -597,14 +597,13 @@ export const DEFAULT_SETTINGS: Settings = {
     logoText: "",
     logoPlacement: "left",
     accent: "#178f68",
-    // The published admissions desk, not whoever signs certificates: the
-    // console sends an applicant here, and the website prints the same address.
+    // The published admissions desk, not whoever signs certificates: the brand
+    // block is what the public site prints, and the site's own pages now name
+    // admissions@ and registrar@ explicitly.
     supportEmail: process.env.ADMISSIONS_EMAIL || "admissions@atheniq.institute",
     poweredBy: true,
     domain: process.env.PUBLIC_SITE_DOMAIN || "atheniq.institute",
   },
-  // Retired with /site: the console renders no website now, but the shape stays
-  // so stored records and old exports keep parsing.
   site: {
     published: true,
     headline: "A university for the work that’s coming.",
@@ -614,7 +613,7 @@ export const DEFAULT_SETTINGS: Settings = {
     showPrograms: true,
     showVerify: true,
     ctaLabel: "Explore the catalog",
-    ctaHref: "/catalog/",
+    ctaHref: "/site/courses",
     lastPublishedAt: null,
   },
   mail: {
@@ -1044,11 +1043,11 @@ export function buildSeed(): Database {
     version: 1,
     staff: [],
     accessRequests: [],
-    applications: [],
     authLog: [],
     loginSessions: [],
     enrollments: [],
     purchases: [],
+    news: [],
     courses: Array.from(courses.values()),
     programs,
     tracks,

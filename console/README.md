@@ -1,13 +1,9 @@
-# AthenIQ — Registrar console
+# AthenIQ — Course & School Management Console
 
-The staff side of AthenIQ Institute, the school that publishes
-[atheniq.institute](https://atheniq.institute): create and generate courses,
-publish them with their price and catalog placement, manage degree plans, run
-the front-facing website, and award certificates and degrees through Signara.
-
-It is staff-only. A student never opens it — applications and admissions
-questions go to the public site, and the classroom a student signs in to is
-[atheniq.courses](https://atheniq.courses).
+The registrar console behind [atheniq.institute](https://atheniq.institute) and
+[atheniq.courses](https://atheniq.courses): create and generate courses, publish
+them with their price and catalog placement, manage degree plans, and award
+certificates and degrees through Signara.
 
 It is a self-hosted Next.js app (Node, no external services required) that speaks
 the same shapes the AthenIQ platform already publishes — runtime keys
@@ -21,25 +17,29 @@ npm run dev        # http://localhost:3100
 
 ### Hosting
 
-The console answers on `registrar.atheniq.institute`; the institute's public
-website is `atheniq.institute`. One repository builds both sides now, so there
-is no second app to keep in step.
+The console is published at `https://registrar.atheniq.institute` through the
+Cerulean stack on `192.168.1.71`:
 
-- **This repository owns the app.** The compose file's `console` service builds
-  `./console`; `.github/workflows/console.yml` typechecks, builds and images it,
-  and `console/deploy/rebuild-on-host.sh` compiles it on the console host when
-  that host has less memory than `next build` wants.
-- **The door in front is the registrar proxy.**
-  `deploy/compose/atheniq-registrar-sso.yml` (`oauth2-proxy` on :8092 plus its
-  Redis) sits in front of the console on :8090 and admits the `atheniq-admins`
-  group. Routes the public legitimately needs — `/login`, `/verify`, `/pay`,
-  `/privacy`, `/request-access`, the `/site` redirect and the mobile API — are
-  skipped there and in `middleware.ts`.
-- **Staff only.** Every other page and API route needs a staff session; there is
-  no learner account, enrolment or admissions path in this app at all.
+- **DNS** — Technitium, zone `atheniq.institute`. A 300-second A record for
+  `registrar` points at the edge's public address, `73.68.203.71` (the same
+  address the apex uses).
+- **TLS and proxying** — Nginx Proxy Manager host 331 holds a Let's Encrypt
+  certificate for the name (renewed automatically) and forwards to
+  `http://192.168.1.17:3100`, the console host on the LAN, with WebSocket
+  upgrades enabled. TLS is forced; HTTP redirects.
+- **Production build behind the edge** — that upstream is `npm run build` then
+  `npm run start` on port 3100, not `next dev`; restart `npm start` after a
+  deploy so the new build is served.
 - **Console address** — `CONSOLE_ORIGIN` (default
   `https://registrar.<brand domain>`) is the origin alert email links back to;
-  the brand domain serves the public site, so `/staff` links must not use it.
+  the brand domain itself serves the public site, so `/staff` links must not use
+  it.
+- **Security headers** — host 331 sets HSTS (one year, `includeSubDomains`),
+  `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`,
+  `Permissions-Policy` and `Cross-Origin-Opener-Policy` through the
+  headers-more module's `more_set_headers`. A plain server-level `add_header`
+  would not reach the browser: NPM's `proxy.conf` sets one inside `location /`,
+  and a location-level `add_header` suppresses server-level inheritance.
 
 `next.config.mjs` still lists the origin in `allowedDevOrigins`, so HMR and
 server actions keep working when developing against the hostname with
@@ -440,19 +440,23 @@ data/                   store, published bundles, certificates (gitignored)
   Signara before it replaces anything) and email the
   digest (needs `MAIL_SMTP_*` or `MAIL_API_KEY`, plus `MAIL_FROM`; `DIGEST_TOKEN` lets a scheduler
   POST `/api/health/digest?token=…`).
-- **The public website.** The institute's website is `atheniq.institute`:
-  `web/landing/` in this repository, served from a git checkout behind the
-  edge's NPM proxy host 206 and published with `deploy/update-landing.sh`. The
-  console renders no second site — `/website` (registrars) is where the school's
-  name, tagline, mark, accent, admissions address and domain are set, and
-  `/site` redirects to the real site instead of answering as a duplicate
-  storefront. Because the brand is data, the same console can point at another
-  school under another domain. Students never come through the console: an
-  account is created at `atheniq.courses/register` and signed in to at
-  `atheniq.courses/login`. `next.config.mjs` lists `registrar.atheniq.institute`
-  for `next dev`, so browsing through the real hostname keeps HMR and server
-  actions working. `http://localhost:3100` stays a secure context for passkeys;
-  a bare LAN address over plain HTTP is not.
+- **The public website.** `/website` (registrars) owns the front-facing site:
+  name, tagline, logo image or monogram, logo placement, accent color, support
+  address, domain and the section toggles. `/site` is the live preview, and any
+  host in `PUBLIC_SITE_HOSTS` (default `atheniq.institute`) is rewritten to it
+  with no staff session. The site is derived, never copied: published courses,
+  active programs and signed credentials appear from the platform, and every
+  price is USD, formatted from the same cents the console bills. Because the
+  brand is data, the same console can serve another school under another
+  domain — that is the white-label path. Point DNS at the console host, set the
+  domain, and `poweredBy` controls the AthenIQ credit line. The console itself
+  answers on its own host — `registrar.atheniq.institute` in production — because
+  any host not in `PUBLIC_SITE_HOSTS` is treated as the console; `next.config.mjs`
+  lists that origin for `next dev`, so browsing through the real hostname keeps
+  HMR and server actions working. On the console host the name resolves to
+  `192.168.1.71` so the LAN path goes through the Cerulean edge and gets the
+  public certificate. `http://localhost:3100` stays a secure context for
+  passkeys; a bare LAN address over plain HTTP is not.
 - **The LMS import is optional.** Open edX imports normally run in the CMS
   container (`python3 scripts/import-courses.py … --execute`); point
   `lms.importUrl` at an endpoint if one is exposed, otherwise use the generated

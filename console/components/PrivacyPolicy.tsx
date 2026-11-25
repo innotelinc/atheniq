@@ -3,9 +3,9 @@ import { LEGAL_EMAIL } from "@/lib/legal";
 import { getDb } from "@/lib/store";
 
 /**
- * The privacy policy, shared so the website and the console's public page
- * (/privacy) publish the same words: the App Store needs one stable URL, and a
- * second copy of a legal text is how two versions of it start.
+ * The privacy policy, shared by the public site page (/site/privacy) and the
+ * console's own public page (/privacy), because the App Store needs one stable
+ * URL and the marketing host does not serve this app.
  */
 export function PrivacyPolicy() {
   const db = getDb();

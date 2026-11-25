@@ -3,11 +3,9 @@
  * Uploads the 6.9-inch iPhone screenshot set to the App Store Connect draft.
  *
  * A version cannot be submitted without screenshots, and they are per display
- * size, not per device: the 6.9-inch canvas (1320×2868 portrait, what an iPhone
- * 16 Pro Max simulator captures) uploads into APP_IPHONE_67, because Apple never
- * added a 69 display type and the API answers 409 for anything it does not list.
- * The workflow `.github/workflows/ios-screenshots.yml` takes the frames; this
- * puts them in.
+ * size, not per device: "APP_IPHONE_69" wants 1320×2868 portrait images (what
+ * an iPhone 16 Pro Max simulator captures). The workflow
+ * `.github/workflows/ios-screenshots.yml` takes them; this puts them in.
  *
  *   node scripts/asc-screenshots.mjs --dir screenshots            # show the plan
  *   node scripts/asc-screenshots.mjs --dir screenshots --apply    # replace the set
@@ -19,46 +17,18 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 const API = "https://api.appstoreconnect.apple.com/v1";
-// The 6.7/6.9-inch display family: APP_IPHONE_67 accepts 1320×2868 as well as
-// 1290×2796, and it is the only one of the two the API will take.
+const DISPLAY = "APP_IPHONE_69";
+const EXPECTED = ["1320x2868", "2868x1320"];
 const args = process.argv.slice(2);
 const APPLY = args.includes("--apply");
-// Read-only: what Apple has done with the set that is already there. The upload
-// path reports the state it finds a moment after the bytes land, which is
-// UPLOAD_COMPLETE while Apple is still checking the images — this answers the
-// question that comes later, without touching the listing.
-const STATUS = args.includes("--status");
-/** Whether this run names one slot, or (with --status) should report every one. */
-const DISPLAY_GIVEN = args.includes("--display");
 const valueAfter = (name) => {
   const index = args.indexOf(name);
   return index >= 0 ? args[index + 1] : undefined;
 };
 const DIR = valueAfter("--dir") || "screenshots";
-/** Which display slot this run fills. The iPhone set does not satisfy an iPad app. */
-const DISPLAY = valueAfter("--display") || "APP_IPHONE_67";
-const DISPLAY_SIZES = {
-  // 6.9-inch phones (1320×2868) and 6.7-inch (1290×2796) share one slot.
-  APP_IPHONE_67: ["1320x2868", "1290x2796", "2868x1320"],
-  // The 6.3-inch phone: 1206×2622 is an iPhone 16/17 Pro; 1179×2556 is the
-  // 6.1-inch 15/14 Pro that Apple also accepts here. App Review asks for both
-  // iPhone sizes, and a draft with only the 6.9-inch set cannot be submitted.
-  APP_IPHONE_61: ["1206x2622", "1179x2556", "2622x1206"],
-  APP_IPAD_PRO_3GEN_129: ["2064x2752", "2048x2732", "2752x2064"],
-};
-// Read after the table above exists: referring to either of those consts in the
-// line that used to sit at the top of the file threw a temporal-dead-zone
-// ReferenceError, which is how the upload failed on a set that was already
-// captured.
-const EXPECTED = DISPLAY_SIZES[DISPLAY] ?? DISPLAY_SIZES.APP_IPHONE_67;
-// Found from this file, not the working directory: the workflow runs at the
-// repository root, and after the merge the copy sits beside the app it describes.
-const META_PATH =
-  process.env.SUBMISSION_METADATA ||
-  path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "mobile", "store", "submission.json");
+const META_PATH = process.env.SUBMISSION_METADATA || "mobile/store/submission.json";
 
 const meta = JSON.parse(fs.readFileSync(META_PATH, "utf8"));
 const log = (...parts) => console.log(...parts);
@@ -127,31 +97,21 @@ function bearerToken() {
 let token = "";
 async function call(method, requestPath, body) {
   if (!token) token = bearerToken();
-  // App Store Connect 500s on reads that succeed a moment later; the iPad set
-  // was lost that way after the iPhone set had already gone in. Retrying the
-  // request is what makes a run finish the job it started.
-  const attempts = 4;
-  for (let attempt = 1; ; attempt += 1) {
-    const response = await fetch(`${API}${requestPath}`, {
-      method,
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: body ? JSON.stringify(body) : undefined,
-    });
-    const text = await response.text();
-    const data = text ? JSON.parse(text) : {};
-    if (response.ok) return data;
+  const response = await fetch(`${API}${requestPath}`, {
+    method,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const text = await response.text();
+  const data = text ? JSON.parse(text) : {};
+  if (!response.ok) {
     const detail = (data.errors || []).map((error) => `${error.title}: ${error.detail ?? ""}`).join("; ");
-    const retryable = response.status === 429 || response.status >= 500;
-    if (retryable && attempt < attempts) {
-      warn(`${method} ${requestPath} failed (${response.status}); retrying (${attempt}/${attempts - 1})`);
-      await new Promise((resolve) => setTimeout(resolve, attempt * 2000));
-      continue;
-    }
     throw new Error(`${method} ${requestPath} failed (${response.status}) — ${detail || text}`);
   }
+  return data;
 }
 
 const OPEN_STATES = ["PREPARE_FOR_SUBMISSION", "METADATA_REJECTED", "DEVELOPER_REJECTED", "REJECTED"];
@@ -244,65 +204,7 @@ async function stateOf(shotId) {
   return shot.data.attributes.assetDeliveryState?.state || "UNKNOWN";
 }
 
-async function reportStatus() {
-  const version = await findDraftVersion();
-  const localization = await findLocalization(version.id);
-  const sets = await call(
-    "GET",
-    `/appStoreVersionLocalizations/${localization.id}/appScreenshotSets?limit=20&fields[appScreenshotSets]=screenshotDisplayType`,
-  );
-  // No --display means "which sets does the draft have at all": the answer a
-  // submission needs, since a missing size blocks review just like a rejected
-  // image, and neither is visible from the upload's own log.
-  const selected = DISPLAY_GIVEN
-    ? sets.data.filter((item) => item.attributes.screenshotDisplayType === DISPLAY)
-    : sets.data;
-
-  log(`${meta.name} ${meta.version} — screenshot sets on ${meta.locale}`);
-  if (DISPLAY_GIVEN && !selected.length) {
-    fail(`The draft has no ${DISPLAY} screenshot set. Upload one first (--apply).`);
-  }
-  if (!sets.data.length) {
-    fail("The draft has no screenshot sets at all. Run the screenshots workflow first.");
-  }
-
-  let totalPending = 0;
-  let totalFailed = 0;
-  for (const set of selected) {
-    const display = set.attributes.screenshotDisplayType;
-    const listed = await call(
-      "GET",
-      `/appScreenshotSets/${set.id}/appScreenshots?limit=50&fields[appScreenshots]=fileName,assetDeliveryState`,
-    );
-    let pending = 0;
-    let failed = 0;
-    log("");
-    log(`${display} (${listed.data.length} image${listed.data.length === 1 ? "" : "s"})`);
-    for (const shot of listed.data) {
-      const state = shot.attributes.assetDeliveryState?.state || "UNKNOWN";
-      const errors = (shot.attributes.assetDeliveryState?.errors || []).map((error) => error.code || error.description);
-      log(`  ${shot.attributes.fileName.padEnd(22)} ${state}${errors.length ? ` — ${errors.join(", ")}` : ""}`);
-      if (state === "FAILED") failed += 1;
-      else if (state !== "COMPLETE") pending += 1;
-    }
-    log(`  ${listed.data.length - pending - failed} complete, ${pending} still processing, ${failed} failed`);
-    totalPending += pending;
-    totalFailed += failed;
-  }
-
-  if (!DISPLAY_GIVEN) {
-    const present = new Set(sets.data.map((item) => item.attributes.screenshotDisplayType));
-    const missing = Object.keys(DISPLAY_SIZES).filter((slot) => !present.has(slot));
-    log("");
-    log(`sets: ${[...present].join(", ")}`);
-    log(missing.length ? `known slots not on the draft: ${missing.join(", ")}` : "every known slot is on the draft");
-  }
-  if (totalFailed) fail(`${totalFailed} image(s) failed Apple's checks; open the set in App Store Connect.`);
-  if (totalPending) log("Apple is still processing; re-run --status in a few minutes.");
-}
-
 async function main() {
-  if (STATUS) return reportStatus();
   const files = screenshots();
   log(`${meta.name} ${meta.version} → ${DISPLAY}, ${files.length} screenshot(s) from ${DIR}`);
   for (const file of files) log(`  ${path.basename(file)} ${pixelSize(file)}`);

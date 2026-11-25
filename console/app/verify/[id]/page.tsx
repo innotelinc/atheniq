@@ -81,17 +81,9 @@ export default async function VerifyResultPage({ params }: { params: Promise<{ i
                     and issued to the learner record. The evidence hash binds the certificate to the completion
                     data it was signed over.
                   </p>
-                  {valid ? (
-                    <a className="btn" href={`/verify/${credential.verifyId}/certificate?download=1`}>
-                      Download the signed PDF
-                    </a>
-                  ) : (
-                    <p className="muted">
-                      {credential.status === "revoked"
-                        ? "No download: a revoked award stops being issued as a document, so the certificate cannot keep circulating as if it still stood."
-                        : "No download yet: the document is signed when the award is issued."}
-                    </p>
-                  )}
+                  <a className="btn" href={`/api/credentials/${credential.id}/certificate?download=1`}>
+                    Download the signed PDF
+                  </a>
                   {staff ? (
                     <Link className="btn ghost" href={`/credentials/${credential.id}`}>
                       Registrar view

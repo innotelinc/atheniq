@@ -24,6 +24,29 @@ const GROUPS: {
         ),
       },
       {
+        href: "/students",
+        label: "Students",
+        roles: ["registrar"],
+        icon: (
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="8" r="3.4" />
+            <path d="M5 20c0-3.6 3.1-6.2 7-6.2s7 2.6 7 6.2" />
+          </svg>
+        ),
+      },
+      {
+        href: "/news",
+        label: "News",
+        roles: ["registrar"],
+        icon: (
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M4 5h11v14H5.5A1.5 1.5 0 014 17.5z" />
+            <path d="M15 8h4v9a2 2 0 01-4 0z" />
+            <path d="M7 9h5M7 12h5M7 15h3" />
+          </svg>
+        ),
+      },
+      {
         href: "/programs",
         label: "Degrees & programs",
         icon: (
@@ -38,17 +61,6 @@ const GROUPS: {
   {
     label: "Teach",
     items: [
-      {
-        href: "/admissions",
-        label: "Admissions",
-        icon: (
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M6 3h9l4 4v14H6z" />
-            <path d="M14 3v5h5" />
-            <path d="M9 13h6M9 17h4" />
-          </svg>
-        ),
-      },
       {
         href: "/courses",
         label: "Courses",

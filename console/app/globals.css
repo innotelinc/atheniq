@@ -156,9 +156,9 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .split { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); gap: 18px; align-items: start; }
-/* The shared privacy-policy prose as console pages show it. Scoped to .main,
-   the console's own content column, so a page outside the shell can style the
-   same component differently. */
+/* The shared privacy-policy prose as console pages show it (the public site
+   styles the same component in app/site/site.css). Scoped to .main, which the
+   site layout does not render. */
 .main .prose { display: flex; flex-direction: column; gap: 14px; }
 .main .prose h2 { margin-top: 10px; }
 .main .prose ul { padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
@@ -426,3 +426,35 @@ table.data td.actions { text-align: right; white-space: nowrap; }
   .form-grid .span-2 { grid-column: span 1; }
   .stat-grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ── Student portal ─────────────────────────────────────────────────────────
+   The portal is a learner surface, so it borrows the console's variables and
+   none of its navigation. */
+.portal, .portal-auth { max-width: 880px; margin: 0 auto; padding: 32px 20px 72px; }
+.portal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.portal-title { font-size: 28px; margin: 0 0 4px; }
+.portal-lede { margin: 0 0 24px; opacity: .75; }
+.portal-h2 { font-size: 18px; margin: 0 0 12px; }
+.portal-section { margin-top: 36px; }
+.portal-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; }
+.portal-stat { border: 1px solid rgba(128,128,128,.28); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; }
+.portal-stat-value { font-size: 22px; font-weight: 600; }
+.portal-stat-label { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; opacity: .7; }
+.portal-courses { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.portal-course { border: 1px solid rgba(128,128,128,.28); border-radius: 10px; padding: 16px; }
+.portal-course-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.portal-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; opacity: .8; }
+.portal-course-title { font-weight: 600; }
+.portal-badge { margin-left: auto; font-size: 12px; border-radius: 999px; padding: 2px 10px; border: 1px solid rgba(128,128,128,.4); }
+.portal-badge.is-done { border-color: #178f68; color: #178f68; }
+.portal-bar { height: 6px; border-radius: 999px; background: rgba(128,128,128,.25); overflow: hidden; margin-bottom: 8px; }
+.portal-bar > span { display: block; height: 100%; background: #178f68; }
+.portal-aside { font-size: 13px; opacity: .75; margin: 6px 0 0; }
+.portal-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.portal-table th, .portal-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid rgba(128,128,128,.22); }
+.portal-certs { list-style: none; margin: 0; padding: 0; }
+.portal-certs li { padding: 6px 0; }
+.portal-form { display: flex; flex-direction: column; gap: 14px; max-width: 360px; }
+.portal-form label { display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.portal-form input { padding: 10px 12px; border-radius: 8px; border: 1px solid rgba(128,128,128,.45); font: inherit; }
+.portal-error { color: #b42318; font-size: 14px; }

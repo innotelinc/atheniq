@@ -129,11 +129,24 @@ export interface Track {
   updatedAt: string;
 }
 
+/** The @atheniq.institute mailbox a student keeps after they graduate. */
+export interface LearnerMailbox {
+  address: string;
+  /**
+   * `allocated` means the school has reserved the name for this student;
+   * `active` means the mailbox exists on the mail server and accepts mail.
+   */
+  status: "allocated" | "active" | "suspended";
+  createdAt: string;
+}
+
 export interface Learner {
   id: string;
   username: string;
   name: string;
   email: string;
+  /** Reserved institute address; absent until the registrar allocates one. */
+  mailbox?: LearnerMailbox | null;
   programId: string | null;
   enrolledAt: string;
   /** scrypt hash for app sign-in; absent on learners the registrar created. */
@@ -178,6 +191,18 @@ export interface Purchase {
   decidedBy: string | null;
   /** True when a registrar opened the course without a payment. */
   granted: boolean;
+}
+
+/** An announcement the registrar publishes to student portals. */
+export interface NewsPost {
+  id: string;
+  title: string;
+  body: string;
+  /** "all", or a program id to address a single cohort. */
+  audience: string;
+  pinned: boolean;
+  publishedAt: string;
+  author: string;
 }
 
 export interface Completion {
@@ -250,7 +275,7 @@ export interface Credential {
 
 export type LogoPlacement = "left" | "center" | "right";
 
-/** What this school is called and how it is marked, wherever the console speaks for it. */
+/** Everything the public site shows as *your* school — white-label surface. */
 export interface BrandSettings {
   siteName: string;
   tagline: string;
@@ -267,12 +292,6 @@ export interface BrandSettings {
   domain: string;
 }
 
-/**
- * Retired with /site. The console no longer renders or publishes a website —
- * that is a static tree, `web/landing/`, published by a deploy script — but the
- * shape stays so stored records and old exports keep parsing. No page edits
- * these, and the integrations API ignores a caller that sends them.
- */
 export interface SiteSettings {
   published: boolean;
   headline: string;
@@ -332,46 +351,6 @@ export interface AccessRequest {
   passwordHash: string;
   status: AccessRequestStatus;
   createdAt: string;
-  decidedAt: string | null;
-  decidedBy: string | null;
-}
-
-/** Where an application stands. Only a registrar moves it past "received". */
-export type ApplicationStatus = "received" | "reviewing" | "accepted" | "waitlisted" | "declined";
-
-/** The transcript a learner uploaded with the application, as stored on disk. */
-export interface TranscriptRef {
-  /** What the applicant called the file, kept for the download. */
-  fileName: string;
-  mimeType: string;
-  bytes: number;
-  /** Basename under data/transcripts; never a path the client supplied. */
-  storedAs: string;
-  uploadedAt: string;
-}
-
-/**
- * One application to a program for a term. The goals statement and the
- * transcript are what admissions reads; everything else is the person and the
- * plan they picked, snapshotted so a later program rename does not rewrite
- * history.
- */
-export interface Application {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  programId: string;
-  programName: string;
-  term: string;
-  goals: string;
-  transcript: TranscriptRef | null;
-  status: ApplicationStatus;
-  /** The registrar's note: why it was decided, or what is still missing. */
-  note: string;
-  source: string;
-  createdAt: string;
-  updatedAt: string;
   decidedAt: string | null;
   decidedBy: string | null;
 }
@@ -591,8 +570,8 @@ export interface Activity {
     | "learner.enrolled"
     | "learner.completed"
     | "course.purchased"
-    | "application.received"
-    | "application.decided";
+    | "news.published"
+    | "mailbox.allocated";
   message: string;
   ref: string;
   actor?: ActorRef | null;
@@ -608,11 +587,11 @@ export interface Database {
   enrollments: Enrollment[];
   purchases: Purchase[];
   completions: Completion[];
+  news: NewsPost[];
   credentials: Credential[];
   sessions: GenSession[];
   activity: Activity[];
   accessRequests: AccessRequest[];
-  applications: Application[];
   authLog: AuthEvent[];
   loginSessions: LoginSession[];
   /** Recently ended sessions; capped, so the list survives pruning. */

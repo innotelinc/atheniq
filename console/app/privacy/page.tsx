@@ -1,5 +1,5 @@
+import Link from "next/link";
 import { PrivacyPolicy } from "@/components/PrivacyPolicy";
-import { publicSiteOrigin } from "@/lib/branding";
 
 export const dynamic = "force-dynamic";
 
@@ -11,8 +11,8 @@ export const metadata = { title: "Privacy policy — AthenIQ" };
  * A plain public page, because a reviewer opens it with no account. Both this
  * path and `/_next/` are exempt from the console host's oauth2-proxy
  * (`deploy/compose/atheniq-sso.yml`), so the page and the bundle it hydrates
- * from arrive signed out. The words come from the shared component, so the
- * website can publish the same text without a second copy of it.
+ * from arrive signed out. The words come from the shared component, so the site
+ * page at /site/privacy cannot drift from this one.
  */
 export default function PrivacyPage() {
   return (
@@ -25,7 +25,7 @@ export default function PrivacyPage() {
         <PrivacyPolicy />
       </div>
       <p className="tiny muted" style={{ marginTop: 32 }}>
-        <a href={`${publicSiteOrigin()}/`}>AthenIQ Institute</a>
+        <Link href="/site">AthenIQ Institute</Link>
       </p>
     </div>
   );
