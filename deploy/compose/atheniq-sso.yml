@@ -136,6 +136,11 @@ services:
       - --pass-user-headers=true
       - --session-store-type=redis
       - --skip-auth-route=^/portal($|[/?])
+      - --skip-auth-route=^/api/portal/
+      - --skip-auth-route=^/_next/
+      - --skip-auth-route=^/site($|[/?])
+      - --skip-auth-route=^/verify($|[/?])
+      - --skip-auth-route=^/privacy($|[/?])
       - --skip-auth-route=^/api/health($|[/?])
       - --upstream=http://192.168.1.59:8094
       - --http-address=0.0.0.0:4180
