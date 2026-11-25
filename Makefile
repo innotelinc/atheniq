@@ -25,8 +25,8 @@ help: ## Show this help message
 
 ## ---- Bootstrap ------------------------------------------------------------
 
-setup: ## Preflight, install guard hooks, generate .env secrets
-	bash scripts/setup.sh
+setup: ## Guided install: domains, admin, secrets, guard hooks
+	./setup.sh
 
 ## ---- Compose (this repo's AI services) -----------------------------------
 

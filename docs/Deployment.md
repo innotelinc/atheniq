@@ -23,9 +23,21 @@ cd atheniq
 ./setup.sh
 ```
 
-`setup.sh` is idempotent: it preflights the tools above, installs the local
-attribution guard hooks, and (first run only) creates `.env` from
-[.env.example](../.env.example) with generated secrets. It prints the stage
+The wizard is general: it asks for the institution name, its domain, the
+administrator who bootstraps the console, the model-gateway URL, and the
+certificate signatory, then derives `learn.<domain>`, `studio.<domain>` and
+`registrar.<domain>` from the domain. It writes `.env` and `console/.env`
+(mode 600) from the two example files with fresh values for the services this
+stack owns — the OpenMAIC database password and URL, the persistence token, the
+Convex instance secret, and the console administrator password and session
+secret. Credentials owned by another system (Authentik, Cerulean, Signara,
+Magnate, the Convex admin key) are left as placeholders for the stage that
+issues them; nothing is printed that should stay in the file.
+
+It is idempotent: existing env files are kept unless `--force` is passed.
+`./setup.sh --check` preflights the tools and exits, `--no-input` accepts every
+default (CI or a scripted bring-up), and `--dry-run` prints the plan without
+writing. It also installs the local attribution guard hooks and prints the stage
 checklist below.
 
 ## Stage 1 — LMS core (Tutor)

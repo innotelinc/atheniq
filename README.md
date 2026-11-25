@@ -70,8 +70,16 @@ through the Innotel Platform Stack.
 ```bash
 git clone https://github.com/innotelinc/atheniq.git
 cd atheniq
-./setup.sh        # installs guard hooks, generates .env secrets, prints the checklist
+./setup.sh        # guided install: institution, domain, admin, AI gateway, secrets
 ```
+
+The wizard derives the LMS, Studio and console hosts from your domain, writes
+`.env` and `console/.env` (mode 600) with fresh secrets for the services this
+stack owns, installs the guard hooks, and prints the stage checklist. It never
+prints a secret and never invents a credential that belongs to another system.
+On a re-run it keeps existing env files; `--force` replaces them. `--check`
+preflights only, `--no-input` takes every default, and `--dry-run` shows the
+plan without writing.
 
 ### 1. LMS core — Tutor
 
