@@ -52,7 +52,7 @@ openmaic-up: ## Start the OpenMAIC persistence Postgres
 openmaic-down: ## Stop the OpenMAIC persistence Postgres
 	docker compose --profile openmaic down
 
-generation-console: ## Run the course-generation console locally on :8090 (deployed console is :8094)
+generation-console: ## Run the optional classroom front locally on :8090 (not part of the deployed stack)
 	python3 scripts/generation-console.py --trust-local
 
 ## ---- Realtime (Convex) ----------------------------------------------------

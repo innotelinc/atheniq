@@ -422,94 +422,85 @@ the owner's concurrent-run limit, so leaving them behind jams a batch shut.
 `--skip <slug|code>` leaves a course out of the run, which is how the demo course
 stays classroom-free.
 
-### Course-generation console (`ai.atheniq.courses`)
+### Classroom generation (`ai.atheniq.courses`)
 
-`scripts/build-classrooms.py` is the batch: an operator runs it from a shell, in
-one long command, and reads the log. The console is the same work from a
-browser — the staff screen that lists every course's classroom briefs, starts
-one, shows the run's step, and writes a finished classroom's id back into the
-spec on its own. It is a **front for OpenMAIC**, not a second generator:
-OpenMAIC keeps the runs, the classrooms and the model settings.
+`scripts/build-classrooms.py` is the official path from a course spec's classroom
+briefs to real OpenMAIC classrooms. An operator runs it from a checkout, in one
+long command, and reads the log: it plans the briefs that have no
+`classroom_id`, submits one run per brief, polls them, and writes each finished
+classroom's id back into `courses/<slug>/openmaic/classrooms.json`. OpenMAIC
+keeps the runs, the classrooms and the model settings — the script is the
+operator's interface to that API, not a second generator.
 
 ```bash
-make up                       # this repo's compose: openmaic + convex profiles
-# on a box that runs OpenMAIC, start the classroom front deliberately:
-docker compose --profile generation up -d generation   # 0.0.0.0:8090
-# or for local dev only:
-make generation-console       # 127.0.0.1:8090, trusting local requests
+python3 scripts/build-classrooms.py --course <slug> --json    # plan, starts nothing
+python3 scripts/build-classrooms.py --execute --jobs 2        # submit, poll, record
+python3 scripts/build-classrooms.py --skip <slug|code> --execute
 ```
 
-Both listen on 8090, and neither is part of a default bring-up: the compose
-service is behind the `generation` profile, so a plain `docker compose up` or
-`deploy.sh` leaves it out, and a stale `atheniq-generation` container on the
-reference host is never recreated. The deployed console on `192.168.1.59:8094`
-behind its door is the Next.js app (`console/`): it drafts and publishes
-courses, but it does not drive OpenMAIC runs, so classroom generation stays
-with `scripts/build-classrooms.py` or this front. Nothing publishes 8090 on
-the reference host.
+Re-running is safe: a classroom that already records an id is skipped, one that
+is already in flight is not submitted twice, and only `--force` overrides that.
+`--models` limits the run to slots the deployment declares, `--max-resumes` and
+`--run-timeout` bound a batch, and `--inject` / `--publish` carry on to the LMS
+steps. The model, fallback and paused-run details are in the section above; the
+script discards a paused run before trying the next model, because a paused run
+with no classroom still counts against the owner's concurrent-run limit.
 
-What it serves (`web/generate/`, no build step, stdlib Python — see the module
-docstring in `scripts/generation-console.py` for the full route list):
+**The browser front is optional.** `scripts/generation-console.py` (page in
+`web/generate/`, stdlib Python, no build step) puts that batch on a web page: one
+row per classroom brief with a **Generate** button, the runs OpenMAIC is holding
+with their step and error words, **Generate all missing**, and a free-form brief
+for something not in a spec yet. It is a **front for OpenMAIC**, not a second
+generator.
 
-- **Courses** — one row per classroom in `courses/*/openmaic/classrooms.json`,
-  with its chapter, its linked units, and whether the spec already records a
-  `classroom_id`. A missing one gets a **Generate** button; a generated one
-  links straight to `classroom.<domain>/classroom/<id>`.
-- **Runs** — what OpenMAIC is holding: step, progress, and the gateway's own
-  error words on a paused run. A paused run can be **retried** or **discarded**
-  (a run that already produced a classroom answers 409 and is kept). A run that
-  came from a spec is **recorded without a click**: the moment it completes, its
-  `classroom_id` is written into the spec and the entry leaves the list, which is
-  what the batch tool does in `--execute`. A spec that has meanwhile been given a
-  *different* classroom is the one case left for a person — overwriting it would
-  silently repoint a course's embeds — so that run stays visible with the reason
-  attached.
-- **Generate all missing** — one run per classroom without a `classroom_id`,
-  across every spec in `courses/`. Two ceilings decide how many run at once, and
-  both are configuration rather than code: `GENERATION_SUBMITS_PER_HOUR` (the
-  console's own per-person hourly limit, default 10, `0` disables it) and
-  OpenMAIC's `OPENMAIC_MAX_ACTIVE_RUNS_PER_OWNER` (how many of one owner's runs
-  may be in progress at once, platform default 2). What neither ceiling can start
-  is **queued**, not dropped: the service keeps the classroom, the answer says how
-  many are waiting, the page lists them under the runs they are waiting for, and
-  the next run to finish starts the next one — the sweeper's tick does it with no
-  page open, and the page's own poll does it while one is. One click therefore
-  covers a whole course. The number running at once is the active-run limit, so a
-  deployment that wants five sets it to `5` (with
-  `OPENMAIC_AGENT_RUNTIME_MAX_CONCURRENT` and
-  `OPENMAIC_GENERATION_RUN_MAX_CONCURRENT` at least that high, since the lowest
-  ceiling wins). `ai.atheniq.courses` runs that way: the hourly limit is off and all three
-  are `5`. Classrooms already in flight are skipped rather than submitted twice,
-  because the spec does not learn about a run until it finishes; so is one the
-  spec has meanwhile been given, with the reason attached.
-- **New brief** — a free-form classroom for something not in a spec yet.
-
-Recording does not depend on somebody having the page open: the service sweeps
-finished runs every `GENERATION_AUTORECORD_SECONDS` (the unit ships `20`), and
-keeps the run → spec map in `GENERATION_STATE` so a restart between a run
-finishing and its recording does not lose it.
-
-**Who may generate.** The console sits behind an oauth2-proxy and does not trust
-it blindly: every request must carry the identity headers the proxy sets, and
-the caller must hold one of `GENERATION_ALLOWED_GROUPS` (default
-`atheniq-admins,instructors`; the unit on this host sets `atheniq-admins`, which
-is the staff group that exists). No headers is a 401, the wrong groups is a 403,
-so a misrouted proxy fails closed instead of publishing an endpoint that spends
-model budget.
-
-The console reads **both** header families oauth2-proxy can supply, because the
-two flags write to different places: `--set-xauthrequest` sets
-`X-Auth-Request-*` on the *response* (for an nginx `auth_request` in front),
-while `--pass-user-headers` sets `X-Forwarded-*` on the request it proxies
-*upstream* — the request the console receives. Accepting only the first family
-is what made a signed-in browser get 401 from every `/api/` call, and the
-console's "signed out" label, while the proxy logged the same user as
-authenticated. `X-Auth-Request-*` wins when both are present. Mutating calls also
-require the console's own header plus a same-origin `Origin`, which is what stops
-a cross-site post.
+It is not part of a default bring-up. The compose service sits behind the
+`generation` profile, so a plain `docker compose up` or `deploy.sh` leaves it out
+and a stale `atheniq-generation` container on the reference host is never
+recreated:
 
 ```bash
-# alongside the classroom's own oauth2-proxy; the upstream is where the console
+# on a box that runs OpenMAIC, start the front deliberately:
+docker compose --profile generation up -d generation    # 0.0.0.0:8090
+# or for local dev only:
+make generation-console                                 # 127.0.0.1:8090
+```
+
+Recording does not depend on somebody having the page open: the front sweeps
+finished runs every `GENERATION_AUTORECORD_SECONDS` (the shipped value is `20`)
+and keeps its run → spec map in `GENERATION_STATE`, so a restart between a run
+finishing and its recording does not lose it. A run that already produced a
+classroom answers 409 and is kept. The one case left for a person is a spec that
+has meanwhile been given a *different* classroom: overwriting it would silently
+repoint a course's embeds, so that run stays visible with the reason attached.
+
+**Generate all missing** submits one run per brief without a `classroom_id`
+across every spec in `courses/`. Two ceilings decide how many run at once, both
+configuration: `GENERATION_SUBMITS_PER_HOUR` (this front's own per-person hourly
+limit, default 10, `0` disables it) and OpenMAIC's
+`OPENMAIC_MAX_ACTIVE_RUNS_PER_OWNER`. What neither ceiling can start is queued,
+not dropped: the answer says how many are waiting, the page lists them under the
+runs they wait for, and the next run to finish starts the next one. A deployment
+that wants several at once turns the hourly limit off and sets the active-run
+limit to that number — the reference host used that posture (hourly off, five
+active) while this front was its staff screen.
+
+**Who may reach the front.** It sits behind an oauth2-proxy and does not trust it
+blindly: every request must carry the identity headers the proxy sets, and the
+caller must hold one of `GENERATION_ALLOWED_GROUPS` (default
+`atheniq-admins,instructors`). No headers is a 401, the wrong groups a 403, so a
+misrouted proxy fails closed instead of exposing an endpoint that spends model
+budget.
+
+It reads **both** header families oauth2-proxy can supply, because the two flags
+write to different places: `--set-xauthrequest` sets `X-Auth-Request-*` on the
+*response* (for an nginx `auth_request` in front), while `--pass-user-headers`
+sets `X-Forwarded-*` on the request it proxies *upstream* — the request the front
+receives. Accepting only the first family is what once made a signed-in browser
+get 401 from every `/api/` call. `X-Auth-Request-*` wins when both are present.
+Mutating calls also require the front's own header plus a same-origin `Origin`.
+
+```bash
+# alongside the classroom's own oauth2-proxy; the upstream is where the front
 # listens (GENERATION_BIND), not OpenMAIC itself
 oauth2-proxy \
   --provider=oidc --oidc-issuer-url=https://auth.cerulean.innotel.us/application/o/classroom/ \
@@ -518,24 +509,30 @@ oauth2-proxy \
   --approval-prompt=auto \
   --set-xauthrequest=true --pass-user-headers=true --cookie-secure=true \
   --reverse-proxy=true --http-address=0.0.0.0:3001 \
-  --upstream=http://<atheniq host>:8094
+  --upstream=http://<atheniq host>:8090
 ```
 
 **Why it runs on the host network.** OpenMAIC publishes its API on the host's
 loopback (`OPENMAIC_PUBLISH_ADDRESS=127.0.0.1`) so nothing on the LAN reaches it
-without the SSO proxy in front of it; a bridged console container cannot see
-that address,
-and publishing OpenMAIC for the console's sake would undo the isolation. On the
-host network the console dials `127.0.0.1:3000` and listens on `GENERATION_BIND`
-(the LAN address the proxy dials). `courses/` is mounted writable, for recording
-a classroom id in its spec; `scripts/` and `web/` are read-only.
+without the SSO proxy in front of it; a bridged container cannot see that
+address, and publishing OpenMAIC for this front's sake would undo the isolation.
+On the host network it dials `127.0.0.1:3000` and listens on `GENERATION_BIND`
+(the LAN address the proxy dials). `courses/` is mounted writable, for recording a
+classroom id in its spec; `scripts/` and `web/` are read-only. `/healthz` answers
+without an identity, so the container healthcheck does not need to sign in.
 
-`/healthz` answers without an identity (it says the process is up and nothing
-else) so the container healthcheck does not need to sign in.
+**The Next console is course authoring.** The staff console (`console/`,
+`atheniq-console.service`) on `192.168.1.59:8094` behind `generation-sso` drafts
+a course from an idea in **Course studio**, reviews it, and publishes to the LMS.
+It has no OpenMAIC client and starts no classroom runs: there is no Generate
+button for a brief there, which is why the batch above (or the optional front)
+remains the way classrooms are produced. Its `/api/health` is the path
+`generation-sso` answers without a session
+(`--skip-auth-route=^/api/health($|[/?])`), which is what the uptime timer below
+probes.
 
-`generation-sso` skips authentication for exactly that path
-(`--skip-auth-route=^/healthz$`), so an uptime probe can cross the same
-NPM -> oauth2-proxy -> console path a browser takes. The timer below runs
+`generation-sso` skips authentication for exactly that path, so a probe crosses
+the same NPM -> oauth2-proxy -> console path a browser takes. The timer runs
 `scripts/check-generation-console.sh` every five minutes and leaves the unit
 failed when the console or the proxy stops answering:
 
@@ -569,21 +566,16 @@ POST for ntfy-style endpoints); this host sends email only. The unit is left
 failed whether or not a channel is configured, and a failed delivery is printed
 in the journal without masking the probe's own failure.
 
-**Retired (2026-10, superseded 2026-11).** This used to run from
+**Retired (2026-10, superseded 2026-11).** The front used to run from
 `atheniq-generation.service`, which bound `192.168.1.59:8090` with
 `/home/tutor/atheniq-generation` holding `scripts/generation-console.py`,
 `web/generate/` and the fourteen `courses/*/openmaic/classrooms.json`. That unit
 is gone from `deploy/systemd/`, and the compose service of the same name is
 behind the `generation` profile, so neither a reinstall nor `deploy.sh` starts
-it. The host now does the staff work in the Next.js console (`console/`,
-`atheniq-console.service`) on `192.168.1.59:8094` behind the same
-`generation-sso` door. The console does not yet drive OpenMAIC runs: classroom
-generation there is `scripts/build-classrooms.py` from a checkout, and this
-front is opt-in on a box with OpenMAIC (`docker compose --profile generation up
--d generation`) — not on the reference host. The edge history below is kept for
-the certificate work only.
+it. Nothing publishes 8090 on the reference host; the staff console on 8094 does
+the authoring, and classroom runs there are the batch script from a checkout.
 
-In front of the app, a second oauth2-proxy (`generation-sso`, published
+In front of the console, a second oauth2-proxy (`generation-sso`, published
 `192.168.1.59:8091`) reuses the classroom's Authentik client with
 `--set-xauthrequest`/`--pass-user-headers`; its callback had to be added to that
 provider (the `Classroom` provider, `client_id=classroom`) — Authentik's OAuth2
@@ -2068,7 +2060,7 @@ matter on a first boot:
 | `DIGEST_TOKEN`, `DIGEST_TO` | lets a scheduler call `POST /api/health/digest` without a session |
 | `SIGNARA_*` | certificate signing; `/api/health` reports the key as unconfigured until it is set |
 | `VAULTWARDEN_URL` | password-vault provisioning from the staff page |
-| `OMNIROUTE_BASE_URL`, `OMNIROUTE_API_KEY` | the generation console's model gateway, if that page is used |
+| `OMNIROUTE_BASE_URL`, `OMNIROUTE_API_KEY` | the optional classroom front's model gateway, if that front is run |
 
 State lives in the `console-data` volume mounted at `/app/data` (`store.json`), which
 is why the service survives a recreate and why the volume � not a bind mount � is what
