@@ -136,9 +136,7 @@ services:
       - --pass-user-headers=true
       - --session-store-type=redis
       - --skip-auth-route=^/healthz($|[/?])
-      - --skip-auth-route=^/portal($|[/?])
-      - --skip-auth-route=^/api/portal/
-      - --upstream=http://192.168.1.59:8094
+      - --upstream=http://192.168.1.59:8090
       - --http-address=0.0.0.0:4180
       - --silence-ping-logging=true
     ports:
