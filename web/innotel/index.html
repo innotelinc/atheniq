@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Innotel Labs — Applied AI, learning platforms, and the systems behind them</title>
-  <meta name="description" content="Innotel Labs designs and operates applied-AI products, learning platforms and the infrastructure that carries them — Telno, Sage, CourseMate, AthenIQ, Cerulean, OnTrak, Zeus, Capstone, Distro, Genie and the services our partners run on.">
+  <meta name="description" content="Innotel Labs designs and operates applied-AI products, learning platforms and the infrastructure that carries them — Telno, Sage, AthenIQ, Cerulean, OnTrak, Zeus, Capstone, Distro, Genie and the services our partners run on.">
   <meta property="og:title" content="Innotel Labs">
   <meta property="og:description" content="Applied AI, learning platforms, and the systems behind them.">
   <meta property="og:type" content="website">
@@ -99,6 +99,7 @@
     .product p { color: var(--ink-soft); font-size: 14.5px; max-width: 62ch; }
     .product .status { font-size: 12px; font-weight: 660; letter-spacing: 0.08em; text-transform: uppercase; color: var(--brand); white-space: nowrap; }
     .product a { text-decoration: none; font-weight: 660; font-size: 14px; white-space: nowrap; }
+    .product .links { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
     .prototypes { margin-top: 38px; padding-top: 28px; border-top: 1px solid var(--line); }
     .prototypes .proto-head { display: grid; grid-template-columns: 200px 1fr; gap: 28px; align-items: baseline; padding-bottom: 6px; }
     .proto-head .eyebrow { margin: 0; }
@@ -175,7 +176,7 @@
         <div>
           <p class="eyebrow">Innotel Labs</p>
           <h1 id="hero-title">Applied AI, built for the <em>work that matters.</em></h1>
-          <p class="lede">We design, build and operate the products and platforms that put artificial intelligence to work — a university, an operations stack, and the quiet infrastructure that keeps both honest.</p>
+          <p class="lede">We design, build and operate the products and platforms that put artificial intelligence to work — an institute, an operations stack, and the quiet infrastructure that keeps both honest.</p>
           <div class="cta">
             <a class="ot-btn ot-btn--primary" href="#products">See what we run</a>
             <a class="ot-btn ot-btn--quiet" href="#contact">Start a conversation</a>
@@ -240,7 +241,7 @@
             <p class="eyebrow">Products</p>
             <h2 id="products-title">Everything we run, and what is next.</h2>
           </div>
-          <p>Most of these are live services with real learners, real numbers and an on-call rotation behind them. The rest are open source with their source and their limits written down beside them — Warden, Cantus and the prototypes below ship from GitHub, and their README says what is not built yet.</p>
+          <p>Most of these are live services with real learners, real numbers and an on-call rotation behind them. The rest are open source with their source and their limits written down beside them — Warden, Cantus, Mintmark and the prototypes below ship from GitHub, and their README says what is not built yet.</p>
         </div>
 
         <div class="product">
@@ -250,8 +251,12 @@
         </div>
         <div class="product">
           <h3>AthenIQ</h3>
-          <p>Our university and its learning platform. Online bachelor’s and associate degrees in business, criminal justice and nursing, taught in small AI-native classrooms with faculty assessment and a signed, verifiable credential — and the Open edX platform underneath it, with an authored catalog and live AI classrooms. The Spring 2027 cohort is open, with early access to coursework now.</p>
-          <a href="https://atheniq.institute/">atheniq.institute →</a>
+          <p>Our institute and its learning platform. Online bachelor’s and associate degrees in business, criminal justice and nursing, taught in small AI-native classrooms with faculty assessment and a signed, verifiable credential — and the Open edX platform underneath it, with an authored catalog and live AI classrooms. The Spring 2027 cohort is open, with early access to coursework now. The <b>AthenIQ Learning</b> app for iPhone and iPad is approved and released on the App Store; the platform is also the browser at atheniq.courses.</p>
+          <div class="links">
+            <a href="https://apps.apple.com/app/id6835960485">App Store →</a>
+            <a href="https://atheniq.institute/">atheniq.institute →</a>
+            <span class="status">Live</span>
+          </div>
         </div>
         <div class="product">
           <h3>Cerulean</h3>
@@ -308,6 +313,16 @@
           <p>A browser agent console for building with AI: describe the change, watch it work in a real browser, and keep the preview on your own subdomain. Genie runs on Distro’s tenancy and our own gateway, so every model call is metered and capped.</p>
           <a href="https://genie.innotel.us/">genie.innotel.us →</a>
         </div>
+        <div class="product">
+          <h3>Mintmark</h3>
+          <p>Coin appraisal from one photograph: what the coin is, a Sheldon 1–70 grade and a collector-market value range in USD, with the drivers behind the number, the visible red flags and what to photograph next. No account, no sign-in, no in-app purchase — a collection is keyed to an anonymous id and the vision key never leaves the server. Free on the App Store as <b>Mintmark Appraisal</b>, in the browser at mint.innotel.tech, and MIT-licensed at github.com/innotelinc/mintmark. It is built never to flatter a coin: ranges widen when the model is unsure and a worn common coin comes back worth cents — not a professional grading, and not an offer to buy.</p>
+          <div class="links">
+            <a href="https://apps.apple.com/us/app/mintmark-appraisal/id6834939837">App Store →</a>
+            <a href="https://mint.innotel.tech/">mint.innotel.tech →</a>
+            <a href="https://github.com/innotelinc/mintmark">github.com/innotelinc/mintmark →</a>
+            <span class="status">Live</span>
+          </div>
+        </div>
         <div class="prototypes" id="prototypes">
           <div class="proto-head">
             <p class="eyebrow">Prototype listing</p>
@@ -321,17 +336,13 @@
           </div>
           <div class="product">
             <h3>Sage</h3>
-            <p>A course-taking agent that sits in the lecture rather than beside it: it listens to the room, watches the screen, the board or a mirrored phone, reads the material it was given, and answers quizzes, tests and essays in the learner’s own register — with the working and the confidence that earn the mark. Three layers shape every reply: a formed student voice, your settings, and memory it wrote itself between classes. Self-hosted on plain Node with no dependencies, installable to a phone, and driven by our own gateway. iOS still will not let a web page capture another app, so screen mirroring and the relay are written down rather than pretended away. Sold as timed gateway sessions rather than a seat — see the subscription page.</p>
-            <a href="https://sage.innotel.tech/">sage.innotel.tech →</a>
-            <a href="https://subscribe.innotel.us/sage">Sessions →</a>
-            <span class="status">Prototype</span>
-          </div>
-          <div class="product">
-            <h3>CourseMate</h3>
-            <p>Studying inside whatever course you are already in: an iOS app plus a ReplayKit broadcast extension, the only route iOS allows to read another app's screen. It keeps receiving frames and audio from a web LMS, a native course app or a lecture in Safari while you switch away; a perceptual hash drops unchanged screens, so a static slide costs one vision call rather than one a second, and audio is sent as 16-bit mono WAV every twelve seconds. Answers arrive as cards, as a Live Activity in the Dynamic Island and as best-effort notifications, and grading a reply right or wrong becomes a lesson the next similar screen is answered from. The server is plain Node on our own gateway. Broadcasts need a device, CI proves the project graph rather than delivery, and push stays off until an APNs key is set — the README lists each limit.</p>
-            <a href="https://coursemate.innotel.tech/">coursemate.innotel.tech →</a>
-            <a href="https://innotelinc.github.io/coursemate-ios/">iOS app →</a>
-            <span class="status">Prototype</span>
+            <p>A course-taking agent that sits in the lecture rather than beside it: it listens to the room, watches the screen, the board or a mirrored phone, reads the material it was given, and answers quizzes, tests and essays in the learner’s own register — with the working and the confidence that earn the mark. Three layers shape every reply: a formed student voice, your settings, and memory it wrote itself between classes. Self-hosted on plain Node with no dependencies, installable to a phone, and driven by our own gateway. iOS still will not let a web page capture another app, so screen mirroring and the relay are written down rather than pretended away. Sold as timed gateway sessions rather than a seat — see the subscription page. The native iPhone build is finished and with Apple for review — pending, so there is no listing to link until it clears.</p>
+            <div class="links">
+              <a href="https://sage.innotel.tech/">sage.innotel.tech →</a>
+              <a href="https://subscribe.innotel.us/sage">Sessions →</a>
+              <a href="https://github.com/innotelinc/sage">github.com/innotelinc/sage →</a>
+              <span class="status">iOS in review</span>
+            </div>
           </div>
         </div>
       </div>
